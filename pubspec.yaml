@@ -1,0 +1,36 @@
+name: habitik
+description: "Habitik - App de gamificación familiar para hábitos sostenibles"
+publish_to: 'none'
+version: 26.0.0
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI & Animation
+  cupertino_icons: ^1.0.8
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  confetti: ^0.8.0
+  flame: ^1.18.0
+
+  # Utils
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/audio/
+    - lib/features/challenges/games/eco_puzzle/images/
