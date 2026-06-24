@@ -19,6 +19,6 @@ export class ShowerRepository {
        ORDER BY created_at DESC`,
       [userId]
     );
-    return res.rows[0];
+    return res.rows;
   }
 }
