@@ -1,6 +1,6 @@
 -- ============================================================
--- Habitik: Esquema Completo para PostgreSQL (Compatible con Postgres 13+)
--- Utiliza gen_random_uuid() nativo para evitar errores de permisos
+-- Habitik: Esquema Completo para PostgreSQL (Sprint 1)
+-- Compatible con Postgres 13+ (usa gen_random_uuid() nativo)
 -- ============================================================
 
 -- 1. Tabla de Usuarios (Credenciales y Seguridad)
@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     trivia_correct_count INTEGER DEFAULT 0,
     trivia_last_updated VARCHAR(100),
     daily_bonus_claimed_at VARCHAR(100),
+    onboarding_answers JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -149,6 +150,15 @@ CREATE TABLE IF NOT EXISTS public.qr_tokens (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 12. Tabla de Registro de Ducha (Sprint 1)
+CREATE TABLE IF NOT EXISTS public.shower_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    duracion_segundos INTEGER NOT NULL,
+    estado VARCHAR(50) NOT NULL, -- 'valido' | 'invalido'
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Creación de Índices para optimizar velocidad de consulta
 CREATE INDEX IF NOT EXISTS idx_profiles_family ON public.profiles(family_id);
 CREATE INDEX IF NOT EXISTS idx_evidences_family ON public.evidences(family_id);
@@ -159,3 +169,4 @@ CREATE INDEX IF NOT EXISTS idx_reto_validations_family_estado ON public.reto_val
 CREATE INDEX IF NOT EXISTS idx_achievements_user ON public.achievements(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_qr_tokens_token ON public.qr_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_shower_logs_user ON public.shower_logs(user_id);
