@@ -5,8 +5,7 @@ import 'session_service.dart';
 class ApiClient {
   // En emuladores Android, 'localhost' es '10.0.2.2'. Para simuladores iOS y Desktop es 'localhost'.
   // Para pruebas en celular físico o emulador con base de datos en la nube, apuntamos a producción en Railway:
-  static String baseUrl =
-      'https://project-habitik-production-f935.up.railway.app';
+  static String baseUrl = 'https://backendhabitik-production.up.railway.app';
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;

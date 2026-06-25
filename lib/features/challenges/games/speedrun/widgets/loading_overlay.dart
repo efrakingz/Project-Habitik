@@ -61,6 +61,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     ];
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         width: size.width,
         height: size.height,
@@ -139,47 +140,61 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
               );
             }),
 
-            // 2. Capa de espuma/suero en la parte inferior
+            // 2. Capa de espuma de burbujas responsiva en la parte inferior
             Positioned(
-              bottom: -40,
-              left: -50,
-              right: -50,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  // Capa trasera de espuma
-                  Container(
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .slideY(begin: 0.05, end: -0.05, duration: 2500.ms, curve: Curves.easeInOut),
-                  
-                  // Capa delantera de espuma
-                  Container(
-                    height: 140,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .slideY(begin: 0, end: -0.08, duration: 1800.ms, curve: Curves.easeInOut),
-                  
-                  // Capa ultra-delantera de espuma
-                  Container(
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(80),
-                    ),
-                  )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .slideY(begin: 0.03, end: -0.03, duration: 2000.ms, curve: Curves.easeInOut),
-                ],
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 140,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Base sólida de espuma
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 50,
+                          color: Colors.white.withValues(alpha: 0.75),
+                        ),
+                      ),
+                      // Burbuja 1 (Izquierda)
+                      Positioned(
+                        left: -35,
+                        bottom: 20,
+                        child: _buildBubble(100, 0.7, 2200.ms, -0.08),
+                      ),
+                      // Burbuja 2 (Centro-Izquierda)
+                      Positioned(
+                        left: width * 0.14,
+                        bottom: 25,
+                        child: _buildBubble(120, 0.8, 2500.ms, -0.06),
+                      ),
+                      // Burbuja 3 (Centro)
+                      Positioned(
+                        left: width * 0.40,
+                        bottom: 15,
+                        child: _buildBubble(90, 0.65, 2000.ms, -0.1),
+                      ),
+                      // Burbuja 4 (Centro-Derecha)
+                      Positioned(
+                        left: width * 0.60,
+                        bottom: 30,
+                        child: _buildBubble(130, 0.85, 2800.ms, -0.05),
+                      ),
+                      // Burbuja 5 (Derecha)
+                      Positioned(
+                        right: -35,
+                        bottom: 20,
+                        child: _buildBubble(110, 0.75, 2300.ms, -0.07),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -221,6 +236,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                     // Título creativo
                     Text(
                       "PREPARANDO BURBUJAS...",
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
                         color: const Color(0xFF0D47A1),
                         fontSize: 22,
@@ -317,5 +333,18 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
         ),
       ),
     );
+  }
+
+  Widget _buildBubble(double size, double opacity, Duration duration, double slideOffset) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: opacity),
+        shape: BoxShape.circle,
+      ),
+    )
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .slideY(begin: 0, end: slideOffset, duration: duration, curve: Curves.easeInOut);
   }
 }

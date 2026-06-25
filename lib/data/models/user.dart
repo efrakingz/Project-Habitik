@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class UserProfile {
   final String id;
   final String nombre;
@@ -58,7 +60,31 @@ class UserProfile {
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    final hasAnswers = json['onboarding_answers'] != null && json['onboarding_answers'].toString() != 'null';
+    final answers = json['onboarding_answers'];
+    bool hasValidAnswers = false;
+    if (answers != null && answers.toString() != 'null') {
+      if (answers is Map) {
+        hasValidAnswers = answers.isNotEmpty;
+      } else if (answers is String) {
+        final trimmed = answers.trim();
+        if (trimmed.isNotEmpty && trimmed != '{}' && trimmed != '[]') {
+          try {
+            final decoded = jsonDecode(trimmed);
+            if (decoded is Map) {
+              hasValidAnswers = decoded.isNotEmpty;
+            } else if (decoded is List) {
+              hasValidAnswers = decoded.isNotEmpty;
+            } else {
+              hasValidAnswers = true;
+            }
+          } catch (_) {
+            hasValidAnswers = true;
+          }
+        }
+      } else {
+        hasValidAnswers = true;
+      }
+    }
     final hasCompletedFlag = json['onboarding_completed'] == true || json['onboardingCompleted'] == true;
     return UserProfile(
       id: json['id'] ?? json['user_id'] ?? '',
@@ -72,7 +98,7 @@ class UserProfile {
       nivel: json['nivel'] ?? 1,
       monedas: json['monedas'] ?? 0,
       familyName: json['family_name'],
-      onboardingCompleted: hasAnswers || hasCompletedFlag,
+      onboardingCompleted: hasValidAnswers || hasCompletedFlag,
     );
   }
 

@@ -8,6 +8,7 @@ import 'widgets/confirmation_overlay.dart';
 import 'widgets/hud_overlay.dart';
 import 'widgets/victory_overlay.dart';
 import 'widgets/failure_overlay.dart';
+import 'widgets/exit_confirmation_dialog.dart';
 
 class SpeedrunScreen extends StatefulWidget {
   final VoidCallback? onChallengeCompleted;
@@ -65,20 +66,8 @@ class _SpeedrunScreenState extends State<SpeedrunScreen> {
         if (state == SpeedrunState.playing || state == SpeedrunState.preparing) {
           final confirm = await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text("¿Seguro quieres salir?"),
-              content: const Text("Se perderá tu progreso de la ducha."),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text("Cancelar"),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text("Salir"),
-                ),
-              ],
-            ),
+            barrierDismissible: true,
+            builder: (context) => const ExitConfirmationDialog(),
           );
           if (confirm == true && context.mounted) {
             Navigator.of(context).pop();
