@@ -53,7 +53,13 @@ export class UserRepository {
   }
 
   async getProfileById(id: string): Promise<Profile | null> {
-    const res = await query('SELECT * FROM public.profiles WHERE id = $1', [id]);
+    const sql = `
+      SELECT p.*, f.nombre AS family_name, f.family_code 
+      FROM public.profiles p 
+      LEFT JOIN public.families f ON p.family_id = f.id 
+      WHERE p.id = $1
+    `;
+    const res = await query(sql, [id]);
     if (res.rows.length === 0) return null;
     return res.rows[0];
   }
