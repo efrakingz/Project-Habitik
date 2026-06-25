@@ -5,8 +5,9 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
-import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onFinish;
@@ -45,9 +46,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _lucesEncendidas = 'A veces';
   String _reciclaje = 'A veces';
 
-  CameraController? _cameraController;
-  bool _isCameraInitialized = false;
   bool _hasCameraPermission = false;
+  bool _isScanning = true;
+  MobileScannerController? _scannerController;
 
   @override
   void initState() {
@@ -55,11 +56,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // Leer el rol de onboarding (local u obtenido de la BD)
     _rol = SessionService().getOnboardingRole();
     if (_rol == 'miembro') {
-      _checkPermissionAndInitCamera();
+      _checkPermission();
+      _scannerController = MobileScannerController(
+        detectionSpeed: DetectionSpeed.noDuplicates,
+        facing: CameraFacing.back,
+      );
     }
   }
 
-  Future<void> _checkPermissionAndInitCamera() async {
+  Future<void> _checkPermission() async {
     final status = await Permission.camera.request();
     if (status.isGranted) {
       if (mounted) {
@@ -67,35 +72,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _hasCameraPermission = true;
         });
       }
-      _initCamera();
     } else {
       if (mounted) {
         setState(() {
           _hasCameraPermission = false;
         });
       }
-    }
-  }
-
-  Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-
-      _cameraController = CameraController(
-        cameras.first,
-        ResolutionPreset.medium,
-        enableAudio: false,
-      );
-
-      await _cameraController!.initialize();
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error al inicializar cámara: $e');
     }
   }
 
@@ -107,7 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _empresaCtrl.dispose();
     _periodoCtrl.dispose();
     _inviteCodeCtrl.dispose();
-    _cameraController?.dispose();
+    _scannerController?.dispose();
     super.dispose();
   }
 
@@ -270,6 +252,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _next();
     } catch (e) {
       _showError(e.toString());
+      if (_rol == 'miembro') {
+        setState(() {
+          _isScanning = true;
+        });
+      }
     } finally {
       setState(() => _loading = false);
     }
@@ -727,10 +714,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Center(child: Icon(Icons.qr_code_2_rounded, size: 120, color: HabitikColors.green800)),
+            child: Center(
+              child: _inviteToken != null
+                  ? QrImageView(
+                      data: _inviteToken!,
+                      version: QrVersions.auto,
+                      size: 140,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: HabitikColors.green800,
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: HabitikColors.green800,
+                      ),
+                    )
+                  : const CircularProgressIndicator(color: HabitikColors.green800),
+            ),
           ),
         ),
 
@@ -774,13 +777,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             alignment: Alignment.center,
             children: [
               // Vista de Cámara Real o Solicitud de Permiso
-              if (_hasCameraPermission && _isCameraInitialized && _cameraController != null)
+              if (_hasCameraPermission && _scannerController != null)
                 Positioned.fill(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(HabitikRadius.md - 2),
-                    child: AspectRatio(
-                      aspectRatio: _cameraController!.value.aspectRatio,
-                      child: CameraPreview(_cameraController!),
+                    child: MobileScanner(
+                      controller: _scannerController!,
+                      onDetect: (capture) {
+                        if (!_isScanning) return;
+                        final List<Barcode> barcodes = capture.barcodes;
+                        for (final barcode in barcodes) {
+                          final code = barcode.rawValue;
+                          if (code != null && code.isNotEmpty) {
+                            setState(() {
+                              _isScanning = false;
+                            });
+                            _inviteCodeCtrl.text = code;
+                            _joinFamily();
+                            break;
+                          }
+                        }
+                      },
                     ),
                   ),
                 )
@@ -801,7 +818,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton(
-                            onPressed: _checkPermissionAndInitCamera,
+                            onPressed: _checkPermission,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: HabitikColors.green700,
                               foregroundColor: Colors.white,

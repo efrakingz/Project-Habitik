@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class ControlScreen extends StatefulWidget {
   const ControlScreen({super.key});
@@ -216,11 +217,25 @@ class _ControlScreenState extends State<ControlScreen> {
                           ),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Center(
-                              child: Icon(Icons.qr_code_2_rounded, size: 90, color: HabitikColors.green800),
+                            child: Center(
+                              child: _inviteToken != null
+                                  ? QrImageView(
+                                      data: _inviteToken!,
+                                      version: QrVersions.auto,
+                                      size: 110,
+                                      eyeStyle: const QrEyeStyle(
+                                        eyeShape: QrEyeShape.square,
+                                        color: HabitikColors.green800,
+                                      ),
+                                      dataModuleStyle: const QrDataModuleStyle(
+                                        dataModuleShape: QrDataModuleShape.square,
+                                        color: HabitikColors.green800,
+                                      ),
+                                    )
+                                  : const CircularProgressIndicator(color: HabitikColors.green800),
                             ),
                           ),
                         ),
