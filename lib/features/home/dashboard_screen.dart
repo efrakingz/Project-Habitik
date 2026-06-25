@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/core/navigation/app_router.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/features/notifications/notifications_screen.dart';
@@ -8,6 +9,7 @@ import 'package:habitik/features/profile/profile_screen.dart';
 import 'package:habitik/features/home/family_screen.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
+import 'package:habitik/core/services/session_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,7 +19,13 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _user = UserProfile.mock;
+  late final UserProfile _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = SessionService().currentUser ?? UserProfile.mock;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +35,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         bottom: false,
         child: ScreenShell(
           titulo: 'Este es tu muro familiar',
-          subtitulo: 'Aquí debe ir tu familia',
+          subtitulo: (_user.familyName != null && _user.familyName!.isNotEmpty)
+              ? 'Hogar: ${_user.familyName}'
+              : 'Aquí debe ir tu familia',
           headerLeft: GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -42,6 +52,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           headerActions: [
+            IconActionButton(
+              icon: Icons.logout_rounded,
+              onTap: () => RootRouter.logout(context),
+              bgColor: HabitikColors.orange500,
+            ),
+            const SizedBox(width: 8),
             IconActionButton(
               icon: Icons.notifications_outlined,
               onTap: () => Navigator.push(

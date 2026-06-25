@@ -25,10 +25,36 @@ class SessionService {
     required String token,
     required UserProfile profile,
   }) async {
+    UserProfile enriched = profile;
+    // Si el perfil trae familyName, guardarlo en caché por familyId
+    if (profile.familyName != null && profile.familyName!.isNotEmpty && profile.familyId != null) {
+      await _prefs?.setString('fam_name_${profile.familyId}', profile.familyName!);
+    } else if (profile.familyId != null && profile.familyId!.isNotEmpty) {
+      // Si falta familyName pero tenemos uno guardado (o usamos un fallback), enriquecer el perfil
+      final cachedName = _prefs?.getString('fam_name_${profile.familyId}') ?? 'Hogar Familiar';
+      enriched = profile.copyWith(familyName: cachedName);
+    }
+
+    if (enriched.onboardingCompleted) {
+      await setOnboardingCompleted(true);
+    }
+
     await _prefs?.setString('token_jwt', token);
-    await _prefs?.setString('user_profile', jsonEncode(profile.toJson()));
-    currentUserNotifier.value = profile;
+    await _prefs?.setString('user_profile', jsonEncode(enriched.toJson()));
+    currentUserNotifier.value = enriched;
   }
+
+  /// Guarda temporalmente email y contraseña para re-login silencioso al vincular familia.
+  Future<void> saveCredentials(String email, String pwd) async {
+    await _prefs?.setString('temp_email', email);
+    await _prefs?.setString('temp_pwd', pwd);
+  }
+
+  /// Lee el email temporal guardado.
+  String? get tempEmail => _prefs?.getString('temp_email');
+
+  /// Lee la contraseña temporal guardada.
+  String? get tempPwd => _prefs?.getString('temp_pwd');
 
   /// Carga la sesión desde la memoria local.
   Future<void> loadSession() async {
@@ -37,7 +63,12 @@ class SessionService {
     if (token != null && profileStr != null) {
       try {
         final profileMap = jsonDecode(profileStr) as Map<String, dynamic>;
-        currentUserNotifier.value = UserProfile.fromJson(profileMap);
+        var p = UserProfile.fromJson(profileMap);
+        if ((p.familyName == null || p.familyName!.isEmpty) && p.familyId != null) {
+          final cachedName = _prefs?.getString('fam_name_${p.familyId}') ?? 'Hogar Familiar';
+          p = p.copyWith(familyName: cachedName);
+        }
+        currentUserNotifier.value = p;
       } catch (e) {
         await clearSession();
       }
@@ -46,20 +77,23 @@ class SessionService {
     }
   }
 
-  /// Elimina los datos de sesión (Cerrar Sesión).
+  /// Elimina los datos de sesión activa (Cerrar Sesión) conservando el caché de preferencias por usuario.
   Future<void> clearSession() async {
     await _prefs?.remove('token_jwt');
     await _prefs?.remove('user_profile');
+    await _prefs?.remove('temp_email');
+    await _prefs?.remove('temp_pwd');
     currentUserNotifier.value = null;
   }
 
   /// Retorna verdadero si hay una sesión activa persistida.
   bool get hasSession => token != null && currentUser != null;
 
-  /// Retorna verdadero si el usuario ya completó el onboarding localmente.
+  /// Retorna verdadero si el usuario ya completó el onboarding localmente o en la base de datos.
   bool get isOnboardingCompleted {
     final userId = currentUser?.id;
     if (userId == null) return false;
+    if (currentUser?.onboardingCompleted == true) return true;
     return _prefs?.getBool('ob_completed_$userId') ?? false;
   }
 

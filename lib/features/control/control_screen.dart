@@ -209,13 +209,13 @@ class _ControlScreenState extends State<ControlScreen> {
                         )
                       else if (_inviteToken != null) ...[
                         Container(
-                          width: 220,
-                          height: 220,
-                          padding: const EdgeInsets.all(12),
+                          width: 200,
+                          height: 200,
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: HabitikColors.green500, width: 2),
+                            border: Border.all(color: HabitikColors.green600, width: 2.5),
                             boxShadow: HabitikShadows.card,
                           ),
                           child: QrImageView(
@@ -254,9 +254,31 @@ class _ControlScreenState extends State<ControlScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 10,
+                          runSpacing: 10,
                           children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: _inviteToken!));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('¡Código QR copiado al portapapeles! 📋✨'),
+                                    backgroundColor: HabitikColors.green700,
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.copy_rounded, size: 16),
+                              label: const Text('Copiar Código'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: HabitikColors.green700,
+                                foregroundColor: Colors.white,
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              ),
+                            ),
                             ElevatedButton.icon(
                               onPressed: () {
                                 final link = 'https://habitik.app/join?token=$_inviteToken';
@@ -264,12 +286,12 @@ class _ControlScreenState extends State<ControlScreen> {
                                 Clipboard.setData(ClipboardData(text: text));
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('¡Enlace de invitación copiado al portapapeles! 📋✨'),
+                                    content: Text('¡Enlace de invitación copiado! 🔗✨'),
                                     backgroundColor: HabitikColors.green700,
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.copy_rounded, size: 16),
+                              icon: const Icon(Icons.link_rounded, size: 16),
                               label: const Text('Copiar Enlace'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
@@ -282,26 +304,19 @@ class _ControlScreenState extends State<ControlScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               ),
                             ),
-                            const SizedBox(width: 12),
                             ElevatedButton.icon(
                               onPressed: () {
                                 final link = 'https://habitik.app/join?token=$_inviteToken';
                                 final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $_inviteToken';
-                                SharePlus.instance.share(
-                                  ShareParams(
-                                    text: text,
-                                  ),
-                                );
+                                SharePlus.instance.share(ShareParams(text: text));
                               },
                               icon: const Icon(Icons.share_rounded, size: 16),
                               label: const Text('Compartir'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: HabitikColors.green700,
-                                foregroundColor: Colors.white,
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                backgroundColor: Colors.grey.shade100,
+                                foregroundColor: HabitikColors.textDark,
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               ),
                             ),

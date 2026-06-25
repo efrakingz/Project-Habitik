@@ -69,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final profile = UserProfile.fromJson(data['profile']);
 
         await SessionService().saveSession(token: token, profile: profile);
+        await SessionService().saveCredentials(email, pwd);
         
         if (mounted) {
           widget.onLogin();
@@ -96,6 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final profile = UserProfile.fromJson(data['profile']);
 
         await SessionService().saveSession(token: token, profile: profile);
+        await SessionService().saveCredentials(email, pwd);
         await SessionService().setOnboardingRole(_selectedRole);
         
         if (mounted) {

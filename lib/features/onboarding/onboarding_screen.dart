@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:habitik/data/models/user.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onFinish;
@@ -24,6 +25,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late String _rol; // 'jefe' o 'miembro'
   bool _loading = false;
   String _loadingMessage = "";
+  Map<String, dynamic>? _mapaGastoEstimado;
 
   // Datos Jefe: Boleta / Consumo
   String _tipoBoleta = 'luz'; // 'luz' o 'agua'
@@ -46,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // Datos Miembro: Unirse a Hogar & Hábitos
   final _inviteCodeCtrl = TextEditingController();
   String _tiempoDucha = '5-10 min';
-  String _lucesEncendidas = 'A veces';
+  String _lucesEncendidas = '3-6 horas';
   String _reciclaje = 'A veces';
 
   bool _hasCameraPermission = false;
@@ -59,12 +61,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // Leer el rol de onboarding (local u obtenido de la BD)
     _rol = SessionService().getOnboardingRole();
     if (_rol == 'miembro') {
-      _checkPermission();
       _scannerController = MobileScannerController(
         detectionSpeed: DetectionSpeed.noDuplicates,
         facing: CameraFacing.back,
         formats: const [BarcodeFormat.qrCode],
       );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkPermission();
+      });
     }
   }
 
@@ -209,12 +213,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
-      await ApiClient().post('/onboarding', {
+      final response = await ApiClient().post('/onboarding', {
         'personasCount': _personasCount,
         'habitacionesCount': _habitacionesCount,
         'tipoCalefaccion': _tipoCalefaccion,
         'electrodomesticos': _electrodomesticos
       });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('mapa_gasto_estimado')) {
+          _mapaGastoEstimado = data['mapa_gasto_estimado'];
+        }
+      }
 
       await _next();
     } catch (e) {
@@ -263,14 +274,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final data = jsonDecode(response.body);
       final family = data['family'];
       
-      // Actualizar perfil local del usuario en la sesión
-      if (user != null) {
+      // Refrescar sesión en backend (nuevo JWT con rol 'miembro')
+      final email = SessionService().tempEmail;
+      final pwd = SessionService().tempPwd;
+      if (email != null && pwd != null) {
+        try {
+          final loginRes = await ApiClient().post('/auth/login', {
+            'email': email,
+            'password': pwd,
+          });
+          final loginData = jsonDecode(loginRes.body);
+          final newToken = loginData['token_jwt'];
+          final newProfile = UserProfile.fromJson(loginData['profile']).copyWith(
+            familyId: family['id'],
+            familyName: family['nombre'],
+            rol: 'miembro',
+          );
+          await SessionService().saveSession(token: newToken, profile: newProfile);
+        } catch (_) {
+          if (user != null) {
+            final updatedProfile = user.copyWith(
+              familyId: family['id'],
+              familyName: family['nombre'],
+              rol: 'miembro',
+            );
+            await SessionService().saveSession(token: SessionService().token ?? '', profile: updatedProfile);
+          }
+        }
+      } else if (user != null) {
         final updatedProfile = user.copyWith(
           familyId: family['id'],
           familyName: family['nombre'],
           rol: 'miembro',
         );
-        // Guardar sesión refrescando el perfil local
         await SessionService().saveSession(token: SessionService().token ?? '', profile: updatedProfile);
       }
 
@@ -303,8 +339,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_tiempoDucha == '> 15 min') tiempoDuchaMinutos = 18;
 
     int horasPantalla = 4;
-    if (_lucesEncendidas == 'Nunca') horasPantalla = 2;
-    if (_lucesEncendidas == 'Siempre') horasPantalla = 8;
+    if (_lucesEncendidas == '< 3 horas') horasPantalla = 2;
+    if (_lucesEncendidas == '> 6 horas') horasPantalla = 8;
 
     String reciclajeFreq = 'ocasional';
     if (_reciclaje == 'Nunca') reciclajeFreq = 'nunca';
@@ -395,6 +431,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               const SizedBox(width: 8),
                             ],
                             const Text('Habitik', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Cerrar Sesión'),
+                                    content: const Text('¿Estás seguro que deseas salir? Volverás a la pantalla de inicio de sesión.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        child: const Text('Salir', style: TextStyle(color: Colors.redAccent)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await SessionService().clearSession();
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.logout, color: Colors.white, size: 14),
+                                    SizedBox(width: 4),
+                                    Text('Salir', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -660,9 +737,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 4),
         _questionLabel('¿Cuál es el tipo de calefacción principal?'),
         const SizedBox(height: 8),
-        _chipList(['electrica', 'gas', 'lena', 'otra'], _tipoCalefaccion, (v) {
-          setState(() => _tipoCalefaccion = v);
-        }),
+        Wrap(
+          spacing: 8, runSpacing: 8,
+          children: [
+            {'id': 'electrica', 'label': '⚡ Eléctrica'},
+            {'id': 'gas', 'label': '🔥 Gas'},
+            {'id': 'lena', 'label': '🪵 Leña'},
+            {'id': 'otra', 'label': '🌿 Otra'},
+          ].map((item) {
+            final sel = _tipoCalefaccion == item['id'];
+            return GestureDetector(
+              onTap: () => setState(() => _tipoCalefaccion = item['id']!),
+              child: AnimatedContainer(
+                duration: 200.ms,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: sel ? HabitikColors.heroGreen : const LinearGradient(colors: [HabitikColors.green50, HabitikColors.green50]),
+                  borderRadius: HabitikRadius.md_,
+                  border: Border.all(color: sel ? HabitikColors.green600 : HabitikColors.divider),
+                ),
+                child: Text(item['label']!, style: TextStyle(color: sel ? Colors.white : HabitikColors.textDark, fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
+            );
+          }).toList(),
+        ),
         const SizedBox(height: 20),
 
         // Pregunta 4: Electrodomésticos
@@ -672,15 +770,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8, runSpacing: 8,
-          children: ['lavadora', 'secadora', 'lavavajillas', 'aire_acondicionado'].map((appliance) {
-            final selected = _electrodomesticos.contains(appliance);
+          children: [
+            {'id': 'lavadora', 'label': '🧺 Lavadora'},
+            {'id': 'secadora', 'label': '☀️ Secadora'},
+            {'id': 'lavavajillas', 'label': '🍽️ Lavavajillas'},
+            {'id': 'aire_acondicionado', 'label': '❄️ Aire Acondicionado'},
+          ].map((app) {
+            final selected = _electrodomesticos.contains(app['id']);
             return GestureDetector(
               onTap: () {
                 setState(() {
                   if (selected) {
-                    _electrodomesticos.remove(appliance);
+                    _electrodomesticos.remove(app['id']);
                   } else {
-                    _electrodomesticos.add(appliance);
+                    _electrodomesticos.add(app['id']!);
                   }
                 });
               },
@@ -688,16 +791,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 duration: 200.ms,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  gradient: selected
-                      ? HabitikColors.heroGreen
-                      : const LinearGradient(colors: [HabitikColors.green50, HabitikColors.green50]),
+                  gradient: selected ? HabitikColors.heroGreen : const LinearGradient(colors: [HabitikColors.green50, HabitikColors.green50]),
                   borderRadius: HabitikRadius.md_,
                   border: Border.all(color: selected ? HabitikColors.green600 : HabitikColors.divider),
                 ),
-                child: Text(
-                  appliance.replaceAll('_', ' ').toUpperCase(),
-                  style: TextStyle(color: selected ? Colors.white : HabitikColors.textDark, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
+                child: Text(app['label']!, style: TextStyle(color: selected ? Colors.white : HabitikColors.textDark, fontSize: 11, fontWeight: FontWeight.w600)),
               ),
             );
           }).toList(),
@@ -710,141 +808,149 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  // ── ONBOARDING JEFE: PASO 1 - Código QR Invitación ──────────────────────────────
+  // ── ONBOARDING JEFE: PASO Final - Resultados Horizontal Compacto sin Scroll ──────
   Widget _stepFinalJefe() {
+    final luzKwh = _mapaGastoEstimado?['baseline_luz_kwh'] ?? 230;
+    final aguaM3 = _mapaGastoEstimado?['baseline_agua_m3'] ?? 14.0;
+    final costoLuz = _mapaGastoEstimado?['costo_estimado_luz'] ?? 34500;
+    final costoAgua = _mapaGastoEstimado?['costo_estimado_agua'] ?? 16800;
+    final totalEstimado = _mapaGastoEstimado?['gasto_total_estimado'] ?? 51300;
+    final recs = (_mapaGastoEstimado?['recomendaciones'] as List?)?.map((e) => e.toString()).toList() ?? [
+      'Regula el termostato de tu calefacción eléctrica para optimizar el ahorro.'
+    ];
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 10),
-        Container(
-          width: 80, height: 80,
-          decoration: const BoxDecoration(color: HabitikColors.green100, shape: BoxShape.circle),
-          child: const Center(child: Icon(Icons.check_circle, color: HabitikColors.green700, size: 44)),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(color: HabitikColors.green100, shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle, color: HabitikColors.green700, size: 24),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('¡Hogar y Metas Configurados!', style: TextStyle(color: HabitikColors.textDark, fontSize: 17, fontWeight: FontWeight.w900)),
+                  Text('Mapa de gasto calculado. Invita a tu familia:', style: TextStyle(color: HabitikColors.textLight, fontSize: 11)),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
-        const Text('¡Hogar configurado!', style: TextStyle(color: HabitikColors.textDark, fontSize: 22, fontWeight: FontWeight.w900), textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        const Text('Tu baseline de consumo ha sido guardado. Comparte este código QR o código de texto con tu familia para que se unan a tu hogar.', style: TextStyle(color: HabitikColors.textLight, fontSize: 13, height: 1.4), textAlign: TextAlign.center),
-        
-        const SizedBox(height: 24),
-        
-        // QR Mockup
+        const SizedBox(height: 12),
+
+        // Sección 1: Mapa de Gasto (Horizontal en una sola fila)
+        const Text('🗺️ GASTO ESTIMADO DEL MES', style: TextStyle(color: HabitikColors.textDark, fontSize: 10.5, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(child: _miniResultCard('⚡ Luz ($luzKwh kWh)', '\$${_formatMoney(costoLuz)}', HabitikColors.amber500)),
+            const SizedBox(width: 6),
+            Expanded(child: _miniResultCard('💧 Agua ($aguaM3 m³)', '\$${_formatMoney(costoAgua)}', Colors.blueAccent)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(gradient: HabitikColors.heroGreen, borderRadius: BorderRadius.circular(8), boxShadow: HabitikShadows.card),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('TOTAL EST.', style: TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text('\$${_formatMoney(totalEstimado)}', style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w900)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
         Container(
-          width: 220, height: 220,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: HabitikColors.green500, width: 2),
-            boxShadow: HabitikShadows.card,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: HabitikColors.green50, borderRadius: BorderRadius.circular(8), border: Border.all(color: HabitikColors.green200)),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.tips_and_updates_rounded, color: HabitikColors.green700, size: 14),
+              const SizedBox(width: 6),
+              Expanded(child: Text(recs.first, style: const TextStyle(color: HabitikColors.textDark, fontSize: 10, height: 1.25), maxLines: 2, overflow: TextOverflow.ellipsis)),
+            ],
           ),
-          child: _inviteToken != null
-              ? QrImageView(
-                  data: 'https://habitik.app/join?token=$_inviteToken',
-                  version: QrVersions.auto,
-                  padding: EdgeInsets.zero,
-                  eyeStyle: const QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: Colors.black,
-                  ),
-                  dataModuleStyle: const QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: Colors.black,
-                  ),
-                )
-              : _qrError
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 36),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Error al obtener QR',
-                            style: TextStyle(color: HabitikColors.textDark, fontSize: 11, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: _generateInviteToken,
-                            icon: const Icon(Icons.refresh_rounded, size: 16, color: HabitikColors.green700),
-                            label: const Text('Reintentar', style: TextStyle(color: HabitikColors.green700, fontSize: 11, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    )
-                  : const Center(child: CircularProgressIndicator(color: HabitikColors.green800)),
         ),
 
         const SizedBox(height: 16),
 
-        if (_inviteToken != null) ...[
-          const Text('CÓDIGO DE INVITACIÓN:', style: TextStyle(color: HabitikColors.textLight, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-          const SizedBox(height: 4),
-          SelectableText(
-            _inviteToken!,
-            style: const TextStyle(color: HabitikColors.green800, fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-            textAlign: TextAlign.center,
+        // Sección 2: Código QR Centrado Abajo (Gran Tamaño y Destacado)
+        const Center(child: Text('🔗 CÓDIGO QR PARA TU FAMILIA (Invítalos a unirse)', style: TextStyle(color: HabitikColors.textDark, fontSize: 12, fontWeight: FontWeight.bold))),
+        const SizedBox(height: 8),
+        Center(
+          child: Container(
+            width: 200, height: 200,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: HabitikColors.green600, width: 2.5),
+              boxShadow: HabitikShadows.card,
+            ),
+            child: _inviteToken != null
+                ? QrImageView(data: 'https://habitik.app/join?token=$_inviteToken', version: QrVersions.auto, padding: EdgeInsets.zero)
+                : _qrError
+                    ? Center(child: IconButton(icon: const Icon(Icons.refresh, size: 24), onPressed: _generateInviteToken))
+                    : const Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 8),
+        if (_inviteToken != null) ...[
+          Center(child: Text('Código: $_inviteToken', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace'))),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  final link = 'https://habitik.app/join?token=$_inviteToken';
-                  final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $_inviteToken';
-                  Clipboard.setData(ClipboardData(text: text));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('¡Enlace de invitación copiado al portapapeles! 📋✨'),
-                      backgroundColor: HabitikColors.green700,
-                    ),
-                  );
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: 'https://habitik.app/join?token=$_inviteToken'));
+                  _showSuccess('Enlace copiado');
                 },
-                icon: const Icon(Icons.copy_rounded, size: 16),
-                label: const Text('Copiar Enlace'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: HabitikColors.green800,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: HabitikColors.green500, width: 1),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                ),
+                child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)), child: const Text('📋 Copiar Enlace', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () {
-                  final link = 'https://habitik.app/join?token=$_inviteToken';
-                  final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $_inviteToken';
-                  SharePlus.instance.share(
-                    ShareParams(
-                      text: text,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.share_rounded, size: 16),
-                label: const Text('Compartir'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: HabitikColors.green700,
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                ),
+              const SizedBox(width: 10),
+              InkWell(
+                onTap: () => SharePlus.instance.share(ShareParams(text: 'Únete a mi hogar en Habitik: https://habitik.app/join?token=$_inviteToken')),
+                child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: HabitikColors.green700, borderRadius: BorderRadius.circular(8)), child: const Text('📤 Compartir', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold))),
               ),
             ],
           ),
         ],
 
-        const SizedBox(height: 32),
-        PrimaryButton(label: '¡Empezar ahora!', onTap: _next, icon: Icons.play_arrow_rounded),
+        const SizedBox(height: 18),
+        PrimaryButton(label: 'Continuar a la aplicación 🚀', onTap: _next, icon: Icons.arrow_forward_rounded),
       ],
     );
+  }
+
+  Widget _miniResultCard(String title, String monto, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200), boxShadow: HabitikShadows.card),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(color: color, fontSize: 9.5, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(monto, style: const TextStyle(color: HabitikColors.textDark, fontSize: 12.5, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+
+  String _formatMoney(num val) {
+    return val.round().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
   // ── ONBOARDING MIEMBRO: PASO 0 - Unirse a Hogar (Scanner QR / Código) ────────────────
@@ -1030,11 +1136,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 20),
 
         // Pregunta 2
-        _questionCat('⚡ Luz'),
+        _questionCat('📱 Pantallas'),
         const SizedBox(height: 4),
-        _questionLabel('¿Dejas las luces encendidas en habitaciones vacías?'),
+        _questionLabel('¿Cuántas horas al día utilizas pantallas (TV, celular, PC)?'),
         const SizedBox(height: 8),
-        _chipList(['Nunca', 'A veces', 'Siempre'], _lucesEncendidas, (v) => setState(() => _lucesEncendidas = v)),
+        _chipList(['< 3 horas', '3-6 horas', '> 6 horas'], _lucesEncendidas, (v) => setState(() => _lucesEncendidas = v)),
         const SizedBox(height: 20),
 
         // Pregunta 3

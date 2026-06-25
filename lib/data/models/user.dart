@@ -10,6 +10,7 @@ class UserProfile {
   final int nivel;
   final int monedas;
   final String? familyName;
+  final bool onboardingCompleted;
 
   const UserProfile({
     this.id = '',
@@ -23,6 +24,7 @@ class UserProfile {
     this.nivel = 1,
     this.monedas = 0,
     this.familyName,
+    this.onboardingCompleted = false,
   });
 
   UserProfile copyWith({
@@ -37,6 +39,7 @@ class UserProfile {
     int? nivel,
     int? monedas,
     String? familyName,
+    bool? onboardingCompleted,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -50,10 +53,13 @@ class UserProfile {
       nivel: nivel ?? this.nivel,
       monedas: monedas ?? this.monedas,
       familyName: familyName ?? this.familyName,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final hasAnswers = json['onboarding_answers'] != null && json['onboarding_answers'].toString() != 'null';
+    final hasCompletedFlag = json['onboarding_completed'] == true || json['onboardingCompleted'] == true;
     return UserProfile(
       id: json['id'] ?? json['user_id'] ?? '',
       nombre: json['nombre'] ?? '',
@@ -66,6 +72,7 @@ class UserProfile {
       nivel: json['nivel'] ?? 1,
       monedas: json['monedas'] ?? 0,
       familyName: json['family_name'],
+      onboardingCompleted: hasAnswers || hasCompletedFlag,
     );
   }
 
@@ -82,6 +89,7 @@ class UserProfile {
       'nivel': nivel,
       'monedas': monedas,
       'family_name': familyName,
+      'onboarding_completed': onboardingCompleted,
     };
   }
 
@@ -96,6 +104,7 @@ class UserProfile {
     nivel: 3,
     monedas: 42,
     familyName: 'Familia Torres',
+    onboardingCompleted: true,
   );
 
   static UserProfile get mockJefe => const UserProfile(
@@ -109,5 +118,6 @@ class UserProfile {
     nivel: 5,
     monedas: 80,
     familyName: 'Familia Torres',
+    onboardingCompleted: true,
   );
 }

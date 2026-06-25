@@ -12,6 +12,10 @@ enum AppState { splash, login, onboarding, home }
 class RootRouter extends StatefulWidget {
   const RootRouter({super.key});
 
+  static void logout(BuildContext context) {
+    SessionService().clearSession();
+  }
+
   @override
   State<RootRouter> createState() => _RootRouterState();
 }
