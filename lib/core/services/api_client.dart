@@ -5,7 +5,8 @@ import 'session_service.dart';
 class ApiClient {
   // En emuladores Android, 'localhost' es '10.0.2.2'. Para simuladores iOS y Desktop es 'localhost'.
   // Para pruebas en celular físico o emulador con base de datos en la nube, apuntamos a producción en Railway:
-  static String baseUrl = 'https://project-habitik-production.up.railway.app';
+  static String baseUrl =
+      'https://project-habitik-production-f935.up.railway.app';
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -37,7 +38,11 @@ class ApiClient {
   }
 
   /// Realiza una petición POST
-  Future<http.Response> post(String path, Map<String, dynamic> body, {String? token}) async {
+  Future<http.Response> post(
+    String path,
+    Map<String, dynamic> body, {
+    String? token,
+  }) async {
     final url = Uri.parse('$baseUrl$path');
     try {
       final response = await http.post(
@@ -71,7 +76,7 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response;
     }
-    
+
     // Decodificar mensaje de error si está en formato JSON
     String errorMsg = 'Error en la solicitud (${response.statusCode})';
     try {
