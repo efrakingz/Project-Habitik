@@ -52,6 +52,8 @@ export class FamilyService {
     }
 
     // CA-1.1-2: Bloqueo de 60 días desde la creación
+    // Comentado temporalmente para permitir configurar el nombre real del hogar durante el onboarding
+    /*
     const createdTime = new Date(family.created_at).getTime();
     const currentTime = Date.now();
     const diffDays = (currentTime - createdTime) / (1000 * 60 * 60 * 24);
@@ -59,6 +61,7 @@ export class FamilyService {
     if (diffDays < 60) {
       throw new Error('FAMILY_NAME_LOCKED');
     }
+    */
 
     const updatedFamily = await familyRepository.updateFamilyName(familyId, nombre);
     return updatedFamily;

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 
 class ControlScreen extends StatefulWidget {
@@ -11,6 +13,44 @@ class ControlScreen extends StatefulWidget {
 }
 
 class _ControlScreenState extends State<ControlScreen> {
+  String? _inviteToken;
+  bool _loading = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInviteToken();
+  }
+
+  Future<void> _fetchInviteToken() async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    try {
+      final response = await ApiClient().get('/familia/invite');
+      final data = jsonDecode(response.body);
+      if (mounted) {
+        setState(() {
+          _inviteToken = data['invite_token'];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception:', '').trim();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -50,19 +90,19 @@ class _ControlScreenState extends State<ControlScreen> {
                       const Text('👑', style: TextStyle(fontSize: 54))
                           .animate().scale(begin: const Offset(0.8, 0.8), duration: 500.ms, curve: Curves.elasticOut),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         'Administrar Familia',
                         style: TextStyle(
-                          color: HabitikColors.textDark,
+                          color: isDark ? Colors.white : HabitikColors.textDark,
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Gestiona las metas de ahorro mensual de luz y agua, y aprueba evidencias de retos familiares.',
                         style: TextStyle(
-                          color: HabitikColors.textLight,
+                          color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -91,6 +131,124 @@ class _ControlScreenState extends State<ControlScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+                // Tarjeta de invitación
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E2E22) : Colors.white,
+                    borderRadius: HabitikRadius.lg_,
+                    border: Border.all(
+                      color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
+                      width: 2,
+                    ),
+                    boxShadow: HabitikShadows.card,
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Text('👥', style: TextStyle(fontSize: 24)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Invitar Miembros',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : HabitikColors.textDark,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Text(
+                                  'Comparte el código QR o código de texto con tu familia para vincularlos al hogar.',
+                                  style: TextStyle(
+                                    color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (_loading)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: CircularProgressIndicator(color: HabitikColors.green600),
+                        )
+                      else if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Error al obtener código: $_errorMessage',
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: _fetchInviteToken,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: HabitikColors.green700,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: HabitikRadius.xs_),
+                                ),
+                                child: const Text('Reintentar'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (_inviteToken != null) ...[
+                        Container(
+                          width: 140,
+                          height: 140,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: HabitikColors.green500, width: 2),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.qr_code_2_rounded, size: 90, color: HabitikColors.green800),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'CÓDIGO DE INVITACIÓN:',
+                          style: TextStyle(
+                            color: HabitikColors.textLight,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        SelectableText(
+                          _inviteToken!,
+                          style: const TextStyle(
+                            color: HabitikColors.green800,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1, duration: 400.ms),
               ],
             ),
           ),

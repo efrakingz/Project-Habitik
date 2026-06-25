@@ -25,6 +25,66 @@ class UserProfile {
     this.familyName,
   });
 
+  UserProfile copyWith({
+    String? id,
+    String? nombre,
+    String? avatarLetra,
+    String? avatarColor,
+    String? avatarUrl,
+    String? rol,
+    String? familyId,
+    int? xp,
+    int? nivel,
+    int? monedas,
+    String? familyName,
+  }) {
+    return UserProfile(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      avatarLetra: avatarLetra ?? this.avatarLetra,
+      avatarColor: avatarColor ?? this.avatarColor,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      rol: rol ?? this.rol,
+      familyId: familyId ?? this.familyId,
+      xp: xp ?? this.xp,
+      nivel: nivel ?? this.nivel,
+      monedas: monedas ?? this.monedas,
+      familyName: familyName ?? this.familyName,
+    );
+  }
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      id: json['id'] ?? json['user_id'] ?? '',
+      nombre: json['nombre'] ?? '',
+      avatarLetra: json['avatar_letra'] ?? 'U',
+      avatarColor: json['avatar_color'] ?? '#43A047',
+      avatarUrl: json['avatar_url'],
+      rol: json['rol'] ?? 'miembro',
+      familyId: json['family_id'],
+      xp: json['xp'] ?? 0,
+      nivel: json['nivel'] ?? 1,
+      monedas: json['monedas'] ?? 0,
+      familyName: json['family_name'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'avatar_letra': avatarLetra,
+      'avatar_color': avatarColor,
+      'avatar_url': avatarUrl,
+      'rol': rol,
+      'family_id': familyId,
+      'xp': xp,
+      'nivel': nivel,
+      'monedas': monedas,
+      'family_name': familyName,
+    };
+  }
+
   static UserProfile get mock => const UserProfile(
     id: 'mock-user-1',
     nombre: 'Sofía Torres',
