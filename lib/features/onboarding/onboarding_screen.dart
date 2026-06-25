@@ -5,6 +5,8 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -33,6 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   
   bool _isOcrReading = false;
   String? _inviteToken;
+  bool _qrError = false;
 
   // Datos Jefe: Cuestionario del Hogar
   int _personasCount = 4;
@@ -60,6 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _scannerController = MobileScannerController(
         detectionSpeed: DetectionSpeed.noDuplicates,
         facing: CameraFacing.back,
+        formats: const [BarcodeFormat.qrCode],
       );
     }
   }
@@ -95,12 +99,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int get _totalSteps => 3;
 
-  void _next() async {
+  Future<void> _next() async {
     if (_step < _totalSteps - 1) {
       setState(() => _step++);
       if (_rol == 'jefe' && _step == 2) {
         // Al entrar al paso final del Jefe (paso 2), generar el QR de invitación
-        _generateInviteToken();
+        await _generateInviteToken();
       }
     } else {
       await SessionService().setOnboardingCompleted(true);
@@ -119,6 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // Genera el QR de invitación desde el backend
   Future<void> _generateInviteToken() async {
     setState(() {
+      _qrError = false;
       _loading = true;
       _loadingMessage = "Generando código de invitación...";
     });
@@ -127,8 +132,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final data = jsonDecode(response.body);
       setState(() {
         _inviteToken = data['invite_token'];
+        _qrError = false;
       });
     } catch (e) {
+      setState(() {
+        _qrError = true;
+      });
       _showError('No se pudo generar el token de invitación: $e');
     } finally {
       setState(() => _loading = false);
@@ -193,6 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // Envía el consumo y cuestionario de Jefe al backend
   Future<void> _submitJefeOnboarding() async {
+    FocusScope.of(context).unfocus();
     setState(() {
       _loading = true;
       _loadingMessage = "Calculando consumo baseline del hogar...";
@@ -206,7 +216,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'electrodomesticos': _electrodomesticos
       });
 
-      _next();
+      await _next();
     } catch (e) {
       _showError('Error al guardar onboarding: $e');
     } finally {
@@ -216,10 +226,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // Une al miembro a la familia por invite_token
   Future<void> _joinFamily() async {
-    final code = _inviteCodeCtrl.text.trim();
-    if (code.isEmpty) {
+    FocusScope.of(context).unfocus();
+    String token = _inviteCodeCtrl.text.trim();
+    if (token.isEmpty) {
       _showError('Por favor ingresa el código de invitación.');
       return;
+    }
+
+    // Extraer token si ingresaron un enlace completo
+    if (token.contains('token=')) {
+      final uri = Uri.tryParse(token);
+      if (uri != null && uri.queryParameters.containsKey('token')) {
+        token = uri.queryParameters['token']!;
+      } else {
+        final parts = token.split('token=');
+        if (parts.length > 1) {
+          token = parts[1].split('&')[0];
+        }
+      }
+      // Actualizar el controlador con el token limpio
+      _inviteCodeCtrl.text = token;
     }
 
     setState(() {
@@ -230,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final user = SessionService().currentUser;
       final response = await ApiClient().post('/familia/join', {
-        'invite_token': code,
+        'invite_token': token,
         'user_id': user?.id ?? '',
       });
 
@@ -264,6 +290,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // Envía hábitos de Miembro al backend
   Future<void> _submitMiembroOnboarding() async {
+    FocusScope.of(context).unfocus();
     setState(() {
       _loading = true;
       _loadingMessage = "Registrando tus hábitos...";
@@ -290,15 +317,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'frecuenciaReciclaje': reciclajeFreq
       });
 
-      _next();
+      await _next();
     } catch (e) {
       _showError('Error al guardar hábitos: $e');
     } finally {
       setState(() => _loading = false);
     }
-  }
-
-  // Obtiene sugerencia dinámica de juego
+  }  // Obtiene sugerencia dinámica de juego
   String get _juegoSugerido {
     if (_tiempoDucha == '10-15 min' || _tiempoDucha == '> 15 min') {
       return 'ducha';
@@ -704,7 +729,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         
         // QR Mockup
         Container(
-          width: 180, height: 180,
+          width: 220, height: 220,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -712,29 +737,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             border: Border.all(color: HabitikColors.green500, width: 2),
             boxShadow: HabitikShadows.card,
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: _inviteToken != null
-                  ? QrImageView(
-                      data: _inviteToken!,
-                      version: QrVersions.auto,
-                      size: 140,
-                      eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: HabitikColors.green800,
-                      ),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
-                        color: HabitikColors.green800,
+          child: _inviteToken != null
+              ? QrImageView(
+                  data: 'https://habitik.app/join?token=$_inviteToken',
+                  version: QrVersions.auto,
+                  padding: EdgeInsets.zero,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Colors.black,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Colors.black,
+                  ),
+                )
+              : _qrError
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 36),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Error al obtener QR',
+                            style: TextStyle(color: HabitikColors.textDark, fontSize: 11, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _generateInviteToken,
+                            icon: const Icon(Icons.refresh_rounded, size: 16, color: HabitikColors.green700),
+                            label: const Text('Reintentar', style: TextStyle(color: HabitikColors.green700, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
                     )
-                  : const CircularProgressIndicator(color: HabitikColors.green800),
-            ),
-          ),
+                  : const Center(child: CircularProgressIndicator(color: HabitikColors.green800)),
         ),
 
         const SizedBox(height: 16),
@@ -746,6 +784,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             _inviteToken!,
             style: const TextStyle(color: HabitikColors.green800, fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  final link = 'https://habitik.app/join?token=$_inviteToken';
+                  final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $_inviteToken';
+                  Clipboard.setData(ClipboardData(text: text));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('¡Enlace de invitación copiado al portapapeles! 📋✨'),
+                      backgroundColor: HabitikColors.green700,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.copy_rounded, size: 16),
+                label: const Text('Copiar Enlace'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: HabitikColors.green800,
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: HabitikColors.green500, width: 1),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  final link = 'https://habitik.app/join?token=$_inviteToken';
+                  final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $_inviteToken';
+                  SharePlus.instance.share(
+                    ShareParams(
+                      text: text,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.share_rounded, size: 16),
+                label: const Text('Compartir'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: HabitikColors.green700,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+            ],
           ),
         ],
 
@@ -766,7 +858,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // Visor de Cámara QR Estilo Escáner Profesional
         Container(
           width: double.infinity,
-          height: 220,
+          height: 300,
           decoration: BoxDecoration(
             color: const Color(0xFF0F1E15),
             borderRadius: HabitikRadius.md_,
@@ -789,10 +881,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         for (final barcode in barcodes) {
                           final code = barcode.rawValue;
                           if (code != null && code.isNotEmpty) {
+                            String token = code.trim();
+                            // Extraer token si es una URL completa
+                            if (token.contains('token=')) {
+                              final uri = Uri.tryParse(token);
+                              if (uri != null && uri.queryParameters.containsKey('token')) {
+                                token = uri.queryParameters['token']!;
+                              } else {
+                                final parts = token.split('token=');
+                                if (parts.length > 1) {
+                                  token = parts[1].split('&')[0];
+                                }
+                              }
+                            }
                             setState(() {
                               _isScanning = false;
                             });
-                            _inviteCodeCtrl.text = code;
+                            _inviteCodeCtrl.text = token;
                             _joinFamily();
                             break;
                           }
@@ -860,8 +965,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               // Cuadro de enfoque del escáner
               Container(
-                width: 130,
-                height: 130,
+                width: 180,
+                height: 180,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.white, width: 2),
                   borderRadius: BorderRadius.circular(12),
@@ -871,7 +976,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     // Línea láser roja de escaneo dentro del cuadro
                     Center(
                       child: Container(
-                        width: 110,
+                        width: 160,
                         height: 3,
                         decoration: BoxDecoration(
                           color: Colors.redAccent,
@@ -880,7 +985,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ],
                         ),
                       ).animate(onPlay: (c) => c.repeat(reverse: true))
-                       .slideY(begin: -20, end: 20, duration: 1200.ms),
+                       .slideY(begin: -28, end: 28, duration: 1200.ms),
                     ),
                   ],
                 ),
