@@ -169,6 +169,7 @@ Widget buildScreenHeader({
       children: [
         if (headerLeft != null) ...[
           headerLeft,
+          const SizedBox(width: 12),
         ] else if (Navigator.canPop(context)) ...[
           GestureDetector(
             onTap: () => Navigator.pop(context),

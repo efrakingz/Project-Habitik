@@ -33,4 +33,4 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
-    - lib/features/challenges/games/eco_puzzle/images/
+

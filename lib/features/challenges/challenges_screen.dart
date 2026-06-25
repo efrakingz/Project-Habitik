@@ -4,6 +4,8 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/interactive_backgrounds/retos_plaza_background.dart';
+import 'package:habitik/shared/widgets/cards/cards.dart';
+import 'package:habitik/features/challenges/games/speedrun/speedrun.dart';
 
 class ChallengesScreen extends StatefulWidget {
   final void Function(bool)? onGameModeChanged;
@@ -14,7 +16,7 @@ class ChallengesScreen extends StatefulWidget {
 }
 
 class _ChallengesScreenState extends State<ChallengesScreen> {
-  final _challenges = ChallengeType.allChallenges.where((c) => c.id != 'pesca').toList();
+  final _challenges = ChallengeType.allChallenges.where((c) => c.id != 'pesca' && c.id != 'sopa').toList();
   final ValueNotifier<Set<String>> _completedNotifier = ValueNotifier({});
   final ValueNotifier<double> _scrollOffsetNotifier = ValueNotifier(0.0);
   
@@ -120,7 +122,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                             ),
                             const SizedBox(height: 20),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () => _showChallengesBottomSheet(context),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                 decoration: BoxDecoration(
@@ -149,6 +151,123 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showChallengesBottomSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141F17) : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(32),
+              topRight: Radius.circular(32),
+            ),
+            border: Border.all(
+              color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Barra de arrastre superior
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Título
+              Text(
+                "Eco-Desafíos Diarios",
+                style: TextStyle(
+                  color: isDark ? Colors.white : HabitikColors.textDark,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Completa los juegos para consolidar tus hábitos ecológicos.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : HabitikColors.textLight,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Grid de cartas de desafíos
+              ValueListenableBuilder<Set<String>>(
+                valueListenable: _completedNotifier,
+                builder: (context, completedSet, child) {
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.72,
+                    ),
+                    itemCount: _challenges.length,
+                    itemBuilder: (context, index) {
+                      final challenge = _challenges[index];
+                      final isCompleted = completedSet.contains(challenge.id);
+                      
+                      return ChallengeCard(
+                        challenge: challenge,
+                        completed: isCompleted,
+                        selected: challenge.id == 'ducha',
+                        onTap: () {
+                          if (challenge.id == 'ducha') {
+                            Navigator.pop(context); // Cerrar bottom sheet
+                            Navigator.push(
+                              context,
+                              FadePageRoute(
+                                child: SpeedrunScreen(
+                                  onChallengeCompleted: () {
+                                    _completedNotifier.value = Set.from(_completedNotifier.value)..add('ducha');
+                                  },
+                                  onGameModeChanged: widget.onGameModeChanged,
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "¡El mini-juego '${challenge.titulo}' estará disponible pronto! Juega a 'Speedrun Ducha' mientras tanto.",
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                backgroundColor: HabitikColors.green700,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }

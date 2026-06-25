@@ -31,7 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           headerLeft: GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const FamilyScreen()),
+              FadePageRoute(child: const FamilyScreen()),
             ),
             child: UserAvatar(
               letra: (_user.familyName ?? 'F').isNotEmpty
@@ -46,9 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.notifications_outlined,
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
+                FadePageRoute(child: const NotificationsScreen()),
               ),
               hasBadge: true,
             ),
@@ -56,7 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                FadePageRoute(child: const ProfileScreen()),
               ),
               child: UserAvatar(
                 letra: _user.avatarLetra,
