@@ -19,6 +19,19 @@ class FamilyMember {
     this.avatarUrl,
   });
 
+  factory FamilyMember.fromJson(Map<String, dynamic> json) {
+    return FamilyMember(
+      id: json['id'] ?? '',
+      nombre: json['nombre'] ?? '',
+      rol: json['rol'] ?? 'miembro',
+      xp: json['xp'] ?? 0,
+      nivel: json['nivel'] ?? 1,
+      avatarLetra: json['avatar_letra'] ?? 'U',
+      avatarColor: json['avatar_color'] ?? '#43A047',
+      avatarUrl: json['avatar_url'],
+    );
+  }
+
   static List<FamilyMember> get mockList => const [
     FamilyMember(
       id: '1',

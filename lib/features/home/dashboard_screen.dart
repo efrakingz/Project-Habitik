@@ -34,7 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: SafeArea(
         bottom: false,
         child: ScreenShell(
-          titulo: 'Este es tu muro familiar',
+          titulo: 'Muro Familiar',
           subtitulo: (_user.familyName != null && _user.familyName!.isNotEmpty)
               ? 'Hogar: ${_user.familyName}'
               : 'Aquí debe ir tu familia',
@@ -52,12 +52,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           headerActions: [
-            IconActionButton(
-              icon: Icons.logout_rounded,
-              onTap: () => RootRouter.logout(context),
-              bgColor: HabitikColors.orange500,
-            ),
-            const SizedBox(width: 8),
             IconActionButton(
               icon: Icons.notifications_outlined,
               onTap: () => Navigator.push(

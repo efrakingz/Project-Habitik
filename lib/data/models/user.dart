@@ -3,6 +3,7 @@ import 'dart:convert';
 class UserProfile {
   final String id;
   final String nombre;
+  final String? email;
   final String avatarLetra;
   final String avatarColor;
   final String? avatarUrl;
@@ -17,6 +18,7 @@ class UserProfile {
   const UserProfile({
     this.id = '',
     required this.nombre,
+    this.email,
     this.avatarLetra = 'U',
     this.avatarColor = '#43A047',
     this.avatarUrl,
@@ -32,6 +34,7 @@ class UserProfile {
   UserProfile copyWith({
     String? id,
     String? nombre,
+    String? email,
     String? avatarLetra,
     String? avatarColor,
     String? avatarUrl,
@@ -46,6 +49,7 @@ class UserProfile {
     return UserProfile(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
+      email: email ?? this.email,
       avatarLetra: avatarLetra ?? this.avatarLetra,
       avatarColor: avatarColor ?? this.avatarColor,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -89,6 +93,7 @@ class UserProfile {
     return UserProfile(
       id: json['id'] ?? json['user_id'] ?? '',
       nombre: json['nombre'] ?? '',
+      email: json['email'],
       avatarLetra: json['avatar_letra'] ?? 'U',
       avatarColor: json['avatar_color'] ?? '#43A047',
       avatarUrl: json['avatar_url'],
@@ -106,6 +111,7 @@ class UserProfile {
     return {
       'id': id,
       'nombre': nombre,
+      'email': email,
       'avatar_letra': avatarLetra,
       'avatar_color': avatarColor,
       'avatar_url': avatarUrl,
@@ -122,6 +128,7 @@ class UserProfile {
   static UserProfile get mock => const UserProfile(
     id: 'mock-user-1',
     nombre: 'Sofía Torres',
+    email: 'sofia@habitik.cl',
     avatarLetra: 'S',
     avatarColor: '#9C27B0',
     rol: 'jefa',
@@ -136,6 +143,7 @@ class UserProfile {
   static UserProfile get mockJefe => const UserProfile(
     id: 'mock-jefe',
     nombre: 'Carlos Torres',
+    email: 'carlos@habitik.cl',
     avatarLetra: 'C',
     avatarColor: '#2E7D32',
     rol: 'jefe',
