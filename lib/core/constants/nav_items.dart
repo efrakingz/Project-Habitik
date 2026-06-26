@@ -32,11 +32,6 @@ class NavigationConstants {
       activeIcon: Icons.redeem_rounded,
       icon: Icons.redeem_outlined,
     ),
-    NavItem(
-      label: 'Perfil',
-      activeIcon: Icons.person_rounded,
-      icon: Icons.person_outline,
-    ),
   ];
 
   static const List<NavItem> adminNavItems = [

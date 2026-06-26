@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
-import 'package:habitik/core/navigation/app_router.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/features/notifications/notifications_screen.dart';
@@ -58,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context,
                 FadePageRoute(child: const NotificationsScreen()),
               ),
-              hasBadge: true,
+              hasBadge: false,
             ),
             const SizedBox(width: 8),
             GestureDetector(

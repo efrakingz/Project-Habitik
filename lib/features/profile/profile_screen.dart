@@ -588,33 +588,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 12),
                           // Botón Editar Perfil
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: HabitikColors.green50.withAlpha(isDark ? 20 : 255),
-                                shape: BoxShape.circle,
+                          Material(
+                            color: Colors.transparent,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: HabitikColors.green50.withAlpha(isDark ? 20 : 255),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.person_outline_rounded, color: isDark ? HabitikColors.green400 : HabitikColors.green700),
                               ),
-                              child: Icon(Icons.person_outline_rounded, color: isDark ? HabitikColors.green400 : HabitikColors.green700),
-                            ),
-                            title: Text(
-                              'Editar Perfil',
-                              style: TextStyle(
-                                color: isDark ? Colors.white : HabitikColors.textDark,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                              title: Text(
+                                'Editar Perfil',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : HabitikColors.textDark,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            subtitle: Text(
-                              'Cambia tu nombre, letra y color de avatar',
-                              style: TextStyle(
-                                color: isDark ? Colors.white60 : HabitikColors.textLight,
-                                fontSize: 11,
+                              subtitle: Text(
+                                'Cambia tu nombre, letra y color de avatar',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white60 : HabitikColors.textLight,
+                                  fontSize: 11,
+                                ),
                               ),
+                              trailing: Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white54 : Colors.grey),
+                              onTap: _showEditProfileDialog,
                             ),
-                            trailing: Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white54 : Colors.grey),
-                            onTap: _showEditProfileDialog,
                           ),
                         ],
                       ),

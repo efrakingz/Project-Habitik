@@ -13,6 +13,7 @@ class RootRouter extends StatefulWidget {
   const RootRouter({super.key});
 
   static void logout(BuildContext context) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     SessionService().clearSession();
   }
 

@@ -452,6 +452,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   ),
                                 );
                                 if (confirm == true) {
+                                  if (context.mounted) {
+                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                  }
                                   await SessionService().clearSession();
                                 }
                               },
