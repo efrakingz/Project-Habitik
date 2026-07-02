@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informe Técnico Maestro - Evolución y Consolidación Habitik</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+    :root {
+      --bg-page: #f8fafc;
+      --bg-paper: #ffffff;
+      --text-main: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --accent-emerald: #059669;
+      --accent-emerald-light: #d1fae5;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #dbeafe;
+      --accent-amber: #d97706;
+      --accent-amber-light: #fef3c7;
+      --accent-purple: #7c3aed;
+      --accent-purple-light: #ede9fe;
+      --accent-rose: #e11d48;
+      --accent-rose-light: #ffe4e6;
+      --code-bg: #f1f5f9;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-body);
+      line-height: 1.7;
+      padding: 3.5rem 1.5rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .report-container {
+      max-width: 1080px;
+      margin: 0 auto;
+      background-color: var(--bg-paper);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 4px 25px -5px rgba(15, 23, 42, 0.05);
+      padding: 4.5rem 5rem;
+    }
+
+    /* Portada */
+    .doc-header {
+      border-bottom: 2px solid var(--text-main);
+      padding-bottom: 3rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .doc-tag {
+      display: inline-block;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-emerald);
+      background-color: var(--accent-emerald-light);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.22;
+      margin-bottom: 1rem;
+      letter-spacing: -0.025em;
+    }
+
+    .doc-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      max-width: 900px;
+    }
+
+    .doc-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1px));
+      gap: 1.5rem;
+      background-color: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .meta-item strong {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.725rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.25rem;
+    }
+
+    .meta-item span {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Tabla de Contenidos */
+    .toc {
+      background-color: #f8fafc;
+      border-left: 3px solid var(--accent-emerald);
+      padding: 1.75rem 2.25rem;
+      margin-bottom: 4rem;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .toc h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-main);
+      margin-bottom: 1.2rem;
+    }
+
+    .toc ol {
+      margin-left: 1.25rem;
+      margin-bottom: 0;
+    }
+
+    .toc li {
+      margin-bottom: 0.6rem;
+    }
+
+    .toc a {
+      color: var(--text-body);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent-emerald);
+    }
+
+    /* Estructura de Secciones */
+    section {
+      margin-bottom: 4.5rem;
+    }
+
+    h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.75rem;
+      margin-top: 3.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 24px;
+      background-color: var(--accent-emerald);
+      border-radius: 2px;
+    }
+
+    h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 2rem;
+      margin-bottom: 0.85rem;
+    }
+
+    p {
+      margin-bottom: 1.25rem;
+    }
+
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Tarjetas limpias */
+    .feature-card {
+      background-color: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-card-title {
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Tablas */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 2rem 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.925rem;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: var(--text-main);
+      font-weight: 600;
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    .file-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      color: var(--accent-blue);
+      background-color: var(--accent-blue-light);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+
+    /* HTTP Badges */
+    .http-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-right: 0.4rem;
+    }
+
+    .http-get { background-color: var(--accent-blue-light); color: var(--accent-blue); }
+    .http-post { background-color: var(--accent-emerald-light); color: var(--accent-emerald); }
+    .http-patch { background-color: var(--accent-amber-light); color: var(--accent-amber); }
+    .http-delete { background-color: var(--accent-rose-light); color: var(--accent-rose); }
+
+    /* Callouts */
+    .callout {
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin: 1.75rem 0;
+      border-left: 4px solid;
+    }
+
+    .callout-info { background-color: #f0fdf4; border-color: var(--accent-emerald); color: #166534; }
+    .callout-warning { background-color: #fffbeb; border-color: var(--accent-amber); color: #92400e; }
+    .callout-purple { background-color: var(--accent-purple-light); border-color: var(--accent-purple); color: #5b21b6; }
+
+    .callout-title { font-weight: 700; margin-bottom: 0.35rem; display: block; }
+
+    /* Código */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      color: #0f172a;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875em;
+      background-color: #f1f5f9;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+
+    pre code { background-color: transparent; padding: 0; }
+
+    /* Badges Capa */
+    .badge {
+      display: inline-block;
+      font-size: 0.725rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-client { background-color: var(--accent-blue-light); color: var(--accent-blue); }
+    .badge-backend { background-color: var(--accent-amber-light); color: var(--accent-amber); }
+    .badge-clean { background-color: var(--accent-emerald-light); color: var(--accent-emerald); }
+
+    .doc-footer {
+      margin-top: 5.5rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 2.5rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    @media print {
+      body { background-color: #ffffff; padding: 0; }
+      .report-container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      .toc { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .report-container { padding: 2.5rem 1.5rem; }
+      h1 { font-size: 1.85rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="report-container">
+    
+    <!-- PORTADA -->
+    <header class="doc-header">
+      <span class="doc-tag">Informe Maestro de Software</span>
+      <h1>Bitácora Integral de Arquitectura, Peticiones HTTP y Sincronización Habitik</h1>
+      <p class="doc-subtitle">Consolidación definitiva del Sprint 1 y Estabilización: Contrato de Red HTTP (GET/POST/PATCH), Autenticación JWT, Flujos de Cuestionario, Control QR y Persistencia Relacional en PostgreSQL.</p>
+      
+      <div class="doc-meta">
+        <div class="meta-item">
+          <strong>Aplicación</strong>
+          <span>Habitik App (Flutter + Node.js)</span>
+        </div>
+        <div class="meta-item">
+          <strong>Servidor Cloud</strong>
+          <span>backendhabitik-production.up.railway.app</span>
+        </div>
+        <div class="meta-item">
+          <strong>Base de Datos</strong>
+          <span>Railway PostgreSQL (Producción)</span>
+        </div>
+        <div class="meta-item">
+          <strong>Calidad de Código</strong>
+          <span>Clean (Linter 0 Errores)</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ÍNDICE -->
+    <nav class="toc">
+      <h3>Tabla de Contenidos del Informe</h3>
+      <ol>
+        <li><a href="#sec-resumen">Resumen Ejecutivo y Alcance del Proyecto</a></li>
+        <li><a href="#sec-funcionalidades">Registro de Funcionalidades Base (Cuestionario, Control y QR)</a></li>
+        <li><a href="#sec-http">Catálogo Técnico de Peticiones HTTP (GET / POST / PATCH) y El Por Qué</a></li>
+        <li><a href="#sec-onboarding-bug">Resolución de Bucles de Onboarding y Caché de Sesión</a></li>
+        <li><a href="#sec-sincronizacion">Pipeline de Sincronización en la Nube y Autenticación Silenciosa</a></li>
+        <li><a href="#sec-misterio-clonacion">Evolución Cloud: Dominio Custom Railway y Cruce Relacional en Backend</a></li>
+        <li><a href="#sec-auditoria">Auditoría y Consultas SQL de Verificación (DBeaver)</a></li>
+        <li><a href="#sec-matriz">Matriz Global de Archivos Intervenidos</a></li>
+        <li><a href="#sec-commits">Historial Oficial de Commits en Rama Principal</a></li>
+      </ol>
+    </nav>
+
+    <!-- 1. RESUMEN EJECUTIVO -->
+    <section id="sec-resumen">
+      <h2>1. Resumen Ejecutivo y Alcance del Proyecto</h2>
+      <p>
+        El presente documento unifica en un único registro maestro el reporte técnico inicial del Sprint 1 y la bitácora de ingeniería de las últimas sesiones de estabilización. El proyecto <strong>Habitik</strong> articula una solución frontend nativa e híbrida (Flutter) comunicada mediante tokens JWT contra una API REST en Node.js/TypeScript y una base de datos PostgreSQL alojada en Railway Cloud.
+      </p>
+      <div class="callout callout-info">
+        <span class="callout-title">Principio Arquitectónico Rector</span>
+        El diseño del sistema prioriza la autonomía del cliente móvil. La totalidad de las correcciones visuales, de sesión y de hardware fueron resueltas en <code>lib/</code>. Únicamente tras presentarse una encrucijada de escalabilidad de datos en múltiples estaciones de trabajo, el usuario autorizó explícitamente una excepción quirúrgica en el servidor para cruzar tablas relacionales.
+      </div>
+    </section>
+
+    <!-- 2. FUNCIONALIDADES BASE -->
+    <section id="sec-funcionalidades">
+      <h2>2. Registro de Funcionalidades Base (Cuestionario, Control y QR)</h2>
+      <p>A lo largo de las fases del Sprint 1 se implementaron y perfeccionaron los flujos estructurales para los dos roles del ecosistema:</p>
+
+      <div class="feature-card">
+        <div class="feature-card-title">📌 Sincronización del Cuestionario Onboarding (Jefe de Familia)</div>
+        <p>Se eliminó el Paso 0 redundante de selección de rol en la vista, dado que la cuenta ya adquiere su rol de forma inmutable desde el registro. El cuestionario del Jefe fue adaptado exactamente al contrato del servidor:</p>
+        <ul>
+          <li><strong>Tipo de Calefacción:</strong> Normalizado estrictamente a: <code>gas</code>, <code>electrica</code>, <code>lena</code>, <code>parafina</code>.</li>
+          <li><strong>Dimensiones del Hogar:</strong> Captura de enteros en <code>habitacionesCount</code> y <code>personasCount</code>.</li>
+          <li><strong>Electrodomésticos:</strong> Arreglo dinámico multiselección de elementos de alto consumo eléctrico.</li>
+        </ul>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title">📌 Diseño Compacto Horizontal (Resultados y Panel de Control)</div>
+        <p>Se optimizó la ergonomía de las pantallas de control y resumen final para que se desplieguen por completo sin necesidad de hacer scroll vertical:</p>
+        <ul>
+          <li><strong>Código QR Gigante (200x200 px):</strong> Estandarización visual con bordes acentuados en verde esmeralda (<code>HabitikColors.green600</code>).</li>
+          <li><strong>Botón Copiar Código QR:</strong> Incorporación del botón <code>📋 Copiar Código</code>, programado para inyectar al portapapeles estrictamente el UUID plano de invitación sin textos extra.</li>
+          <li><strong>Salida de Sesión Centralizada:</strong> Limpieza de botones de cerrar sesión redundantes en el pie de página del panel de control.</li>
+        </ul>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title">📌 Hardware Nativo Automático (Cámara para Miembros)</div>
+        <p>Al inicializar la vista de escaneo móvil (<code>QrScannerScreen</code>), la petición de permisos nativos colisionaba con el ciclo inicial de renderizado. Se resolvió gatillando la cámara estrictamente post-renderizado:</p>
+        <pre><code>WidgetsBinding.instance.addPostFrameCallback((_) {
+  cameraController.start(); // Despliega diálogo nativo del SO sin bloqueos
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- 3. CATÁLOGO PETICIONES HTTP (NUEVO REQUERIMIENTO) -->
+    <section id="sec-http">
+      <h2>3. Catálogo Técnico de Peticiones HTTP (GET / POST / PATCH) y El Por Qué</h2>
+      <p>
+        La comunicación entre la aplicación cliente en Flutter y los servicios en la nube de Railway se rige estrictamente por el protocolo HTTP sobre TLS (HTTPS). A través de la clase centralizada <code>ApiClient</code> apuntando al host oficial <code>https://backendhabitik-production.up.railway.app</code>, estructuramos las siguientes peticiones:
+      </p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 25%;">Método y Endpoint</th>
+              <th style="width: 20%;">Rol Permetido</th>
+              <th style="width: 27%;">Payload / Parámetros</th>
+              <th style="width: 28%;">Por qué se utiliza (Justificación Técnica)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="http-badge http-post">POST</span> <code>/auth/register</code></td>
+              <td>Público (Anónimo)</td>
+              <td><code>email, password, nombre, nombreFamilia</code></td>
+              <td><strong>Creación Atómica:</strong> Ejecuta una transacción SQL en servidor que crea al usuario, le genera su perfil oficial y aprovisiona el registro maestro del Hogar Familiar en un solo paso.</td>
+            </tr>
+            <tr>
+              <td><span class="http-badge http-post">POST</span> <code>/auth/login</code></td>
+              <td>Público (Anónimo)</td>
+              <td><code>email, password</code></td>
+              <td><strong>Emisión de Identidad:</strong> Valida credenciales contra <code>bcrypt</code>, retorna un token firmado <code>token_jwt</code> (24h) y entrega el objeto <code>profile</code> enriquecido dinámicamente con el nombre del hogar.</td>
+            </tr>
+            <tr>
+              <td><span class="http-badge http-post">POST</span> <code>/onboarding</code></td>
+              <td>Jefe de Familia (Admin)</td>
+              <td><code>tipoCalefaccion, habitaciones, personas, electrodomesticos[]</code></td>
+              <td><strong>Persistencia de Perfil Energético:</strong> Guarda las respuestas de infraestructura del hogar. Su presencia en la BD activa la bandera de finalización para romper bucles infinitos en cliente.</td>
+            </tr>
+            <tr>
+              <td><span class="http-badge http-get">GET</span> <code>/familia/invite</code></td>
+              <td>Jefe de Familia (Admin)</td>
+              <td>Cabecera: <code>Authorization: Bearer &lt;JWT&gt;</code></td>
+              <td><strong>Generación Criptográfica QR:</strong> Solicita al servidor un UUID temporal (<code>invite_token</code>) que expira en 10 minutos. Es el string vital que dibuja el recuadro QR gigante de 200x200 px.</td>
+            </tr>
+            <tr>
+              <td><span class="http-badge http-post">POST</span> <code>/familia/join</code></td>
+              <td>Miembro Autenticado</td>
+              <td><code>invite_token, user_id</code></td>
+              <td><strong>Emparejamiento de Hogar:</strong> Disparado al escanear el QR o pegar el UUID con el botón de portapapeles. Vincula el <code>family_id</code> al Miembro en PostgreSQL y gatilla re-login silencioso.</td>
+            </tr>
+            <tr>
+              <td><span class="http-badge http-patch">PATCH</span> <code>/familia/nombre</code></td>
+              <td>Jefe de Familia (Admin)</td>
+              <td><code>nombre</code></td>
+              <td><strong>Normalización de Hogar:</strong> Permite corregir o actualizar el nombre visual de la familia en la tabla <code>families</code> tras haber superado las fases de inicialización.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-title">Por qué estandarizamos cabeceras en ApiClient.dart</span>
+        Para evitar inyección de código e inconsistencias de serialización, cada solicitud saliente inyecta automáticamente los encabezados estándar: <code>Content-Type: application/json</code> y <code>Accept: application/json</code>, anexando el JWT activo cuando el usuario ya se encuentra dentro de sesión.
+      </div>
+    </section>
+
+    <!-- 4. BUCLES ONBOARDING -->
+    <section id="sec-onboarding-bug">
+      <h2>4. Resolución de Bucles de Onboarding y Caché de Sesión</h2>
+      <p>
+        Al probar el ingreso con cuentas reales creadas en producción (como <code>benjafront@habitik.com</code> y <code>matiasfront@habitik.com</code>), el sistema atrapaba al usuario en un bucle infinito que lo regresaba a la pantalla de bienvenida.
+      </p>
+      <h3>Solución Implementada en Cliente:</h3>
+      <ul>
+        <li><strong>Evaluación Dinámica de Respuestas:</strong> Al deserializar perfiles (<code>UserProfile.fromJson</code>), el código ahora inspecciona si el atributo <code>onboarding_answers</code> contiene respuestas en la base de datos. De ser positivo, marca automáticamente <code>onboardingCompleted = true</code> y salta directo al Dashboard.</li>
+        <li><strong>Caché Inteligente de Identidad:</strong> Para cuentas de Miembros, la API no siempre adjunta el nombre del hogar en texto plano. Se creó un almacenamiento en <code>SessionService</code> que asocia en <code>SharedPreferences</code> el UUID de familia con su nombre visual.</li>
+        <li><strong>Cierre de Sesión Limpio:</strong> El método <code>clearSession()</code> fue refactorizado para eliminar únicamente las credenciales temporales y el JWT, preservando las configuraciones nativas del dispositivo.</li>
+      </ul>
+    </section>
+
+    <!-- 5. PIPELINE DE SINCRONIZACIÓN -->
+    <section id="sec-sincronizacion">
+      <h2>5. Pipeline de Sincronización en la Nube y Autenticación Silenciosa</h2>
+      <p>
+        Para vincular en tiempo real a un integrante recién invitado con el hogar del Jefe de Familia sin requerir un reinicio manual de la aplicación, se orquestó un flujo en tres etapas:
+      </p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Etapa</th>
+              <th>Acción en Cliente Flutter</th>
+              <th>Endpoint Involucrado</th>
+              <th>Efecto Persistente en Base de Datos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Paso 1</strong></td>
+              <td>Escaneo de QR o pegado de token UUID.</td>
+              <td><code>POST /familia/join</code></td>
+              <td>Vincula el <code>family_id</code> al perfil del usuario en la tabla <code>profiles</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Paso 2</strong></td>
+              <td>Re-login silencioso en segundo plano.</td>
+              <td><code>POST /auth/login</code></td>
+              <td>Refresca el token JWT otorgando permisos oficiales del rol <code>miembro</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Paso 3</strong></td>
+              <td>Persistencia permanente en memoria local.</td>
+              <td><code>SharedPreferences</code></td>
+              <td>Memoriza en disco el <code>family_name</code> para futuras recargas de la app.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. EVOLUCIÓN CLOUD (LO ÚLTIMO) -->
+    <section id="sec-misterio-clonacion">
+      <h2>6. Evolución Cloud: Dominio Custom Railway y Cruce Relacional en Backend</h2>
+      <p>
+        En la sesión final de auditoría se perfeccionaron la conectividad de red y la resolución de nombres de hogares en múltiples equipos de programación.
+      </p>
+
+      <h3>6.1 Aprovisionamiento de Dominio Personalizado en Railway</h3>
+      <p>Se actualizó la constante de conexión en el cliente para apuntar al nuevo dominio de producción oficial:</p>
+      <pre><code>// Archivo: lib/core/services/api_client.dart
+static String baseUrl = 'https://backendhabitik-production.up.railway.app';</code></pre>
+
+      <h3>6.2 Resolución del Misterio: "DEVS" vs "Hogar Familiar" al clonar proyecto</h3>
+      <p>
+        <strong>Fenómeno detectado:</strong> En la PC principal del proyecto, iniciar sesión mostraba correctamente el título oficial (<code>Hogar: DEVS</code>). Sin embargo, cuando otro compañero clonó el repositorio en una PC virgen e inició sesión, su interfaz mostraba <code>Hogar: Hogar Familiar</code>.
+      </p>
+      <p>
+        <strong>Diagnóstico Arquitectónico:</strong> El endpoint <code>POST /auth/login</code> ejecutaba una lectura plana sobre <code>profiles</code>:
+      </p>
+      <pre><code>SELECT * FROM public.profiles WHERE id = $1</code></pre>
+      <p>
+        La tabla <code>profiles</code> almacena el entero relacional (<code>family_id</code>), pero <strong>no almacena el texto del nombre</strong> (que vive en <code>families</code>). En la PC principal, <code>SharedPreferences</code> ya retenía el caché "DEVS". En la PC limpia, al recibir <code>family_name: null</code>, el cliente recurría al texto por defecto.
+      </p>
+
+      <div class="callout callout-warning">
+        <span class="callout-title">Excepción Aprobada a Regla 1</span>
+        Para evitar fijar textos artificiales en Flutter y permitir que la app escale dinámicamente con miles de familias reales, el usuario otorgó autorización explícita para intervenir la capa SQL del servidor.
+      </div>
+
+      <p>
+        <strong>Implementación de Cruce SQL Relacional:</strong> Se reemplazó la consulta básica por un <code>LEFT JOIN</code>:
+      </p>
+      <pre><code>// Archivo: backend/src/repositories/userRepository.ts
+async getProfileById(id: string): Promise<Profile | null> {
+  const sql = `
+    SELECT p.*, f.nombre AS family_name, f.family_code 
+    FROM public.profiles p 
+    LEFT JOIN public.families f ON p.family_id = f.id 
+    WHERE p.id = $1
+  `;
+  const res = await query(sql, [id]);
+  return res.rows[0];
+}</code></pre>
+      <p>
+        Tras recompilar automáticamente en Railway Cloud, cualquier estación de trabajo virgen que clone el repositorio hoy extrae el nombre oficial directamente desde PostgreSQL.
+      </p>
+
+      <h3>6.3 Centralización y Rediseño Visual de Invitación Familiar (QR Flotante en Perfil)</h3>
+      <p>
+        <strong>Evolución de UX/UI:</strong> Para mantener el <em>Panel de Control</em> limpio y enfocado exclusivamente en la gestión de metas de ahorro y revisión de evidencias, se migró toda la funcionalidad de invitación de miembros a la sección de <strong>Perfil del Jefe de Familia</strong>.
+      </p>
+      <p>
+        <strong>Innovación en Interfaz:</strong>
+      </p>
+      <ul>
+        <li><strong>Banner VIP de Invitación:</strong> Se implementó una tarjeta dedicada en el perfil con degradado verde tenue, ícono <code>🏡</code> y el botón dinámico <code>✨ Mostrar QR y Enlace de Invitación</code> (que indica <code>Generando Invitación...</code> durante la petición al servidor).</li>
+        <li><strong>Modal Flotante Amigable (<code>¡Súmalos al Hogar!</code>):</strong> Al presionar el botón, se despliega una vista flotante (<code>Dialog</code>) sin necesidad de navegar a otra pantalla ni hacer scroll vertical. Cumple estrictamente con las directrices arquitectónicas de Habitik: recuadro de QR de dimensiones exactas <code>200x200 px</code> con borde verde esmeralda (<code>HabitikColors.green600</code>), código plano seleccionable en fuente monospace y botones dedicados (<code>Copiar Código</code>, <code>Copiar Enlace</code> y <code>Compartir</code>).</li>
+        <li><strong>Saneamiento y Optimización del Panel de Control (<code>control_screen.dart</code>):</strong> Al reubicar el QR al Perfil, se ejecutó una limpieza estructural total sobre la vista original:
+          <ul>
+            <li>Eliminación de paquetes e importaciones innecesarias (<code>qr_flutter</code>, <code>share_plus</code>, <code>ApiClient</code>).</li>
+            <li>Supresión de peticiones asíncronas HTTP en el ciclo de vida (<code>initState</code>) y estados de carga obsoletos.</li>
+            <li>Reducción del código a una arquitectura ultra concisa de exactamente <strong>104 líneas</strong>, dedicada 100% a la administración de metas y retos del hogar sin scroll vertical.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>6.4 Transición Visual Dinámica entre Modo Oscuro y Modo Claro</h3>
+      <p>
+        <strong>Evolución de Experiencia (UX):</strong> Al cambiar el tema de la aplicación desde la pantalla de Perfil, se reemplazó el cambio brusco por una experiencia animada que reproduce la estética de la pantalla de inicio (<code>SplashScreen</code>).
+      </p>
+      <ul>
+        <li><strong>Componente <code>ThemeTransitionScreen</code>:</strong> Integrado en <code>splash_screen.dart</code>, utiliza el layout maestro (degradado Hero, tipografía HABITIK y puntos de carga ámbar/verdes).</li>
+        <li><strong>Adaptabilidad Inteligente:</strong> Al activar el Modo Oscuro, despliega un fondo verde bosque nocturno con una luna elástica <code>🌙</code> y el mensaje <code>Activando Modo Oscuro... ✨</code>. Al retornar a Modo Claro, presenta el sol <code>☀️</code> con el degradado esmeralda y el mensaje <code>Volviendo al Modo Claro... 🌿</code>.</li>
+        <li><strong>Sincronización en Segundo Plano:</strong> A los 900 ms de iniciada la transición, el valor de <code>isDarkModeNotifier</code> conmuta silenciosamente en segundo plano, finalizando tras 2300 ms con un desvanecimiento suave sin parpadeos visuales.</li>
+      </ul>
+    </section>
+
+    <!-- 7. AUDITORÍA SQL -->
+    <section id="sec-auditoria">
+      <h2>7. Auditoría y Consultas SQL de Verificación (DBeaver)</h2>
+      <p>Para inspecciones directas sobre la base de datos de producción en Railway Cloud, se establecieron las siguientes consultas:</p>
+
+      <div class="feature-card">
+        <strong>A) Control general de cuentas, roles y respuestas guardadas:</strong>
+        <pre><code>SELECT u.email, p.nombre, p.rol, p.family_id, p.onboarding_answers, u.created_at
+FROM public.users u
+JOIN public.profiles p ON u.id = p.id
+ORDER BY u.created_at DESC;</code></pre>
+      </div>
+
+      <div class="feature-card">
+        <strong>B) Auditoría relacional de emparejamiento por Hogar:</strong>
+        <pre><code>SELECT p.nombre AS integrante, p.rol, f.nombre AS hogar_familiar, f.family_code
+FROM public.profiles p
+JOIN public.families f ON p.family_id = f.id
+ORDER BY f.created_at DESC, p.rol;</code></pre>
+      </div>
+    </section>
+
+    <!-- 8. MATRIZ DE ARCHIVOS -->
+    <section id="sec-matriz">
+      <h2>8. Matriz Global de Archivos Intervenidos</h2>
+      <p>Inventario definitivo de archivos modificados a lo largo de todas las fases del proyecto:</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 28%;">Ruta del Archivo</th>
+              <th style="width: 12%;">Capa</th>
+              <th style="width: 30%;">Razón / Diagnóstico</th>
+              <th style="width: 30%;">Solución y Aporte Funcional</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="file-path">lib/core/services/api_client.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Asignación de dominio personalizado en Railway Cloud.</td>
+              <td>Apunta a la URL limpia oficial <code>backendhabitik-production.up.railway.app</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">backend/src/repositories/userRepository.ts</span></td>
+              <td><span class="badge badge-backend">Node.js</span></td>
+              <td>Ausencia de nombre de familia en Login para clones limpios.</td>
+              <td>Ejecuta un <code>LEFT JOIN</code> con <code>public.families</code>, retornando el nombre exacto de la base de datos.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">lib/core/services/session_service.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Pérdida de nombres compartidos y limpieza excesiva en logout.</td>
+              <td>Persiste caché en SharedPreferences por UUID y refactoriza salida no destructiva.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">lib/data/models/user.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Bucle infinito que impedía salir de Onboarding.</td>
+              <td>Inspecciona dinámicamente <code>onboarding_answers</code> para otorgar paso directo al Dashboard.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">lib/features/onboarding/onboarding_screen.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Pantallas en negro al pedir cámara y Paso 0 redundante.</td>
+              <td>Usa <code>addPostFrameCallback</code>, omite vista cero y centra un QR gigante de 200x200 px.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">lib/features/control/control_screen.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Saneamiento estructural tras reubicar invitación al Perfil.</td>
+              <td>Elimina dependencias (<code>qr_flutter</code>, <code>share_plus</code>) y peticiones HTTP, compactando el archivo a 104 líneas puras para gestión de metas.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">lib/features/profile/profile_screen.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Centralización del QR y disparador de transición de tema.</td>
+              <td>Incorpora banner VIP <code>🏡 Invitar a mi Familia</code>, modal flotante con QR de 200x200 px y navegación hacia <code>ThemeTransitionScreen</code> al cambiar el switch de modo oscuro.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">lib/features/auth/splash_screen.dart</span></td>
+              <td><span class="badge badge-client">Flutter</span></td>
+              <td>Transición inmersiva de cambio de tema en el cliente.</td>
+              <td>Incorpora la clase <code>ThemeTransitionScreen</code> sincronizada con <code>isDarkModeNotifier</code> con animaciones de sol/luna e indicadores de activación.</td>
+            </tr>
+            <tr>
+              <td><span class="file-path">.agents/AGENTS.md</span></td>
+              <td><span class="badge badge-clean">Config</span></td>
+              <td>Memorización permanente de estándares para futuras inteligencias artificiales.</td>
+              <td>Registra invariabilidad de backend e instrucciones de diseño horizontal sin scroll.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 9. COMMITS -->
+    <section id="sec-commits">
+      <h2>9. Historial Oficial de Commits en Rama Principal</h2>
+      <p>Todos los desarrollos consolidados en este informe técnico maestro se encuentran sincronizados en GitHub:</p>
+      
+      <ol>
+        <li>
+          <strong><code>fix: actualizar url de produccion Railway</code></strong>
+          <br>Sello del cambio de subdominio cloud e instauración de reglas arquitectónicas en `.agents/AGENTS.md`.
+        </li>
+        <li>
+          <strong><code>fix: Persistencia de nombre de la Familia al inicar sesion</code></strong>
+          <br>Sello de la modificación relacional SQL en el servidor y limpieza completa de textos de respaldo en el cliente Flutter.
+        </li>
+        <li>
+          <strong><code>feat: Centralizacion y rediseno de invitacion familiar con QR flotante en Perfil</code></strong>
+          <br>Reubicación de invitación de miembros hacia la sección Perfil mediante banner VIP, modal flotante con QR exacto de 200x200 px y etiqueta dinámica de carga.
+        </li>
+        <li>
+          <strong><code>feat: Pantalla animada de transicion inmersiva para cambio de Modo Oscuro y Claro</code></strong>
+          <br>Creación de <code>ThemeTransitionScreen</code> con animaciones dinámicas de sol/luna, sincronizada en segundo plano con <code>isDarkModeNotifier</code>.
+        </li>
+      </ol>
+    </section>
+
+    <footer class="doc-footer">
+      <p>Documentación Maestra Definitiva — Proyecto Habitik Sprint 1 & Estabilización Cloud.</p>
+      <p>Generado por AI Pair Programming Assistant (Google DeepMind Agentic SDK) © 2026.</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>

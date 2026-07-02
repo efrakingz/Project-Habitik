@@ -16,3 +16,9 @@
 
 ## 4. Hardware Nativo (Cámara QR)
 - **Permisos Post-Frame:** Al inicializar escáneres de código QR (ej. `QrScannerScreen`), dispara siempre la activación de la cámara dentro de un `WidgetsBinding.instance.addPostFrameCallback` para garantizar que el sistema nativo de iOS/Android/Windows despliegue el diálogo de permisos de hardware sin bloqueos.
+
+## 5. Pruebas Locales en iPhone / Dispositivos Móviles (desde Windows)
+- **Comando Web Server Local:** Para probar la app en un iPhone u otro dispositivo de la misma red Wi-Fi, ejecuta en PowerShell:
+  `flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080`
+- **Acceso desde móvil:** Acceder desde Safari/Chrome a `http://<IP_LOCAL_PC>:8080` (ej. `http://192.168.1.9:8080`).
+- **Conectividad:** La app apunta por defecto al backend de producción en Railway (`https://backendhabitik-production.up.railway.app`), por lo que las peticiones y login funcionarán de forma transparente sin requerir reconfiguración de base de datos local.

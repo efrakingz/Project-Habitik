@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/navigation/app_router.dart';
+import 'package:habitik/features/auth/splash_screen.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
@@ -299,146 +300,181 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context: context,
         builder: (context) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
-          return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF16251B) : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: HabitikRadius.lg_),
-            title: Row(
-              children: [
-                const Text('🎟️', style: TextStyle(fontSize: 24)),
-                const SizedBox(width: 10),
-                Text(
-                  'Invitación Familiar',
-                  style: TextStyle(
-                    color: isDark ? Colors.white : HabitikColors.textDark,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E2E22) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: HabitikRadius.lg_,
+              side: BorderSide(
+                color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
+                width: 2,
+              ),
             ),
-            content: SingleChildScrollView(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Pide a tu familiar que escanee este código QR o ingresa el código manual para unirse a tu hogar.',
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF263D2B) : HabitikColors.green100,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Text('🏡', style: TextStyle(fontSize: 24)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '¡Súmalos al Hogar!',
+                              style: TextStyle(
+                                color: isDark ? Colors.white : HabitikColors.textDark,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Pide a tu familiar que escanee el código QR o comparte el enlace directo para unirse en segundos.',
+                              style: TextStyle(
+                                color: isDark ? HabitikColors.green200 : HabitikColors.textMid,
+                                fontSize: 11.5,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close_rounded, color: isDark ? Colors.white70 : Colors.grey),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 200,
+                    height: 200,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: HabitikColors.green600, width: 2.5),
+                      boxShadow: HabitikShadows.card,
+                    ),
+                    child: QrImageView(
+                      data: 'https://habitik.app/join?token=$inviteToken',
+                      version: QrVersions.auto,
+                      padding: EdgeInsets.zero,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Colors.black,
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'CÓDIGO DE INVITACIÓN:',
                     style: TextStyle(
-                      color: isDark ? Colors.white70 : HabitikColors.textLight,
-                      fontSize: 12,
-                      height: 1.4,
+                      color: HabitikColors.textLight,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    inviteToken,
+                    style: const TextStyle(
+                      color: HabitikColors.green800,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  
-                  // QR Code Render using qr_flutter
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: HabitikRadius.md_,
-                      border: Border.all(color: HabitikColors.green100, width: 2),
-                    ),
-                    child: QrImageView(
-                      data: inviteToken,
-                      version: QrVersions.auto,
-                      size: 150.0,
-                      eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.circle,
-                        color: Color(0xFF1B5E20),
-                      ),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.circle,
-                        color: Color(0xFF2E7D32),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1C2C21) : const Color(0xFFEBF7EC),
-                      borderRadius: HabitikRadius.md_,
-                      border: Border.all(
-                        color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green100,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            inviteToken,
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : HabitikColors.textDark,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: inviteToken));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('¡Código QR copiado al portapapeles! 📋✨'),
+                              backgroundColor: HabitikColors.green700,
                             ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
+                          );
+                        },
+                        icon: const Icon(Icons.copy_rounded, size: 16),
+                        label: const Text('Copiar Código'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: HabitikColors.green700,
+                          foregroundColor: Colors.white,
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          final link = 'https://habitik.app/join?token=$inviteToken';
+                          final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $inviteToken';
+                          Clipboard.setData(ClipboardData(text: text));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('¡Enlace de invitación copiado! 🔗✨'),
+                              backgroundColor: HabitikColors.green700,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.link_rounded, size: 16),
+                        label: const Text('Copiar Enlace'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: HabitikColors.green800,
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: HabitikColors.green500, width: 1),
                           ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(Icons.copy_rounded, size: 18),
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: inviteToken));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Código copiado al portapapeles.'),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: HabitikColors.green600,
-                              ),
-                            );
-                          },
-                          color: isDark ? HabitikColors.green400 : HabitikColors.green700,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          final link = 'https://habitik.app/join?token=$inviteToken';
+                          final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $inviteToken';
+                          SharePlus.instance.share(ShareParams(text: text));
+                        },
+                        icon: const Icon(Icons.share_rounded, size: 16),
+                        label: const Text('Compartir'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade100,
+                          foregroundColor: HabitikColors.textDark,
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Expira en 10 minutos y es de un solo uso.',
-                    style: TextStyle(
-                      color: isDark ? Colors.white38 : Colors.grey.shade500,
-                      fontSize: 11,
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cerrar',
-                  style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.grey,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  SharePlus.instance.share(
-                    ShareParams(
-                      text: '¡Únete a mi grupo familiar en Habitik! Usa este código de invitación: $inviteToken',
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.share_rounded, size: 16),
-                label: const Text('Compartir'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: HabitikColors.green600,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: HabitikRadius.sm_),
-                ),
-              ),
-            ],
           );
         },
       );
@@ -547,20 +583,100 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ],
-                          if (_user.rol.toLowerCase().contains('jefe') || _user.rol.toLowerCase() == 'admin') ...[
-                            const SizedBox(height: 16),
-                            PrimaryButton(
-                              label: _generatingInvite ? 'Generando...' : '🎟️ Invitar Familiar (Generar Código/QR)',
-                              loading: _generatingInvite,
-                              onTap: _generateInviteToken,
-                              gradient: HabitikColors.heroGreen,
-                              height: 46,
-                            ),
-                          ],
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
+
+                    // Tarjeta VIP de Invitación
+                    if (_user.rol.toLowerCase().contains('jefe') || _user.rol.toLowerCase() == 'admin') ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: isDark 
+                              ? const LinearGradient(colors: [Color(0xFF1B3B2B), Color(0xFF14241A)]) 
+                              : const LinearGradient(
+                                  colors: [Color(0xFFE8F5E9), Color(0xFFF1F8E9)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                          borderRadius: HabitikRadius.lg_,
+                          border: Border.all(
+                            color: HabitikColors.green500.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                          boxShadow: HabitikShadows.card,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    gradient: HabitikColors.heroGreen,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: HabitikShadows.colored(HabitikColors.green600),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text('🏡', style: TextStyle(fontSize: 24)),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Invitar a mi Familia',
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white : HabitikColors.textDark,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        'Conecta a tus seres queridos para compartir metas de ahorro y retos en equipo.',
+                                        style: TextStyle(
+                                          color: isDark ? HabitikColors.green200 : HabitikColors.textMid,
+                                          fontSize: 12,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _generateInviteToken,
+                              icon: _generatingInvite 
+                                  ? const SizedBox(
+                                      width: 16, height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                                    )
+                                  : const Icon(Icons.qr_code_rounded, size: 18),
+                              label: Text(
+                                _generatingInvite ? 'Generando Invitación...' : '✨ Mostrar QR y Enlace de Invitación',
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: HabitikColors.green600,
+                                foregroundColor: Colors.white,
+                                elevation: 3,
+                                shadowColor: HabitikColors.green600.withOpacity(0.4),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                minimumSize: const Size(double.infinity, 48),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.08, curve: Curves.easeOutQuad),
+                      const SizedBox(height: 20),
+                    ],
 
                     // Gestión de Cuenta
                     Container(
@@ -663,7 +779,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               return Switch(
                                 value: isDarkTheme,
                                 onChanged: (val) {
-                                  isDarkModeNotifier.value = val;
+                                  Navigator.of(context).push(
+                                    PageRouteBuilder(
+                                      opaque: false,
+                                      pageBuilder: (context, anim1, anim2) => ThemeTransitionScreen(targetIsDark: val),
+                                      transitionsBuilder: (context, anim1, anim2, child) {
+                                        return FadeTransition(opacity: anim1, child: child);
+                                      },
+                                      transitionDuration: 400.ms,
+                                    ),
+                                  );
                                 },
                                 activeThumbColor: HabitikColors.green500,
                                 activeTrackColor: HabitikColors.green900,
