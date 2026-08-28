@@ -603,7 +603,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                           borderRadius: HabitikRadius.lg_,
                           border: Border.all(
-                            color: HabitikColors.green500.withOpacity(0.5),
+                            color: HabitikColors.green500.withValues(alpha: 0.5),
                             width: 1.5,
                           ),
                           boxShadow: HabitikShadows.card,
@@ -667,7 +667,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 backgroundColor: HabitikColors.green600,
                                 foregroundColor: Colors.white,
                                 elevation: 3,
-                                shadowColor: HabitikColors.green600.withOpacity(0.4),
+                                shadowColor: HabitikColors.green600.withValues(alpha: 0.4),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 minimumSize: const Size(double.infinity, 48),
                               ),

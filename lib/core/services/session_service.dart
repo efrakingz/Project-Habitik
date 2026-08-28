@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../../data/models/user.dart';
+import 'api_client.dart';
 
 class SessionService {
   static final SessionService _instance = SessionService._internal();
@@ -30,7 +32,6 @@ class SessionService {
     if (profile.familyName != null && profile.familyName!.isNotEmpty && profile.familyId != null) {
       await _prefs?.setString('fam_name_${profile.familyId}', profile.familyName!);
     } else if (profile.familyId != null && profile.familyId!.isNotEmpty) {
-      // Si falta familyName pero tenemos uno guardado (o usamos un fallback), enriquecer el perfil
       final cachedName = _prefs?.getString('fam_name_${profile.familyId}') ?? 'Hogar Familiar';
       enriched = profile.copyWith(familyName: cachedName);
     }
@@ -44,23 +45,77 @@ class SessionService {
     currentUserNotifier.value = enriched;
   }
 
-  /// Guarda temporalmente email y contraseña para re-login silencioso al vincular familia.
+  /// Guarda temporalmente email y contraseña para re-login silencioso de fondo.
   Future<void> saveCredentials(String email, String pwd) async {
     await _prefs?.setString('temp_email', email);
     await _prefs?.setString('temp_pwd', pwd);
   }
 
-  /// Lee el email temporal guardado.
   String? get tempEmail => _prefs?.getString('temp_email');
-
-  /// Lee la contraseña temporal guardada.
   String? get tempPwd => _prefs?.getString('temp_pwd');
 
-  /// Carga la sesión desde la memoria local.
+  /// Evalúa si el token JWT ya expiró o expira en los próximos 2 minutos
+  bool isTokenExpired(String? jwtToken) {
+    if (jwtToken == null || jwtToken.isEmpty) return true;
+    try {
+      final parts = jwtToken.split('.');
+      if (parts.length != 3) return true;
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final resp = utf8.decode(base64Url.decode(normalized));
+      final payloadMap = jsonDecode(resp);
+      if (payloadMap is Map && payloadMap.containsKey('exp')) {
+        final expSec = payloadMap['exp'] as int;
+        final expDate = DateTime.fromMillisecondsSinceEpoch(expSec * 1000);
+        // Margen de gracia de 2 minutos
+        return DateTime.now().add(const Duration(minutes: 2)).isAfter(expDate);
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
+  }
+
+  /// Ejecuta un inicio de sesión silencioso en segundo plano con las credenciales guardadas
+  Future<bool> silentRelogin() async {
+    final email = tempEmail;
+    final pwd = tempPwd;
+    if (email == null || email.isEmpty || pwd == null || pwd.isEmpty) {
+      return false;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiClient.baseUrl}/auth/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'password': pwd,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final newToken = data['token_jwt'];
+        final newProfile = UserProfile.fromJson(data['profile']);
+        await saveSession(token: newToken, profile: newProfile);
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Re-login silencioso no completado: $e");
+    }
+    return false;
+  }
+
+  /// Carga la sesión desde la memoria local con renovación preventiva.
   Future<void> loadSession() async {
-    final token = _prefs?.getString('token_jwt');
+    final tokenStr = _prefs?.getString('token_jwt');
     final profileStr = _prefs?.getString('user_profile');
-    if (token != null && profileStr != null) {
+
+    if (tokenStr != null && profileStr != null) {
       try {
         final profileMap = jsonDecode(profileStr) as Map<String, dynamic>;
         var p = UserProfile.fromJson(profileMap);
@@ -68,16 +123,29 @@ class SessionService {
           final cachedName = _prefs?.getString('fam_name_${p.familyId}') ?? 'Hogar Familiar';
           p = p.copyWith(familyName: cachedName);
         }
-        currentUserNotifier.value = p;
+
+        // Si el token expiró o está por vencer, intentar re-login silencioso de fondo
+        if (isTokenExpired(tokenStr)) {
+          final refreshed = await silentRelogin();
+          if (!refreshed) {
+            // Si no hay red, mantener el perfil para modo offline sin desloguear
+            currentUserNotifier.value = p;
+          }
+        } else {
+          currentUserNotifier.value = p;
+        }
       } catch (e) {
-        await clearSession();
+        final refreshed = await silentRelogin();
+        if (!refreshed) {
+          await clearSession();
+        }
       }
     } else {
       currentUserNotifier.value = null;
     }
   }
 
-  /// Elimina los datos de sesión activa (Cerrar Sesión) conservando el caché de preferencias por usuario.
+  /// Elimina los datos de sesión activa preservando preferencias de hardware
   Future<void> clearSession() async {
     await _prefs?.remove('token_jwt');
     await _prefs?.remove('user_profile');
@@ -86,10 +154,10 @@ class SessionService {
     currentUserNotifier.value = null;
   }
 
-  /// Retorna verdadero si hay una sesión activa persistida.
-  bool get hasSession => token != null && currentUser != null;
+  /// Retorna verdadero si hay una sesión activa en memoria
+  bool get hasSession => currentUser != null;
 
-  /// Retorna verdadero si el usuario ya completó el onboarding localmente o en la base de datos.
+  /// Retorna verdadero si el onboarding está completado
   bool get isOnboardingCompleted {
     final userId = currentUser?.id;
     if (userId == null) return false;
@@ -97,7 +165,6 @@ class SessionService {
     return _prefs?.getBool('ob_completed_$userId') ?? false;
   }
 
-  /// Guarda el estado de completado del onboarding.
   Future<void> setOnboardingCompleted(bool completed) async {
     final userId = currentUser?.id;
     if (userId != null) {
@@ -105,7 +172,6 @@ class SessionService {
     }
   }
 
-  /// Retorna el rol del usuario para el flujo de onboarding.
   String getOnboardingRole() {
     final userId = currentUser?.id;
     if (userId == null) return 'jefe';
@@ -114,7 +180,6 @@ class SessionService {
     return _prefs?.getString('ob_role_$userId') ?? 'jefe';
   }
 
-  /// Guarda el rol seleccionado del usuario para el onboarding.
   Future<void> setOnboardingRole(String role) async {
     final userId = currentUser?.id;
     if (userId != null) {

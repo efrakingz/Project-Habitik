@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flame/components.dart';
 import '../speedrun_game.dart';
@@ -19,7 +20,7 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
     _bgPaint = Paint();
     
     // Generar burbujas iniciales distribuidas por toda la pantalla
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < 30; i++) {
       _bubbles.add(
         _WaterBubble(
           x: _random.nextDouble() * size.x,
@@ -32,8 +33,6 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
       );
     }
   }
-
-
 
   @override
   void update(double dt) {
@@ -54,17 +53,22 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
 
   @override
   void render(Canvas canvas) {
-    // Dibujar degradado líquido premium de fondo
+    final showerTime = game.elapsedShowerSeconds;
+    // Factor de calidez 0.0 (inicio) a 1.0 (4+ mins / 240s)
+    final heatFactor = (showerTime / 240.0).clamp(0.0, 1.0);
+
     final rect = Rect.fromLTWH(0, 0, size.x, size.y);
+
+    // Interpolación de colores del gradiente térmico reactivo al tiempo de ducha
+    final topColor = Color.lerp(const Color(0xFFE0F7FA), const Color(0xFFFFF3E0), heatFactor)!;
+    final midColor1 = Color.lerp(const Color(0xFF80DEEA), const Color(0xFFFFCC80), heatFactor)!;
+    final midColor2 = Color.lerp(const Color(0xFF26C6DA), const Color(0xFFFFA726), heatFactor)!;
+    final botColor = Color.lerp(const Color(0xFF00ACC1), const Color(0xFFE65100), heatFactor)!;
+
     _bgPaint.shader = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: const [
-        Color(0xFFE0F7FA), // Cyan muy claro (agua arriba)
-        Color(0xFF80DEEA), // Cyan claro
-        Color(0xFF26C6DA), // Cyan medio
-        Color(0xFF00ACC1), // Cyan oscuro (profundo abajo)
-      ],
+      colors: [topColor, midColor1, midColor2, botColor],
       stops: const [0.0, 0.4, 0.75, 1.0],
     ).createShader(rect);
     
@@ -100,6 +104,23 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
         highlightPaint,
       );
     }
+
+    // Dibujar viñeta de condensación y vapor transparente en bordes a partir de 45 segundos
+    if (showerTime > 45.0) {
+      final steamAlpha = ((showerTime - 45.0) / 195.0).clamp(0.0, 0.45);
+      final radius = math.min(size.x, size.y) * 0.65;
+      final steamPaint = Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(size.x / 2, size.y / 2),
+          radius,
+          [
+            Colors.white.withValues(alpha: 0.0),
+            Colors.white.withValues(alpha: steamAlpha),
+          ],
+          [0.45, 1.0],
+        );
+      canvas.drawRect(rect, steamPaint);
+    }
   }
 }
 
@@ -119,10 +140,10 @@ class _WaterBubble {
     required this.speed,
     required this.swaySpeed,
     required this.swayWidth,
-  }) : time = 0.0;
+  }) : time = math.Random().nextDouble() * 100;
 
   void update(double dt) {
-    y -= speed * dt;
     time += dt;
+    y -= speed * dt;
   }
 }

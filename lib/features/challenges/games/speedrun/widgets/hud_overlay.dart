@@ -61,7 +61,7 @@ class _HudOverlayState extends State<HudOverlay> {
       _warningMessage = msg;
       _shakeButton = true;
     });
-    
+
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -91,13 +91,12 @@ class _HudOverlayState extends State<HudOverlay> {
         ),
       );
     });
-    
-    // Remover después de 1 segundo de forma automática
+
     Timer(const Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() {
-          _floatingMessages.removeWhere((msg) => 
-            DateTime.now().difference(msg.createdAt).inMilliseconds >= 1000);
+          _floatingMessages.removeWhere((msg) =>
+              DateTime.now().difference(msg.createdAt).inMilliseconds >= 1000);
         });
       }
     });
@@ -139,7 +138,7 @@ class _HudOverlayState extends State<HudOverlay> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                
+
                 // Círculo gigante con el tiempo
                 Stack(
                   alignment: Alignment.center,
@@ -167,7 +166,7 @@ class _HudOverlayState extends State<HudOverlay> {
                   ],
                 ),
                 const SizedBox(height: 48),
-                
+
                 // Botón omitir preparación
                 GestureDetector(
                   onTap: () {
@@ -201,14 +200,16 @@ class _HudOverlayState extends State<HudOverlay> {
     final minutes = (game.elapsedShowerSeconds / 60).floor();
     final seconds = (game.elapsedShowerSeconds % 60).floor();
     final timeStr = "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
-    
-    // Color del temporizador: verde de 0 a 3 min, naranja de 3 a 4 min, rojo arriba de 4 min
+
+    // Color del temporizador y Eco-Gauge
     Color timerColor = Colors.greenAccent;
     if (game.elapsedShowerSeconds > 240.0) {
       timerColor = Colors.redAccent;
     } else if (game.elapsedShowerSeconds > 180.0) {
-      timerColor = Colors.orangeAccent;
+      timerColor = Colors.amberAccent;
     }
+
+    final gaugeProgress = (game.elapsedShowerSeconds / 240.0).clamp(0.0, 1.0);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -224,7 +225,7 @@ class _HudOverlayState extends State<HudOverlay> {
       },
       child: Stack(
         children: [
-          // Banner flotante de alerta superior (si intentan pulsar apagado bloqueado)
+          // Banner flotante de alerta superior
           if (_warningMessage.isNotEmpty)
             Positioned(
               top: 16,
@@ -255,100 +256,110 @@ class _HudOverlayState extends State<HudOverlay> {
               ),
             ),
 
-          // 3. PANTALLA CENTRAL: Tarjeta con Ducha y Cronómetro Integrado
+          // 3. PANTALLA CENTRAL: Tarjeta con Eco-Gauge y Cronómetro Integrado
           if (state == SpeedrunState.playing)
             Center(
-              child: GestureDetector(
-                onTap: () {
-                   // Capturar toques en la tarjeta también para mostrar el mensaje
-                   // es mejor dejar que el GestureDetector padre lo maneje por HitTestBehavior.translucent
-                },
-                child: Container(
-                  width: (game.size.x - 48.0).clamp(280.0, 340.0),
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: const Color(0xCC0D1B2A),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3), width: 2.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
-                        blurRadius: 20,
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icono de ducha animado latiendo y vibrando
-                      const Text("🚿", style: TextStyle(fontSize: 64))
-                          .animate(onPlay: (c) => c.repeat(reverse: true))
-                          .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 1200.ms)
-                          .shake(hz: 2, curve: Curves.easeInOut),
-                      
-                      const SizedBox(height: 16),
-  
-                      // Cronómetro digital gigante integrado en la tarjeta
-                      Text(
-                        timeStr,
-                        style: GoogleFonts.shareTechMono(
-                          color: timerColor,
-                          fontSize: 54,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.0,
-                          shadows: [
-                            Shadow(
-                              color: timerColor,
-                              blurRadius: 10.0,
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      Text(
-                        "DUCHA EN CURSO",
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFF00E5FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                          shadows: [
-                            Shadow(color: const Color(0xFF00E5FF).withValues(alpha: 0.5), blurRadius: 8),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        "¡Báñate rápido! El botón se desbloqueará después de 3 minutos de ducha.",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(
-                          color: Colors.white70,
-                          fontSize: 12.5,
-                          height: 1.45,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      
-                      // Estado visual de bloqueo
-                      AnimatedSwitcher(
-                        duration: 300.ms,
-                        child: Text(
-                          isSolved 
-                              ? "✨ ¡Botón Desbloqueado! ✨" 
-                              : "🔒 Esperando 3 minutos...",
-                          key: ValueKey<bool>(isSolved),
-                          style: GoogleFonts.outfit(
-                            color: isSolved ? Colors.greenAccent : Colors.orangeAccent,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
+              child: Container(
+                width: (game.size.x - 48.0).clamp(280.0, 340.0),
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: const Color(0xDD0D1B2A),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: timerColor.withValues(alpha: 0.5), width: 2.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: timerColor.withValues(alpha: 0.2),
+                      blurRadius: 25,
+                      spreadRadius: 2,
+                    )
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Anillo Eco-Gauge animado rodeando el ícono
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 110,
+                          height: 110,
+                          child: CircularProgressIndicator(
+                            value: gaugeProgress,
+                            strokeWidth: 7,
+                            valueColor: AlwaysStoppedAnimation<Color>(timerColor),
+                            backgroundColor: Colors.white12,
                           ),
                         ),
+                        const Text("🚿", style: TextStyle(fontSize: 54))
+                            .animate(onPlay: (c) => c.repeat(reverse: true))
+                            .scale(begin: const Offset(0.92, 0.92), end: const Offset(1.08, 1.08), duration: 1200.ms)
+                            .shake(hz: 2, curve: Curves.easeInOut),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Cronómetro digital gigante integrado en la tarjeta
+                    Text(
+                      timeStr,
+                      style: GoogleFonts.shareTechMono(
+                        color: timerColor,
+                        fontSize: 54,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.0,
+                        shadows: [
+                          Shadow(
+                            color: timerColor,
+                            blurRadius: 12.0,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Text(
+                      "DUCHA EN CURSO",
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF00E5FF),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        shadows: [
+                          Shadow(color: const Color(0xFF00E5FF).withValues(alpha: 0.5), blurRadius: 8),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "¡Báñate rápido! El botón se desbloqueará después de 3 minutos de ducha.",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        color: Colors.white70,
+                        fontSize: 12.5,
+                        height: 1.45,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Estado visual de bloqueo
+                    AnimatedSwitcher(
+                      duration: 300.ms,
+                      child: Text(
+                        isSolved
+                            ? "✨ ¡Botón Desbloqueado! ✨"
+                            : "🔒 Esperando 3 minutos...",
+                        key: ValueKey<bool>(isSolved),
+                        style: GoogleFonts.outfit(
+                          color: isSolved ? Colors.greenAccent : Colors.orangeAccent,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)),
@@ -362,7 +373,7 @@ class _HudOverlayState extends State<HudOverlay> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Botón apagar ducha (Bloqueado/Desbloqueado según tiempo)
+                  // Botón apagar ducha
                   GestureDetector(
                     onTap: () {
                       if (isSolved) {
@@ -402,8 +413,8 @@ class _HudOverlayState extends State<HudOverlay> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            isSolved 
-                                ? Icons.check_circle_outline_rounded 
+                            isSolved
+                                ? Icons.check_circle_outline_rounded
                                 : Icons.lock_outline_rounded,
                             color: Colors.white,
                             size: 22,
@@ -430,10 +441,10 @@ class _HudOverlayState extends State<HudOverlay> {
                         duration: 100.ms,
                         curve: Curves.easeIn,
                       ),
-                  
+
                   const SizedBox(height: 16),
-                  
-                  // Botón "Salir (Modo Programador)" para completar el juego instantáneamente
+
+                  // Botón "Salir (Modo Programador)"
                   GestureDetector(
                     onTap: () {
                       game.gameState = SpeedrunState.success;
@@ -462,7 +473,7 @@ class _HudOverlayState extends State<HudOverlay> {
             ),
           ),
 
-          // 5. ALERTAS FLOTANTES DINÁMICAS (Toques del dedo)
+          // 5. ALERTAS FLOTANTES DINÁMICAS
           ..._floatingMessages.map((msg) {
             return Positioned(
               left: msg.position.dx - 100,
@@ -491,10 +502,10 @@ class _HudOverlayState extends State<HudOverlay> {
                       ),
                     ),
                   )
-                  .animate()
-                  .fadeIn(duration: 150.ms)
-                  .slideY(begin: 0.2, end: -0.6, duration: 800.ms, curve: Curves.easeOut)
-                  .fadeOut(delay: 500.ms, duration: 300.ms),
+                      .animate()
+                      .fadeIn(duration: 150.ms)
+                      .slideY(begin: 0.2, end: -0.6, duration: 800.ms, curve: Curves.easeOut)
+                      .fadeOut(delay: 500.ms, duration: 300.ms),
                 ),
               ),
             );
