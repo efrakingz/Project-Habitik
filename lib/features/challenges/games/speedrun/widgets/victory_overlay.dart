@@ -56,12 +56,12 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
             blastDirectionality: BlastDirectionality.explosive,
             shouldLoop: false,
             colors: const [
-              Colors.green,
-              Colors.blue,
-              Colors.pink,
-              Colors.orange,
-              Colors.purple,
-              Colors.yellow,
+              Color(0xFF059669), // Green 600
+              Color(0xFF34D399), // Green 400
+              Color(0xFFF59E0B), // Gold / Amber
+              Color(0xFF00E5FF), // Cyan
+              Color(0xFF10B981), // Emerald
+              Color(0xFFFBBF24), // Amber Accent
             ],
           ),
         ),
