@@ -15,6 +15,17 @@ class RewardItem {
     this.disponible = true,
   });
 
+  factory RewardItem.fromJson(Map<String, dynamic> json) {
+    return RewardItem(
+      id: json['id'] is num ? (json['id'] as num).toInt() : int.tryParse('${json['id']}') ?? 0,
+      titulo: json['titulo']?.toString() ?? '',
+      costo: json['costo'] is num ? (json['costo'] as num).toInt() : int.tryParse('${json['costo']}') ?? 0,
+      descripcion: json['descripcion']?.toString() ?? '',
+      emoji: json['emoji']?.toString() ?? '🎁',
+      disponible: json['disponible'] != false,
+    );
+  }
+
   static List<RewardItem> get mockList => const [
     RewardItem(
       id: 1,

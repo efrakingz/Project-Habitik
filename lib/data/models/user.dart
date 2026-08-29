@@ -31,6 +31,13 @@ class UserProfile {
     this.onboardingCompleted = false,
   });
 
+  bool get isJefe {
+    final r = rol.toLowerCase().trim();
+    return r == 'jefe' || r == 'jefa' || r == 'admin' || r == 'co-admin';
+  }
+
+  bool get isMiembro => !isJefe;
+
   UserProfile copyWith({
     String? id,
     String? nombre,
@@ -64,6 +71,46 @@ class UserProfile {
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    // 1. Extracción de Avatar Híbrido (JSONB Map o String vs columnas planas)
+    String letra = 'U';
+    String color = '#43A047';
+    String? url;
+
+    if (json['avatar'] != null && json['avatar'].toString() != 'null') {
+      if (json['avatar'] is Map) {
+        final avMap = json['avatar'] as Map;
+        letra =
+            avMap['letra']?.toString() ??
+            (json['nombre'] != null && json['nombre'].toString().isNotEmpty
+                ? json['nombre'].toString()[0].toUpperCase()
+                : 'U');
+        color = avMap['color']?.toString() ?? '#43A047';
+        url = avMap['url']?.toString();
+      } else if (json['avatar'] is String) {
+        try {
+          final avMap = jsonDecode(json['avatar']);
+          if (avMap is Map) {
+            letra =
+                avMap['letra']?.toString() ??
+                (json['nombre'] != null && json['nombre'].toString().isNotEmpty
+                    ? json['nombre'].toString()[0].toUpperCase()
+                    : 'U');
+            color = avMap['color']?.toString() ?? '#43A047';
+            url = avMap['url']?.toString();
+          }
+        } catch (_) {}
+      }
+    } else {
+      letra =
+          json['avatar_letra'] ??
+          (json['nombre'] != null && json['nombre'].toString().isNotEmpty
+              ? json['nombre'].toString()[0].toUpperCase()
+              : 'U');
+      color = json['avatar_color'] ?? '#43A047';
+      url = json['avatar_url'];
+    }
+
+    // 2. Validación de Onboarding
     final answers = json['onboarding_answers'];
     bool hasValidAnswers = false;
     if (answers != null && answers.toString() != 'null') {
@@ -89,19 +136,28 @@ class UserProfile {
         hasValidAnswers = true;
       }
     }
-    final hasCompletedFlag = json['onboarding_completed'] == true || json['onboardingCompleted'] == true;
+    final hasCompletedFlag =
+        json['onboarding_completed'] == true ||
+        json['onboardingCompleted'] == true;
+
     return UserProfile(
       id: json['id'] ?? json['user_id'] ?? '',
       nombre: json['nombre'] ?? '',
       email: json['email'],
-      avatarLetra: json['avatar_letra'] ?? 'U',
-      avatarColor: json['avatar_color'] ?? '#43A047',
-      avatarUrl: json['avatar_url'],
-      rol: json['rol'] ?? 'miembro',
+      avatarLetra: letra,
+      avatarColor: color,
+      avatarUrl: url,
+      rol: (json['rol'] ?? 'miembro').toString().toLowerCase(),
       familyId: json['family_id'],
-      xp: json['xp'] ?? 0,
-      nivel: json['nivel'] ?? 1,
-      monedas: json['monedas'] ?? 0,
+      xp: json['xp'] is num
+          ? (json['xp'] as num).toInt()
+          : int.tryParse('${json['xp']}') ?? 0,
+      nivel: json['nivel'] is num
+          ? (json['nivel'] as num).toInt()
+          : int.tryParse('${json['nivel']}') ?? 1,
+      monedas: json['monedas'] is num
+          ? (json['monedas'] as num).toInt()
+          : int.tryParse('${json['monedas']}') ?? 0,
       familyName: json['family_name'],
       onboardingCompleted: hasValidAnswers || hasCompletedFlag,
     );

@@ -700,3 +700,89 @@ class ValidationCard extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HeroBannerCard – tarjeta destacada de encabezado de sección
+// ─────────────────────────────────────────────────────────────────────────────
+class HeroBannerCard extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String description;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const HeroBannerCard({
+    super.key,
+    required this.emoji,
+    required this.title,
+    required this.description,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2E22) : Colors.white,
+        borderRadius: HabitikRadius.lg_,
+        border: Border.all(
+          color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
+          width: 2,
+        ),
+        boxShadow: HabitikShadows.card,
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 48))
+              .animate().scale(begin: const Offset(0.8, 0.8), duration: 500.ms, curve: Curves.elasticOut),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: TextStyle(
+              color: isDark ? Colors.white : HabitikColors.textDark,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: TextStyle(
+              color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
+              fontSize: 12,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 18),
+            GestureDetector(
+              onTap: onAction,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: HabitikColors.heroGreen,
+                  borderRadius: HabitikRadius.md_,
+                  boxShadow: HabitikShadows.colored(HabitikColors.green600),
+                ),
+                child: Text(
+                  actionLabel!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

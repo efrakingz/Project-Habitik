@@ -1,10 +1,21 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'session_service.dart';
 
 class ApiClient {
-  // Servidor backend en Railway:
-  static String baseUrl = 'https://backendhabitik-production.up.railway.app';
+  /// Servidor backend: Por defecto en desarrollo local apunta a http://localhost:3000
+  /// En emulador Android usa 10.0.2.2, en Web/Desktop usa localhost.
+  static String localBaseUrl = kIsWeb
+      ? 'http://localhost:3000'
+      : (defaultTargetPlatform == TargetPlatform.android
+          ? 'http://10.0.2.2:3000'
+          : 'http://localhost:3000');
+
+  static String productionBaseUrl = 'https://backendhabitik-production.up.railway.app';
+
+  /// URL activa del backend (por defecto local cuando se está desarrollando)
+  static String baseUrl = localBaseUrl;
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
