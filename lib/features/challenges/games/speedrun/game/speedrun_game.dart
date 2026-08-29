@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
+import 'package:habitik/core/services/api_client.dart';
+import 'package:habitik/core/services/session_service.dart';
 import 'models/speedrun_state.dart';
 import 'components/background_component.dart';
 
@@ -96,6 +99,9 @@ class SpeedrunGame extends FlameGame {
     if (gameState == SpeedrunState.playing) {
       showerDurationSeconds = elapsedShowerSeconds;
       
+      // Persistir la ducha en el backend de PostgreSQL
+      _persistShowerLog(elapsedShowerSeconds.toInt());
+
       // Si superó los 4 minutos (240s), se considera una ducha excesiva (failure)
       if (elapsedShowerSeconds > 240.0) {
         gameState = SpeedrunState.failure;
@@ -104,6 +110,28 @@ class SpeedrunGame extends FlameGame {
         // Notificar al shell del reto que se completó con éxito
         onChallengeCompleted?.call();
       }
+    }
+  }
+
+  Future<void> _persistShowerLog(int durationSeconds) async {
+    try {
+      final response = await ApiClient().post('/reto/ducha', {
+        'duracion_segundos': durationSeconds,
+      });
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['valido'] == true) {
+          final current = SessionService().currentUser;
+          if (current != null) {
+            await SessionService().updateRewardsAndXp(
+              xp: current.xp + 50,
+              monedas: current.monedas + 5,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error persistiendo registro de ducha: $e');
     }
   }
 

@@ -16,6 +16,7 @@ class ScreenShell extends StatelessWidget {
   final List<Widget>? headerActions;
   final Widget? headerLeft;
   final bool roundedTop;
+  final bool showBackButton;
 
   const ScreenShell({
     super.key,
@@ -25,6 +26,7 @@ class ScreenShell extends StatelessWidget {
     this.headerActions,
     this.headerLeft,
     this.roundedTop = true,
+    this.showBackButton = false,
   });
 
   @override
@@ -39,6 +41,7 @@ class ScreenShell extends StatelessWidget {
           subtitulo: subtitulo,
           headerLeft: headerLeft,
           headerActions: headerActions,
+          showBackButton: showBackButton,
         ),
 
         // ── Body ─────────────────────────────────────────────────────────────

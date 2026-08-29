@@ -25,6 +25,53 @@ class PendingValidation {
     required this.requiereEvidencia,
   });
 
+  factory PendingValidation.fromJson(Map<String, dynamic> json) {
+    String nombre = 'Usuario';
+    String letra = 'U';
+    String color = '#43A047';
+
+    if (json['snapshot_usuario'] != null && json['snapshot_usuario'] is Map) {
+      final snap = json['snapshot_usuario'] as Map;
+      nombre = snap['nombre']?.toString() ?? 'Usuario';
+      if (snap['avatar'] is Map) {
+        letra = snap['avatar']['letra']?.toString() ?? (nombre.isNotEmpty ? nombre[0].toUpperCase() : 'U');
+        color = snap['avatar']['color']?.toString() ?? '#43A047';
+      }
+    } else {
+      nombre = json['usuario'] ?? json['nombre'] ?? 'Usuario';
+      letra = json['avatar_letra'] ?? (nombre.isNotEmpty ? nombre[0].toUpperCase() : 'U');
+      color = json['avatar_color'] ?? '#43A047';
+    }
+
+    List<String> evList = [];
+    if (json['evidencias'] != null) {
+      if (json['evidencias'] is List) {
+        evList = (json['evidencias'] as List).map((e) {
+          if (e is Map) {
+            return e.values.join(' - ');
+          }
+          return e.toString();
+        }).toList();
+      } else if (json['evidencias'] is String) {
+        evList = [json['evidencias'].toString()];
+      }
+    }
+
+    return PendingValidation(
+      id: json['id'] is num ? (json['id'] as num).toInt() : int.tryParse('${json['id']}') ?? 0,
+      userId: json['user_id']?.toString() ?? '',
+      usuario: nombre,
+      avatarLetra: letra,
+      avatarColor: color,
+      reto: json['reto'] ?? '',
+      hora: json['hora'] ?? 'Recién',
+      xp: json['xp'] is num ? (json['xp'] as num).toInt() : int.tryParse('${json['xp']}') ?? 0,
+      monedas: json['monedas'] is num ? (json['monedas'] as num).toInt() : int.tryParse('${json['monedas']}') ?? 0,
+      evidencias: evList,
+      requiereEvidencia: json['requiere_evidencia'] == true,
+    );
+  }
+
   static List<PendingValidation> get mockList => [
     PendingValidation(
       id: 1,

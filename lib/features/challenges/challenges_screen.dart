@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/core/services/api_client.dart';
+import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/interactive_backgrounds/retos_plaza_background.dart';
@@ -245,11 +248,14 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                                 ),
                               ),
                             );
+                          } else if (challenge.id == 'puzzle') {
+                            Navigator.pop(context);
+                            _showEcoPuzzleDialog(context);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "¡El mini-juego '${challenge.titulo}' estará disponible pronto! Juega a 'Speedrun Ducha' mientras tanto.",
+                                  "¡El mini-juego '${challenge.titulo}' estará disponible pronto!",
                                   style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 backgroundColor: HabitikColors.green700,
@@ -266,6 +272,121 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
               const SizedBox(height: 12),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showEcoPuzzleDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: isDark ? const Color(0xFF141F17) : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🎯', style: TextStyle(fontSize: 48)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Eco-Puzzle Temático',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : HabitikColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Clasifica los residuos en menos de 60 segundos con menos de 3 errores para ganar +150 XP y 2 monedas.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    if (isSubmitting)
+                      const CircularProgressIndicator(color: HabitikColors.green600)
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(dialogCtx),
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: HabitikColors.green600,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              onPressed: () async {
+                                setDialogState(() => isSubmitting = true);
+                                try {
+                                  final user = SessionService().currentUser;
+                                  final response = await ApiClient().post('/eco/completar', {
+                                    'user_id': user?.id,
+                                    'errores': 1,
+                                    'tiempo_segundos': 35,
+                                  });
+
+                                  final data = jsonDecode(response.body);
+                                  if (data['ok'] == true) {
+                                    final recomp = data['data']['recompensas'];
+                                    await SessionService().updateRewardsAndXp(
+                                      xp: recomp['xp_total'],
+                                      monedas: recomp['monedas_total'],
+                                      nivel: recomp['nivel_actual'],
+                                    );
+                                    _completedNotifier.value = Set.from(_completedNotifier.value)..add('puzzle');
+                                  }
+
+                                  if (context.mounted) {
+                                    Navigator.pop(dialogCtx);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(data['message'] ?? '¡Reto completado!'),
+                                        backgroundColor: HabitikColors.green700,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    setDialogState(() => isSubmitting = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error al enviar reto: $e'),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text('¡Completar!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );

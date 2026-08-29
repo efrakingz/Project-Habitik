@@ -17,6 +17,18 @@ class NotificationItem {
     this.leida = false,
   });
 
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    return NotificationItem(
+      id: json['id']?.toString() ?? '',
+      titulo: json['titulo']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString() ?? '',
+      time: json['created_at']?.toString().split('T')[0] ?? json['time']?.toString() ?? 'Hoy',
+      iconNombre: json['icon']?.toString() ?? json['icon_nombre']?.toString() ?? 'notifications',
+      colorHex: json['color']?.toString() ?? json['color_hex']?.toString() ?? '#43A047',
+      leida: json['leida'] == true,
+    );
+  }
+
   static List<NotificationItem> get mockList => const [
     NotificationItem(
       id: '1',

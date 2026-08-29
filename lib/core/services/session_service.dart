@@ -180,6 +180,22 @@ class SessionService {
     return _prefs?.getString('ob_role_$userId') ?? 'jefe';
   }
 
+  Future<void> updateRewardsAndXp({
+    int? xp,
+    int? monedas,
+    int? nivel,
+  }) async {
+    final current = currentUser;
+    if (current == null) return;
+    final updated = current.copyWith(
+      xp: xp ?? current.xp,
+      monedas: monedas ?? current.monedas,
+      nivel: nivel ?? current.nivel,
+    );
+    await _prefs?.setString('user_profile', jsonEncode(updated.toJson()));
+    currentUserNotifier.value = updated;
+  }
+
   Future<void> setOnboardingRole(String role) async {
     final userId = currentUser?.id;
     if (userId != null) {

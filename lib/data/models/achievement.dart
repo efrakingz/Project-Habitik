@@ -21,6 +21,20 @@ class AchievementItem {
     this.desbloqueadoEn,
   });
 
+  factory AchievementItem.fromJson(Map<String, dynamic> json) {
+    return AchievementItem(
+      key: json['key']?.toString() ?? '',
+      nombre: json['nombre']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString() ?? '',
+      emoji: json['emoji']?.toString() ?? '🏆',
+      dificultad: json['dificultad']?.toString() ?? 'fácil',
+      xp: json['xp'] is num ? (json['xp'] as num).toInt() : int.tryParse('${json['xp']}') ?? 0,
+      monedas: json['monedas'] is num ? (json['monedas'] as num).toInt() : int.tryParse('${json['monedas']}') ?? 0,
+      desbloqueado: json['desbloqueado'] == true,
+      desbloqueadoEn: json['desbloqueado_en']?.toString(),
+    );
+  }
+
   static List<AchievementItem> get mockList => const [
     AchievementItem(
       key: 'primer_reto',

@@ -23,8 +23,7 @@ class _HomeShellState extends State<HomeShell> {
   // Para Jefe: 5 tabs (Inicio, Retos, Scan, Canjes, Panel)
   // Para Miembro: 3 tabs (Inicio, Retos, Canjes)
   bool get _isJefe {
-    final rol = _sessionService.currentUser?.rol.toLowerCase() ?? '';
-    return rol == 'jefe' || rol == 'jefa' || rol == 'admin';
+    return _sessionService.currentUser?.isJefe ?? false;
   }
 
   List<Widget> get _screens => _isJefe

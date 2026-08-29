@@ -161,6 +161,7 @@ Widget buildScreenHeader({
   Widget? headerLeft,
   Widget? leadingWidget,
   List<Widget>? headerActions,
+  bool showBackButton = false,
   EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(20, 16, 20, 12),
 }) {
   return Padding(
@@ -170,7 +171,7 @@ Widget buildScreenHeader({
         if (headerLeft != null) ...[
           headerLeft,
           const SizedBox(width: 12),
-        ] else if (Navigator.canPop(context)) ...[
+        ] else if (showBackButton && Navigator.canPop(context)) ...[
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
