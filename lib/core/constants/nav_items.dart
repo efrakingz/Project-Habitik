@@ -83,27 +83,29 @@ class BottomNavHabitik extends StatelessWidget {
         ? NavigationConstants.adminNavItems
         : NavigationConstants.memberNavItems;
 
-    return Container(
-      margin: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.of(context).padding.bottom),
-      height: 64,
-      decoration: BoxDecoration(
-        gradient: HabitikColors.heroGreen,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(60),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.of(context).padding.bottom),
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          // Verde semi-transparente: se mezcla con el fondo visible
+          color: const Color(0xFF2E7D32).withAlpha(140),
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(40),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withAlpha(55),
+            width: 1.5,
           ),
-        ],
-        border: Border.all(
-          color: Colors.white.withAlpha(25),
-          width: 1.5,
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: items.asMap().entries.map((e) {
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: items.asMap().entries.map((e) {
           final i = e.key;
           final item = e.value;
           final selected = currentIndex == i;
@@ -163,7 +165,8 @@ class BottomNavHabitik extends StatelessWidget {
             ),
           );
         }).toList(),
-      ),
-    );
+        ),    // Row
+      ),      // Container
+    );        // Padding
   }
 }

@@ -4,9 +4,40 @@ import 'package:google_fonts/google_fonts.dart';
 import '../game/speedrun_game.dart';
 import '../game/models/speedrun_state.dart';
 
+import 'package:habitik/core/services/history_service.dart';
+import 'package:habitik/core/services/session_service.dart';
+
 class ConfirmationOverlay extends StatelessWidget {
   final SpeedrunGame game;
   const ConfirmationOverlay({super.key, required this.game});
+
+  void _iniciarDuchaYNotificar(BuildContext context) {
+    final user = SessionService().currentUser;
+    final familyId = user?.familyId;
+    final nombre = (user?.nombre != null && user!.nombre.isNotEmpty)
+        ? user.nombre
+        : 'Un familiar';
+
+    if (familyId != null && familyId.isNotEmpty) {
+      HistoryService.enviarAlertaFamilia(
+        familyId: familyId,
+        usuarioId: user?.id,
+        usuarioNombre: nombre,
+        titulo: '🚿 ¡Hora de la Ducha!',
+        mensaje: '¡$nombre ha comenzado a bañarse en modo Speedrun! Ahorrando agua en el hogar.',
+        tipo: 'DUCHA_SPEEDRUN',
+        visual: {'icon': 'shower', 'color': '#00ACC1'},
+        payload: {
+          'juego': 'speedrun_ducha',
+          'usuario_nombre': nombre,
+          'iniciado_en': DateTime.now().toIso8601String(),
+        },
+      );
+    }
+
+    // Iniciar la preparación (30 segundos para entrar)
+    game.gameState = SpeedrunState.preparing;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +145,7 @@ class ConfirmationOverlay extends StatelessWidget {
                       
                       // Botón Sí
                       GestureDetector(
-                        onTap: () {
-                          // Iniciar la preparación (30 segundos para entrar)
-                          game.gameState = SpeedrunState.preparing;
-                        },
+                        onTap: () => _iniciarDuchaYNotificar(context),
                         child: Container(
                           width: double.infinity,
                           height: 52,

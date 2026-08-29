@@ -4,13 +4,15 @@ import 'package:http/http.dart' as http;
 import 'session_service.dart';
 
 class ApiClient {
-  /// Servidor backend: Por defecto en desarrollo local apunta a http://localhost:3000
-  /// En emulador Android usa 10.0.2.2, en Web/Desktop usa localhost.
+  /// IP local de la computadora en la red Wi-Fi
+  static const String localIp = '192.168.1.14';
+
+  /// Servidor backend:
+  /// En Web o Desktop usa localhost:3000.
+  /// En dispositivos móviles (físicos o emuladores) usa la IP local para conectividad total en la red.
   static String localBaseUrl = kIsWeb
       ? 'http://localhost:3000'
-      : (defaultTargetPlatform == TargetPlatform.android
-          ? 'http://10.0.2.2:3000'
-          : 'http://localhost:3000');
+      : 'http://$localIp:3000';
 
   static String productionBaseUrl = 'https://backendhabitik-production.up.railway.app';
 

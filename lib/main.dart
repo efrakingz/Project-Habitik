@@ -4,8 +4,15 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/navigation/app_router.dart';
 
-void main() {
+import 'package:habitik/core/services/notification_service.dart';
+import 'package:habitik/core/services/background_service.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar notificaciones del sistema y servicio en segundo plano
+  await NotificationService.initNotificationService();
+  await BackgroundServiceManager.initializeService();
 
   // Configurar flutter_animate
   Animate.restartOnHotReload = true;

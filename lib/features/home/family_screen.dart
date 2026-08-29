@@ -66,14 +66,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
-        child: SafeArea(
-          bottom: false,
-          child: ScreenShell(
-            titulo: 'Muro del Hogar',
-            subtitulo: '🏡 $familyName',
-            showBackButton: true,
+      body: ScreenShell(
+        titulo: 'Muro del Hogar',
+        subtitulo: '🏡 $familyName',
+        showBackButton: true,
             body: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               child: Column(
@@ -195,8 +191,6 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 ],
               ),
             ),
-          ),
-        ),
       ),
     );
   }

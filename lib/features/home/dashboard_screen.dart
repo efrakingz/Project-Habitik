@@ -28,15 +28,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
-      child: SafeArea(
-        bottom: false,
-        child: ScreenShell(
-          titulo: 'Muro Familiar',
-          subtitulo: (_user.familyName != null && _user.familyName!.isNotEmpty)
-              ? 'Hogar: ${_user.familyName}'
-              : 'Aquí debe ir tu familia',
+    return ScreenShell(
+      titulo: 'Muro Familiar',
+      subtitulo: (_user.familyName != null && _user.familyName!.isNotEmpty)
+          ? 'Hogar: ${_user.familyName}'
+          : 'Aquí debe ir tu familia',
           headerLeft: GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -153,8 +149,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 }
