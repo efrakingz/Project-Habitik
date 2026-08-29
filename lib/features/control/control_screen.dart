@@ -13,34 +13,28 @@ class ControlScreen extends StatefulWidget {
 class _ControlScreenState extends State<ControlScreen> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
-      child: SafeArea(
-        bottom: false,
-        child: ScreenShell(
-          titulo: 'Panel de Control',
-          subtitulo: '👑 Jefe de Familia',
-          headerActions: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: HabitikColors.amber400, borderRadius: HabitikRadius.xxl_),
-              child: const Text('ADMIN', style: TextStyle(color: Color(0xFF5D4037), fontSize: 10, fontWeight: FontWeight.w900)),
+    return ScreenShell(
+      titulo: 'Panel de Control',
+      subtitulo: '👑 Jefe de Familia',
+      headerActions: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: HabitikColors.amber400, borderRadius: HabitikRadius.xxl_),
+          child: const Text('ADMIN', style: TextStyle(color: Color(0xFF5D4037), fontSize: 10, fontWeight: FontWeight.w900)),
+        ),
+      ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        child: Column(
+          children: [
+            HeroBannerCard(
+              emoji: '👑',
+              title: 'Administrar Familia',
+              description: 'Gestiona las metas de ahorro mensual de luz y agua, y aprueba evidencias de retos familiares.',
+              actionLabel: '👑 Configurar Metas',
+              onAction: () {},
             ),
           ],
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-            child: Column(
-              children: [
-                HeroBannerCard(
-                  emoji: '👑',
-                  title: 'Administrar Familia',
-                  description: 'Gestiona las metas de ahorro mensual de luz y agua, y aprueba evidencias de retos familiares.',
-                  actionLabel: '👑 Configurar Metas',
-                  onAction: () {},
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

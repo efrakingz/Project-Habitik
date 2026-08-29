@@ -7,7 +7,7 @@ export 'package:habitik/core/constants/nav_items.dart';
 export 'package:habitik/core/constants/screen_headers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ScreenShell – shell base de todas las pantallas (header verde + body blanco)
+// ScreenShell – shell base de todas las pantallas (header verde + body curvado)
 // ─────────────────────────────────────────────────────────────────────────────
 class ScreenShell extends StatelessWidget {
   final String titulo;
@@ -17,6 +17,7 @@ class ScreenShell extends StatelessWidget {
   final Widget? headerLeft;
   final bool roundedTop;
   final bool showBackButton;
+  final bool useDefaultBackground;
 
   const ScreenShell({
     super.key,
@@ -27,49 +28,48 @@ class ScreenShell extends StatelessWidget {
     this.headerLeft,
     this.roundedTop = true,
     this.showBackButton = false,
+    this.useDefaultBackground = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      children: [
-        // ── Header ───────────────────────────────────────────────────────────
-        buildScreenHeader(
-          context: context,
-          titulo: titulo,
-          subtitulo: subtitulo,
-          headerLeft: headerLeft,
-          headerActions: headerActions,
-          showBackButton: showBackButton,
-        ),
-
-        // ── Body ─────────────────────────────────────────────────────────────
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF111D15) : HabitikColors.bgWhite,
-              borderRadius: roundedTop
-                  ? const BorderRadius.vertical(top: Radius.circular(28))
-                  : BorderRadius.zero,
+    return Container(
+      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // ── Header ───────────────────────────────────────────────────────────
+            buildScreenHeader(
+              context: context,
+              titulo: titulo,
+              subtitulo: subtitulo,
+              headerLeft: headerLeft,
+              headerActions: headerActions,
+              showBackButton: showBackButton,
             ),
-            child: ClipRRect(
-              borderRadius: roundedTop
-                  ? const BorderRadius.vertical(top: Radius.circular(28))
-                  : BorderRadius.zero,
-              child: Stack(
-                children: [
-                  // Fondo interactivo claro de Flame
-                  const Positioned.fill(
-                    child: LightClearBackground(),
-                  ),
-                  body,
-                ],
+
+            // ── Body Curvado con Bordes Redondeados Superiores ───────────────────
+            Expanded(
+              child: ClipRRect(
+                borderRadius: roundedTop
+                    ? const BorderRadius.vertical(top: Radius.circular(28))
+                    : BorderRadius.zero,
+                child: Stack(
+                  children: [
+                    // Fondo interactivo de colinas verdes dentro del contenedor curvado
+                    if (useDefaultBackground)
+                      const Positioned.fill(
+                        child: LightClearBackground(),
+                      ),
+                    body,
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

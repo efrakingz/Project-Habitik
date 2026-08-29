@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../data/models/user.dart';
 import 'api_client.dart';
+import 'background_service.dart';
+import 'notification_service.dart';
+import 'socket_service.dart';
 
 class SessionService {
   static final SessionService _instance = SessionService._internal();
@@ -43,6 +46,28 @@ class SessionService {
     await _prefs?.setString('token_jwt', token);
     await _prefs?.setString('user_profile', jsonEncode(enriched.toJson()));
     currentUserNotifier.value = enriched;
+
+    // Conectar a la sala familiar de notificaciones en tiempo real
+    if (enriched.familyId != null && enriched.familyId!.isNotEmpty) {
+      await BackgroundServiceManager.conectarFamilia(enriched.familyId!);
+      SocketService.initSocket(enriched.familyId!, (data) async {
+        debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
+        try {
+          final int notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
+          final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
+          final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
+
+          await NotificationService.mostrarNotificacionSistema(
+            id: notifId,
+            titulo: '$sender: $titulo',
+            cuerpo: cuerpo,
+          );
+        } catch (e) {
+          debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
+        }
+      });
+    }
   }
 
   /// Guarda temporalmente email y contraseña para re-login silencioso de fondo.
@@ -134,6 +159,28 @@ class SessionService {
         } else {
           currentUserNotifier.value = p;
         }
+
+        // Conectar a la sala familiar si existe sesión válida
+        if (p.familyId != null && p.familyId!.isNotEmpty) {
+          await BackgroundServiceManager.conectarFamilia(p.familyId!);
+          SocketService.initSocket(p.familyId!, (data) async {
+            debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
+            try {
+              final int notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+              final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
+              final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
+              final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
+
+              await NotificationService.mostrarNotificacionSistema(
+                id: notifId,
+                titulo: '$sender: $titulo',
+                cuerpo: cuerpo,
+              );
+            } catch (e) {
+              debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
+            }
+          });
+        }
       } catch (e) {
         final refreshed = await silentRelogin();
         if (!refreshed) {
@@ -147,6 +194,7 @@ class SessionService {
 
   /// Elimina los datos de sesión activa preservando preferencias de hardware
   Future<void> clearSession() async {
+    SocketService.disconnect();
     await _prefs?.remove('token_jwt');
     await _prefs?.remove('user_profile');
     await _prefs?.remove('temp_email');

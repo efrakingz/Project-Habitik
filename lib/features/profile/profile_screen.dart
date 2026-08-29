@@ -85,14 +85,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
-        child: SafeArea(
-          bottom: false,
-          child: ScreenShell(
-            titulo: 'Mi Perfil',
-            subtitulo: '${_user.nombre} · ${_user.rol.toUpperCase()}',
-            showBackButton: true,
+      body: ScreenShell(
+        titulo: 'Mi Perfil',
+        subtitulo: '${_user.nombre} · ${_user.rol.toUpperCase()}',
+        showBackButton: true,
             headerActions: [
               IconActionButton(
                 icon: Icons.logout_rounded,
@@ -486,8 +482,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 }

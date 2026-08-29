@@ -97,15 +97,11 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
-      child: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            ScreenShell(
-              titulo: 'Scan de Boletas',
-              subtitulo: '📄 Auditoría de Consumo',
+    return Stack(
+      children: [
+        ScreenShell(
+          titulo: 'Scan de Boletas',
+          subtitulo: '📄 Auditoría de Consumo',
               body: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                 child: Column(
@@ -326,9 +322,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
               ),
           ],
-        ),
-      ),
-    );
+        );
   }
 
   Widget _label(String text) => Padding(
