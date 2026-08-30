@@ -1,0 +1,11 @@
+<!-- LEAF: Single bold leaf shape, readable at 18dp status bar -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- Bold leaf body -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.71,19.7A4.49,4.49,0,0,0,8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 3,11 3,11C3.37,10.57 5.02,9.63 8,8.8"/>
+</vector>

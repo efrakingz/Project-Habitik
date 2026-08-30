@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:habitik/core/services/api_client.dart';
+import 'package:habitik/core/services/history_service.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'models/speedrun_state.dart';
 import 'components/background_component.dart';
@@ -127,6 +128,25 @@ class SpeedrunGame extends FlameGame {
               xp: current.xp + 50,
               monedas: current.monedas + 5,
             );
+
+            if (current.familyId != null && current.familyId!.isNotEmpty) {
+              final durMin = (durationSeconds / 60).toStringAsFixed(1);
+              HistoryService.enviarAlertaFamilia(
+                familyId: current.familyId!,
+                usuarioId: current.id,
+                usuarioNombre: current.nombre,
+                titulo: '🚿 ¡Eco-Ducha Completada!',
+                mensaje: '${current.nombre} completó su ducha en $durMin min y sumó 50 XP al hogar.',
+                tipo: 'RETO_COMPLETADO',
+                visual: {'icon': 'emoji_events', 'color': '#10B981'},
+                payload: {
+                  'tipo': 'ducha',
+                  'duracion_segundos': durationSeconds,
+                  'xp': 50,
+                  'monedas': 5,
+                },
+              );
+            }
           }
         }
       }

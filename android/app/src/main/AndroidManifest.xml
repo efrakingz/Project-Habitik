@@ -50,7 +50,9 @@
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="dataSync"
+            android:enabled="true"
             android:exported="true"
+            android:stopWithTask="false"
             tools:replace="android:foregroundServiceType" />
     </application>
     <!-- Required to query activities that can process text, see:

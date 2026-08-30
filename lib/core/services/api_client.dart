@@ -19,6 +19,11 @@ class ApiClient {
   /// URL activa del backend (por defecto local cuando se está desarrollando)
   static String baseUrl = localBaseUrl;
 
+  /// Permite alternar y configurar la URL base del backend
+  static void setBaseUrl(String url) {
+    baseUrl = url;
+  }
+
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
   ApiClient._internal();
