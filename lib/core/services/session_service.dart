@@ -47,13 +47,22 @@ class SessionService {
     await _prefs?.setString('user_profile', jsonEncode(enriched.toJson()));
     currentUserNotifier.value = enriched;
 
-    // Conectar a la sala familiar de notificaciones en tiempo real
+    // Conectar a la sala familiar de notificaciones en tiempo real y persistir en background
     if (enriched.familyId != null && enriched.familyId!.isNotEmpty) {
-      await BackgroundServiceManager.conectarFamilia(enriched.familyId!);
+      await _prefs?.setString('bg_family_id', enriched.familyId!);
+      await _prefs?.setString('bg_user_id', enriched.id);
+      await _prefs?.setString('bg_backend_url', ApiClient.baseUrl);
+
+      await BackgroundServiceManager.conectarFamilia(
+        enriched.familyId!,
+        userId: enriched.id,
+        backendUrl: ApiClient.baseUrl,
+      );
       SocketService.initSocket(enriched.familyId!, (data) async {
         debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
         try {
-          final int notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          final String notifKey = '${data['id'] ?? data['titulo']}_${data['tipo'] ?? 'ALERTA'}';
+          final int notifId = notifKey.hashCode.abs() % 100000;
           final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
           final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
           final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
@@ -62,6 +71,9 @@ class SessionService {
             id: notifId,
             titulo: '$sender: $titulo',
             cuerpo: cuerpo,
+            tipo: data['tipo'],
+            deduplicationKey: notifKey,
+            payload: jsonEncode(data),
           );
         } catch (e) {
           debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
@@ -162,11 +174,20 @@ class SessionService {
 
         // Conectar a la sala familiar si existe sesión válida
         if (p.familyId != null && p.familyId!.isNotEmpty) {
-          await BackgroundServiceManager.conectarFamilia(p.familyId!);
+          await _prefs?.setString('bg_family_id', p.familyId!);
+          await _prefs?.setString('bg_user_id', p.id);
+          await _prefs?.setString('bg_backend_url', ApiClient.baseUrl);
+
+          await BackgroundServiceManager.conectarFamilia(
+            p.familyId!,
+            userId: p.id,
+            backendUrl: ApiClient.baseUrl,
+          );
           SocketService.initSocket(p.familyId!, (data) async {
             debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
             try {
-              final int notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+              final String notifKey = '${data['id'] ?? data['titulo']}_${data['tipo'] ?? 'ALERTA'}';
+              final int notifId = notifKey.hashCode.abs() % 100000;
               final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
               final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
               final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
@@ -175,6 +196,9 @@ class SessionService {
                 id: notifId,
                 titulo: '$sender: $titulo',
                 cuerpo: cuerpo,
+                tipo: data['tipo'],
+                deduplicationKey: notifKey,
+                payload: jsonEncode(data),
               );
             } catch (e) {
               debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
@@ -195,10 +219,13 @@ class SessionService {
   /// Elimina los datos de sesión activa preservando preferencias de hardware
   Future<void> clearSession() async {
     SocketService.disconnect();
+    await BackgroundServiceManager.detenerServicio();
     await _prefs?.remove('token_jwt');
     await _prefs?.remove('user_profile');
     await _prefs?.remove('temp_email');
     await _prefs?.remove('temp_pwd');
+    await _prefs?.remove('bg_family_id');
+    await _prefs?.remove('bg_user_id');
     currentUserNotifier.value = null;
   }
 

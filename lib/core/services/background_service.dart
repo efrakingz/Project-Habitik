@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'api_client.dart';
 import 'history_service.dart';
@@ -22,10 +23,13 @@ void onStart(ServiceInstance service) async {
 
   await NotificationService.initNotificationService(requestPermission: false);
 
-  io.Socket? socket;
-  String? currentFamilyId;
-
   if (service is AndroidServiceInstance) {
+    await service.setAsForegroundService();
+    service.setForegroundNotificationInfo(
+      title: '🌿 Habitik',
+      content: 'Conectado a la red familiar en tiempo real',
+    );
+
     service.on('setAsForeground').listen((event) {
       service.setAsForegroundService();
     });
@@ -35,73 +39,146 @@ void onStart(ServiceInstance service) async {
     });
   }
 
-  service.on('stopService').listen((event) {
-    socket?.disconnect();
-    socket?.dispose();
-    service.stopSelf();
-  });
+  io.Socket? socket;
+  String? currentFamilyId;
+  String? currentUserId;
+  String backendUrl = ApiClient.baseUrl;
 
-  service.on('conectar_familia').listen((event) {
-    if (event != null && event['familyId'] != null) {
-      currentFamilyId = event['familyId'].toString();
-
-      if (socket != null) {
+  void conectarSocket(String familyId, String url) {
+    if (socket != null) {
+      try {
         socket!.disconnect();
         socket!.dispose();
+      } catch (_) {}
+      socket = null;
+    }
+
+    debugPrint('🔄 [BackgroundService] Conectando a $url para la familia $familyId');
+
+    socket = io.io(
+      url,
+      io.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .enableAutoConnect()
+          .enableReconnection()
+          .setReconnectionAttempts(999999)
+          .setReconnectionDelay(2000)
+          .setReconnectionDelayMax(10000)
+          .build(),
+    );
+
+    socket!.onConnect((_) {
+      debugPrint('⚡ [BackgroundService] Socket conectado exitosamente a $url');
+      socket!.emit('unirse_familia', familyId);
+      if (currentUserId != null && currentUserId!.isNotEmpty) {
+        socket!.emit('unirse_usuario', currentUserId);
+      }
+    });
+
+    socket!.on('reconnect', (_) {
+      debugPrint('⚡ [BackgroundService] Socket reconectado');
+      socket!.emit('unirse_familia', familyId);
+      if (currentUserId != null && currentUserId!.isNotEmpty) {
+        socket!.emit('unirse_usuario', currentUserId);
+      }
+    });
+
+    socket!.on('evento_en_vivo', (data) async {
+      debugPrint('🔔 [BackgroundService] Evento recibido en segundo plano: $data');
+      try {
+        Map<String, dynamic> parsedData;
+        if (data is String) {
+          parsedData = Map<String, dynamic>.from(jsonDecode(data));
+        } else if (data is Map) {
+          parsedData = Map<String, dynamic>.from(data);
+        } else {
+          return;
+        }
+
+        final String notifKey = '${parsedData['id'] ?? parsedData['titulo']}_${parsedData['tipo'] ?? 'ALERTA'}';
+        final int notifId = notifKey.hashCode.abs() % 100000;
+        final String sender = parsedData['usuario_nombre'] ?? parsedData['sender_name'] ?? 'Familiar';
+        final String titulo = '${parsedData['titulo'] ?? parsedData['title'] ?? 'Alerta Familiar'}';
+        final String cuerpo = '${parsedData['mensaje'] ?? parsedData['desc_text'] ?? 'Nueva notificación'}';
+
+        // 1. Mostrar notificación nativa emergente en el sistema con diseño parametrizado
+        await NotificationService.mostrarNotificacionSistema(
+          id: notifId,
+          titulo: '$sender: $titulo',
+          cuerpo: cuerpo,
+          tipo: parsedData['tipo'],
+          deduplicationKey: notifKey,
+          payload: jsonEncode(parsedData),
+        );
+
+        // 2. Guardar en el historial local persistente
+        await HistoryService.guardarEventoLocal(familyId, parsedData);
+
+        // 3. Emitir evento a la UI activa si está abierta
+        service.invoke('nuevo_evento', parsedData);
+      } catch (e) {
+        debugPrint('⚠️ [BackgroundService] Error procesando evento en segundo plano: $e');
+      }
+    });
+
+    socket!.onDisconnect((_) {
+      debugPrint('🔌 [BackgroundService] Socket desconectado temporalmente');
+    });
+
+    socket!.onConnectError((err) {
+      debugPrint('⚠️ [BackgroundService] Error de conexión Socket.io: $err');
+    });
+  }
+
+  // 1. Recuperar sesión guardada autónomamente de SharedPreferences
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    currentFamilyId = prefs.getString('bg_family_id');
+    currentUserId = prefs.getString('bg_user_id');
+    final savedUrl = prefs.getString('bg_backend_url');
+    if (savedUrl != null && savedUrl.isNotEmpty) {
+      backendUrl = savedUrl;
+    }
+
+    if (currentFamilyId != null && currentFamilyId.isNotEmpty) {
+      debugPrint('🚀 [BackgroundService] Sesión recuperada de almacenamiento para familia $currentFamilyId');
+      conectarSocket(currentFamilyId, backendUrl);
+    }
+  } catch (e) {
+    debugPrint('⚠️ [BackgroundService] Error recuperando sesión en arranque de fondo: $e');
+  }
+
+  // 2. Escuchar comandos desde la app principal
+  service.on('conectar_familia').listen((event) async {
+    if (event != null && event['familyId'] != null) {
+      currentFamilyId = event['familyId'].toString();
+      if (event['userId'] != null) {
+        currentUserId = event['userId'].toString();
+      }
+      if (event['backendUrl'] != null && event['backendUrl'].toString().isNotEmpty) {
+        backendUrl = event['backendUrl'].toString();
       }
 
-      socket = io.io(
-        ApiClient.baseUrl,
-        io.OptionBuilder()
-            .setTransports(['websocket', 'polling'])
-            .enableAutoConnect()
-            .enableReconnection()
-            .build(),
-      );
-
-      socket!.onConnect((_) {
-        debugPrint('⚡ [BackgroundService] Socket conectado exitosamente');
-        if (currentFamilyId != null) {
-          socket!.emit('unirse_familia', currentFamilyId);
+      try {
+        final p = await SharedPreferences.getInstance();
+        await p.setString('bg_family_id', currentFamilyId!);
+        if (currentUserId != null) {
+          await p.setString('bg_user_id', currentUserId!);
         }
-      });
+        await p.setString('bg_backend_url', backendUrl);
+      } catch (_) {}
 
-      socket!.on('evento_en_vivo', (data) async {
-        debugPrint('🔔 [BackgroundService] Evento recibido: $data');
-        try {
-          Map<String, dynamic> parsedData;
-          if (data is String) {
-            parsedData = Map<String, dynamic>.from(jsonDecode(data));
-          } else if (data is Map) {
-            parsedData = Map<String, dynamic>.from(data);
-          } else {
-            return;
-          }
-
-          final int notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-          final String sender = parsedData['usuario_nombre'] ?? parsedData['sender_name'] ?? 'Familiar';
-          final String titulo = '${parsedData['titulo'] ?? parsedData['title'] ?? 'Alerta Familiar'}';
-          final String cuerpo = '${parsedData['mensaje'] ?? parsedData['desc_text'] ?? 'Nueva notificación'}';
-
-          // 1. Mostrar notificación nativa en el sistema
-          await NotificationService.mostrarNotificacionSistema(
-            id: notifId,
-            titulo: '$sender: $titulo',
-            cuerpo: cuerpo,
-          );
-
-          // 2. Guardar en el historial local persistente
-          if (currentFamilyId != null) {
-            await HistoryService.guardarEventoLocal(currentFamilyId!, parsedData);
-          }
-
-          // 3. Emitir evento a la UI activa
-          service.invoke('nuevo_evento', parsedData);
-        } catch (e) {
-          debugPrint('⚠️ [BackgroundService] Error procesando evento: $e');
-        }
-      });
+      conectarSocket(currentFamilyId!, backendUrl);
     }
+  });
+
+  service.on('stopService').listen((event) {
+    debugPrint('🛑 [BackgroundService] Deteniendo servicio en segundo plano');
+    try {
+      socket?.disconnect();
+      socket?.dispose();
+    } catch (_) {}
+    service.stopSelf();
   });
 }
 
@@ -114,11 +191,12 @@ class BackgroundServiceManager {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        autoStart: false,
-        isForegroundMode: false,
+        autoStart: true,
+        isForegroundMode: true,
+        autoStartOnBoot: true,
         notificationChannelId: 'canal_servicio_segundo_plano',
-        initialNotificationTitle: 'Habitik Activo',
-        initialNotificationContent: 'Escuchando alertas familiares en segundo plano...',
+        initialNotificationTitle: '🌿 Habitik',
+        initialNotificationContent: 'Conectado a la red familiar en tiempo real',
         foregroundServiceNotificationId: 888,
       ),
       iosConfiguration: IosConfiguration(
@@ -130,12 +208,29 @@ class BackgroundServiceManager {
   }
 
   /// Vincula la sesión familiar al servicio en segundo plano
-  static Future<void> conectarFamilia(String familyId) async {
+  static Future<void> conectarFamilia(
+    String familyId, {
+    String? userId,
+    String? backendUrl,
+  }) async {
     final service = FlutterBackgroundService();
     final isRunning = await service.isRunning();
     if (!isRunning) {
       await service.startService();
     }
-    service.invoke('conectar_familia', {'familyId': familyId});
+    service.invoke('conectar_familia', {
+      'familyId': familyId,
+      ...?userId != null ? {'userId': userId} : null,
+      'backendUrl': backendUrl ?? ApiClient.baseUrl,
+    });
+  }
+
+  /// Detiene el servicio en segundo plano al cerrar sesión
+  static Future<void> detenerServicio() async {
+    final service = FlutterBackgroundService();
+    final isRunning = await service.isRunning();
+    if (isRunning) {
+      service.invoke('stopService');
+    }
   }
 }
