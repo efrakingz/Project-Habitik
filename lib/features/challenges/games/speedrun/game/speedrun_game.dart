@@ -13,36 +13,33 @@ class SpeedrunGame extends FlameGame {
   final VoidCallback? onChallengeCompleted;
 
   SpeedrunState _gameState = SpeedrunState.loading;
-  
+
   // Temporizador de preparación: 30 segundos
   double prepRemainingSeconds = 30.0;
   // Cronómetro de la ducha (cuenta hacia adelante)
   double elapsedShowerSeconds = 0.0;
   double elapsedTime = 0.0;
-  
+
   // Guarda el tiempo en que se resolvió para mostrarlo en la victoria
   double showerDurationSeconds = 0.0;
 
   late BackgroundComponent background;
   void Function(String)? onWarning;
 
-  SpeedrunGame({
-    this.onGameClosed,
-    this.onChallengeCompleted,
-  });
+  SpeedrunGame({this.onGameClosed, this.onChallengeCompleted, this.onWarning});
 
   SpeedrunState get gameState => _gameState;
 
   set gameState(SpeedrunState newState) {
     if (_gameState == newState) return;
-    
+
     final oldState = _gameState;
     _gameState = newState;
-    
+
     // Cambiar overlays
     overlays.remove(oldState.name);
     overlays.add(newState.name);
-    
+
     // Lógica especial al entrar al estado
     if (newState == SpeedrunState.preparing) {
       prepRemainingSeconds = 30.0;
@@ -65,7 +62,7 @@ class SpeedrunGame extends FlameGame {
 
     // Iniciar en estado loading, Flame mostrará el overlay de carga
     overlays.add(SpeedrunState.loading.name);
-    
+
     // Simular un tiempo de carga llamativo de 2.0 segundos para inicializar recursos
     Future.delayed(const Duration(milliseconds: 2200), () {
       if (gameState == SpeedrunState.loading) {
@@ -77,7 +74,7 @@ class SpeedrunGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
-    
+
     elapsedTime += dt;
 
     // Si estamos en la etapa de preparación (30 segundos para entrar)
@@ -88,7 +85,7 @@ class SpeedrunGame extends FlameGame {
         gameState = SpeedrunState.playing;
       }
     }
-    
+
     // Si estamos bañándonos, el tiempo corre hacia arriba
     if (gameState == SpeedrunState.playing) {
       elapsedShowerSeconds += dt;
@@ -99,7 +96,7 @@ class SpeedrunGame extends FlameGame {
   void completeShower() {
     if (gameState == SpeedrunState.playing) {
       showerDurationSeconds = elapsedShowerSeconds;
-      
+
       // Persistir la ducha en el backend de PostgreSQL
       _persistShowerLog(elapsedShowerSeconds.toInt());
 

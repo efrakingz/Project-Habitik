@@ -12,6 +12,7 @@ class UserProfile {
   final int xp;
   final int nivel;
   final int monedas;
+  final int rachaDias;
   final String? familyName;
   final bool onboardingCompleted;
 
@@ -27,6 +28,7 @@ class UserProfile {
     this.xp = 0,
     this.nivel = 1,
     this.monedas = 0,
+    this.rachaDias = 0,
     this.familyName,
     this.onboardingCompleted = false,
   });
@@ -50,6 +52,7 @@ class UserProfile {
     int? xp,
     int? nivel,
     int? monedas,
+    int? rachaDias,
     String? familyName,
     bool? onboardingCompleted,
   }) {
@@ -65,6 +68,7 @@ class UserProfile {
       xp: xp ?? this.xp,
       nivel: nivel ?? this.nivel,
       monedas: monedas ?? this.monedas,
+      rachaDias: rachaDias ?? this.rachaDias,
       familyName: familyName ?? this.familyName,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
@@ -158,6 +162,9 @@ class UserProfile {
       monedas: json['monedas'] is num
           ? (json['monedas'] as num).toInt()
           : int.tryParse('${json['monedas']}') ?? 0,
+      rachaDias: json['racha_dias'] is num
+          ? (json['racha_dias'] as num).toInt()
+          : int.tryParse('${json['racha_dias']}') ?? 0,
       familyName: json['family_name'],
       onboardingCompleted: hasValidAnswers || hasCompletedFlag,
     );
@@ -176,6 +183,7 @@ class UserProfile {
       'xp': xp,
       'nivel': nivel,
       'monedas': monedas,
+      'racha_dias': rachaDias,
       'family_name': familyName,
       'onboarding_completed': onboardingCompleted,
     };
@@ -192,6 +200,7 @@ class UserProfile {
     xp: 350,
     nivel: 3,
     monedas: 42,
+    rachaDias: 5,
     familyName: 'Familia Torres',
     onboardingCompleted: true,
   );
@@ -207,6 +216,7 @@ class UserProfile {
     xp: 820,
     nivel: 5,
     monedas: 80,
+    rachaDias: 12,
     familyName: 'Familia Torres',
     onboardingCompleted: true,
   );
