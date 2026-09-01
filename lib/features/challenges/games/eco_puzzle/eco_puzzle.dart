@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 
 import 'game/eco_puzzle_game.dart';
+import 'game/models/eco_puzzle_state.dart';
 import 'widgets/hud_overlay.dart';
 import 'widgets/start_overlay.dart';
+import 'widgets/loading_overlay.dart';
 import 'widgets/victory_overlay.dart';
 import 'widgets/failure_overlay.dart';
 
@@ -35,16 +37,17 @@ class _EcoPuzzleScreenState extends State<EcoPuzzleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8F8F5),
       body: SafeArea(
-        child: GameWidget(
+        child: GameWidget<EcoPuzzleGame>(
           game: _game,
           overlayBuilderMap: {
-            'HUD': (context, EcoPuzzleGame game) => HudOverlay(game: game),
-            'Start': (context, EcoPuzzleGame game) => StartOverlay(game: game),
-            'Victory': (context, EcoPuzzleGame game) => VictoryOverlay(game: game),
-            'Failure': (context, EcoPuzzleGame game) => FailureOverlay(game: game),
+            EcoPuzzleState.loading.name: (context, game) => LoadingOverlay(game: game),
+            EcoPuzzleState.start.name: (context, game) => StartOverlay(game: game),
+            EcoPuzzleState.playing.name: (context, game) => HudOverlay(game: game),
+            EcoPuzzleState.success.name: (context, game) => VictoryOverlay(game: game),
+            EcoPuzzleState.failure.name: (context, game) => FailureOverlay(game: game),
           },
-          initialActiveOverlays: const ['Start'],
         ),
       ),
     );
