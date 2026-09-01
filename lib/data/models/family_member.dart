@@ -21,6 +21,28 @@ class FamilyMember {
     this.avatarUrl,
   });
 
+  FamilyMember copyWith({
+    String? id,
+    String? nombre,
+    String? rol,
+    int? xp,
+    int? nivel,
+    String? avatarLetra,
+    String? avatarColor,
+    String? avatarUrl,
+  }) {
+    return FamilyMember(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      rol: rol ?? this.rol,
+      xp: xp ?? this.xp,
+      nivel: nivel ?? this.nivel,
+      avatarLetra: avatarLetra ?? this.avatarLetra,
+      avatarColor: avatarColor ?? this.avatarColor,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
+  }
+
   factory FamilyMember.fromJson(Map<String, dynamic> json) {
     String letra = 'U';
     String color = '#43A047';
@@ -64,9 +86,9 @@ class FamilyMember {
       id: json['id'] ?? '',
       nombre: json['nombre'] ?? '',
       rol: (json['rol'] ?? 'miembro').toString().toLowerCase(),
-      xp: json['xp'] is num
-          ? (json['xp'] as num).toInt()
-          : int.tryParse('${json['xp']}') ?? 0,
+      xp: (json['xp_total'] ?? json['total_xp'] ?? json['xp']) is num
+          ? ((json['xp_total'] ?? json['total_xp'] ?? json['xp']) as num).toInt()
+          : int.tryParse('${json['xp_total'] ?? json['total_xp'] ?? json['xp']}') ?? 0,
       nivel: json['nivel'] is num
           ? (json['nivel'] as num).toInt()
           : int.tryParse('${json['nivel']}') ?? 1,
