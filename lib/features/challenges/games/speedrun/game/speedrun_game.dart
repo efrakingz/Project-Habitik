@@ -118,12 +118,17 @@ class SpeedrunGame extends FlameGame {
       });
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        if (data['valido'] == true) {
+        if (data['valido'] == true && data['recompensas'] != null) {
+          final recompensas = data['recompensas'];
           final current = SessionService().currentUser;
           if (current != null) {
+            final xpGanada = recompensas['xp_ganada'] ?? 0;
+            final monedasGanadas = recompensas['monedas_ganadas'] ?? 0;
+
             await SessionService().updateRewardsAndXp(
-              xp: current.xp + 50,
-              monedas: current.monedas + 5,
+              xp: recompensas['total_xp'] ?? current.xp,
+              monedas: recompensas['saldo_monedas'] ?? current.monedas,
+              nivel: recompensas['nivel_actual'] ?? current.nivel,
             );
 
             if (current.familyId != null && current.familyId!.isNotEmpty) {
@@ -133,22 +138,58 @@ class SpeedrunGame extends FlameGame {
                 usuarioId: current.id,
                 usuarioNombre: current.nombre,
                 titulo: '🚿 ¡Eco-Ducha Completada!',
-                mensaje: '${current.nombre} completó su ducha en $durMin min y sumó 50 XP al hogar.',
+                mensaje:
+                    '${current.nombre} completó su ducha en $durMin min y sumó $xpGanada XP al hogar.',
                 tipo: 'RETO_COMPLETADO',
                 visual: {'icon': 'emoji_events', 'color': '#10B981'},
                 payload: {
                   'tipo': 'ducha',
                   'duracion_segundos': durationSeconds,
-                  'xp': 50,
-                  'monedas': 5,
+                  'xp': xpGanada,
+                  'monedas': monedasGanadas,
                 },
               );
             }
           }
+        } else {
+          await _applyLocalRewards(durationSeconds);
         }
+      } else {
+        await _applyLocalRewards(durationSeconds);
       }
     } catch (e) {
       debugPrint('Error persistiendo registro de ducha: $e');
+      await _applyLocalRewards(durationSeconds);
+    }
+  }
+
+  Future<void> _applyLocalRewards(int durationSeconds) async {
+    final current = SessionService().currentUser;
+    if (current != null) {
+      final int fallbackXp = 100;
+      final int fallbackMonedas = 1;
+      await SessionService().updateRewardsAndXp(
+        xp: current.xp + fallbackXp,
+        monedas: current.monedas + fallbackMonedas,
+      );
+      if (current.familyId != null && current.familyId!.isNotEmpty) {
+        final durMin = (durationSeconds / 60).toStringAsFixed(1);
+        HistoryService.enviarAlertaFamilia(
+          familyId: current.familyId!,
+          usuarioId: current.id,
+          usuarioNombre: current.nombre,
+          titulo: '🚿 ¡Eco-Ducha Completada!',
+          mensaje: '${current.nombre} completó su ducha en $durMin min y sumó $fallbackXp XP al hogar.',
+          tipo: 'RETO_COMPLETADO',
+          visual: {'icon': 'emoji_events', 'color': '#10B981'},
+          payload: {
+            'tipo': 'ducha',
+            'duracion_segundos': durationSeconds,
+            'xp': fallbackXp,
+            'monedas': fallbackMonedas,
+          },
+        );
+      }
     }
   }
 

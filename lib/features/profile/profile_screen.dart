@@ -67,22 +67,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ? (gamifiedData['racha_dias'] as num).toInt()
             : int.tryParse('${gamifiedData['racha_dias']}') ?? _user.rachaDias;
 
-        final levelUp = newNivel > _user.nivel;
+        // Regla: Solución en Cliente. Si la BD falla y retorna menos XP que el caché local, preservar caché local.
+        final localUser = SessionService().currentUser;
+        final finalXp = (localUser != null && newXp < localUser.xp) ? localUser.xp : newXp;
+        final finalMonedas = (localUser != null && newMonedas < localUser.monedas) ? localUser.monedas : newMonedas;
+        final finalNivel = (localUser != null && newNivel < localUser.nivel) ? localUser.nivel : newNivel;
+
+        final levelUp = finalNivel > _user.nivel;
 
         setState(() {
           _user = _user.copyWith(
-            nivel: newNivel,
-            xp: newXp,
-            monedas: newMonedas,
+            nivel: finalNivel,
+            xp: finalXp,
+            monedas: finalMonedas,
             rachaDias: newRacha,
           );
         });
 
         // Persistir la data gamificada en la caché local
-        SessionService().updateRewardsAndXp(
-          xp: newXp,
-          monedas: newMonedas,
-          nivel: newNivel,
+        await SessionService().updateRewardsAndXp(
+          xp: finalXp,
+          monedas: finalMonedas,
+          nivel: finalNivel,
         );
 
         if (levelUp) {
