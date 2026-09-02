@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,14 +6,49 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import '../game/eco_puzzle_game.dart';
 
-class StartOverlay extends StatelessWidget {
+/// Overlay de pantalla de carga previa con la EXACTA misma estética y tarjeta que StartOverlay.
+class LoadingOverlay extends StatefulWidget {
   final EcoPuzzleGame game;
-  const StartOverlay({super.key, required this.game});
+  const LoadingOverlay({super.key, required this.game});
+
+  @override
+  State<LoadingOverlay> createState() => _LoadingOverlayState();
+}
+
+class _LoadingOverlayState extends State<LoadingOverlay> {
+  late final Timer _tipTimer;
+  int _currentTipIndex = 0;
+
+  final List<String> _ecoTips = [
+    "Separar adecuadamente el plástico y el cartón permite reciclar hasta el 85% de los residuos del hogar.",
+    "Una botella de plástico PET puede tardar más de 450 años en descomponerse en la naturaleza.",
+    "Los restos orgánicos compostados se transforman en abono natural rico en nutrientes para la tierra.",
+    "Reciclar una tonelada de papel evita la tala de 17 árboles y ahorra miles de litros de agua.",
+    "Las pilas contienen metales pesados; deposítalas siempre en puntos limpios especializados."
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tipTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTipIndex = (_currentTipIndex + 1) % _ecoTips.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tipTimer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withValues(alpha: 0.35), // Sombra suave para enfocar la tarjeta
+      color: Colors.black.withValues(alpha: 0.35), // Misma sombra translúcida que StartOverlay
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -26,7 +62,7 @@ class StartOverlay extends StatelessWidget {
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       children: [
-                        // Fila superior
+                        // ── 1. Fila Superior Idéntica ──
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -48,13 +84,13 @@ class StartOverlay extends StatelessWidget {
                             ),
                             IconButton(
                               icon: const Icon(Icons.close_rounded, color: Colors.white, size: 30),
-                              onPressed: () => game.closeGame(),
+                              onPressed: () => widget.game.closeGame(),
                             ),
                           ],
                         ),
                         const Spacer(),
 
-                        // Tarjeta blanca limpia estilo Habitik
+                        // ── 2. Tarjeta Blanca Idéntica a StartOverlay ──
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(24.0),
@@ -81,7 +117,7 @@ class StartOverlay extends StatelessWidget {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Icono de reto
+                              // Icono de la pieza de puzzle idéntica
                               Stack(
                                 alignment: Alignment.center,
                                 children: [
@@ -106,6 +142,7 @@ class StartOverlay extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 14),
+
                               Text(
                                 "Eco-Puzzle",
                                 style: GoogleFonts.outfit(
@@ -116,8 +153,9 @@ class StartOverlay extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 4),
+
                               Text(
-                                "¡Clasifica los residuos en los tachos correctos!",
+                                "Preparando el patio y los residuos...",
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.outfit(
                                   color: const Color(0xFF059669),
@@ -125,128 +163,130 @@ class StartOverlay extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 22),
 
-                              // Instrucciones
-                              _buildInstructionRow(
-                                Icons.touch_app_rounded,
-                                "Arrastra cada residuo hacia su tacho correspondiente.",
-                              ),
-                              const SizedBox(height: 12),
-                              _buildInstructionRow(
-                                Icons.timer_rounded,
-                                "¡Tienes 59 segundos para clasificar los 10 residuos!",
-                              ),
-                              const SizedBox(height: 12),
-                              _buildInstructionRow(
-                                Icons.favorite_rounded,
-                                "Cuidado: Tienes un máximo de 3 errores permitidos.",
-                              ),
-                              const SizedBox(height: 12),
-                              _buildInstructionRow(
-                                Icons.recycling_rounded,
-                                "Tachos: 🌱 Orgánico | ♻️ Reciclable | 🗑️ Inorgánico",
+                              // Barra de Progreso Esmeralda
+                              Container(
+                                width: double.infinity,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF059669),
+                                            Color(0xFF10B981),
+                                            Color(0xFF34D399),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    )
+                                        .animate(onPlay: (c) => c.repeat())
+                                        .custom(
+                                          duration: 1400.ms,
+                                          builder: (context, value, child) {
+                                            return FractionallySizedBox(
+                                              widthFactor: value,
+                                              child: child,
+                                            );
+                                          },
+                                        ),
+                                  ),
+                                ),
                               ),
 
                               const SizedBox(height: 22),
 
-                              // Caja de Recompensas
+                              // Tarjeta de Eco-Dato
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF0FDF4),
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
-                                    color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                                    color: const Color(0xFFA7F3D0),
                                     width: 1.2,
                                   ),
                                 ),
-                                child: Wrap(
-                                  alignment: WrapAlignment.center,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  spacing: 12,
-                                  runSpacing: 6,
+                                child: Column(
                                   children: [
-                                    Text(
-                                      "Recompensa:",
-                                      style: GoogleFonts.outfit(
-                                        color: const Color(0xFF065F46),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.lightbulb_rounded,
+                                          color: Color(0xFFF59E0B),
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "ECO-DATO FAMILIAR",
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFF065F46),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 400),
+                                      child: Text(
+                                        _ecoTips[_currentTipIndex],
+                                        key: ValueKey<int>(_currentTipIndex),
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.outfit(
+                                          color: HabitikColors.textDark,
+                                          fontSize: 13,
+                                          height: 1.4,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const GameStarIcon(size: 17),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          "150 XP",
-                                          style: GoogleFonts.outfit(
-                                            color: const Color(0xFF047857),
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const GameCoinIcon(size: 17),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          "2 Monedas",
-                                          style: GoogleFonts.outfit(
-                                            color: const Color(0xFFB45309),
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ],
                                 ),
                               ),
 
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 20),
 
-                              // Botón Empezar
-                              GestureDetector(
-                                onTap: () {
-                                  game.startGame();
-                                },
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 56,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF059669), Color(0xFF10B981)],
+                              // Indicador inferior
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Color(0xFF10B981),
                                     ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 8),
-                                      )
-                                    ],
                                   ),
-                                  child: Text(
-                                    "♻️ EMPEZAR RETO",
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    "Cargando desafío...",
                                     style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.8,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF64748B),
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
-                        ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.92, 0.92)),
+                        ).animate().fadeIn(duration: 350.ms).scale(begin: const Offset(0.95, 0.95)),
 
                         const Spacer(),
                       ],
@@ -258,43 +298,6 @@ class StartOverlay extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
-
-  Widget _buildInstructionRow(IconData icon, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F8F0),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFF10B981).withValues(alpha: 0.25),
-              width: 1.0,
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF059669),
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: GoogleFonts.outfit(
-              color: const Color(0xFF334155),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
