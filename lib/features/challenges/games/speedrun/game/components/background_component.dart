@@ -54,8 +54,8 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
   @override
   void render(Canvas canvas) {
     final showerTime = game.elapsedShowerSeconds;
-    // Factor de calidez 0.0 (inicio) a 1.0 (4+ mins / 240s)
-    final heatFactor = (showerTime / 240.0).clamp(0.0, 1.0);
+    // Factor de calidez 0.0 (inicio) a 1.0 (10 mins / 600s)
+    final heatFactor = (showerTime / 600.0).clamp(0.0, 1.0);
 
     final rect = Rect.fromLTWH(0, 0, size.x, size.y);
 
@@ -107,7 +107,7 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
 
     // Dibujar viñeta de condensación y vapor transparente en bordes a partir de 45 segundos
     if (showerTime > 45.0) {
-      final steamAlpha = ((showerTime - 45.0) / 195.0).clamp(0.0, 0.45);
+      final steamAlpha = ((showerTime - 45.0) / 555.0).clamp(0.0, 0.45);
       final radius = math.min(size.x, size.y) * 0.65;
       final steamPaint = Paint()
         ..shader = ui.Gradient.radial(

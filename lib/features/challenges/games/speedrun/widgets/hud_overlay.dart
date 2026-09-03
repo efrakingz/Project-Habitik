@@ -33,7 +33,7 @@ class _HudOverlayState extends State<HudOverlay> {
   // Alertas flotantes interactivas en coordenadas de toque
   final List<FloatingMessage> _floatingMessages = [];
 
-  bool get isSolved => widget.game.elapsedShowerSeconds >= 180.0;
+  bool get isSolved => widget.game.elapsedShowerSeconds >= 240.0;
 
   @override
   void initState() {
@@ -201,15 +201,19 @@ class _HudOverlayState extends State<HudOverlay> {
     final seconds = (game.elapsedShowerSeconds % 60).floor();
     final timeStr = "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
 
-    // Color del temporizador y Eco-Gauge
-    Color timerColor = Colors.greenAccent;
-    if (game.elapsedShowerSeconds > 240.0) {
+    // Color del temporizador y Eco-Gauge (base 600s = 10 min)
+    Color timerColor = const Color(0xFF00E5FF);
+    if (game.elapsedShowerSeconds > 600.0) {
       timerColor = Colors.redAccent;
-    } else if (game.elapsedShowerSeconds > 180.0) {
+    } else if (game.elapsedShowerSeconds > 480.0) {
       timerColor = Colors.amberAccent;
+    } else if (game.elapsedShowerSeconds > 300.0) {
+      timerColor = const Color(0xFF69F0AE);
+    } else if (game.elapsedShowerSeconds >= 240.0) {
+      timerColor = Colors.greenAccent;
     }
 
-    final gaugeProgress = (game.elapsedShowerSeconds / 240.0).clamp(0.0, 1.0);
+    final gaugeProgress = (game.elapsedShowerSeconds / 600.0).clamp(0.0, 1.0);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -333,7 +337,7 @@ class _HudOverlayState extends State<HudOverlay> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      "¡Báñate rápido! El botón se desbloqueará después de 3 minutos de ducha.",
+                      "¡Báñate rápido! El botón se desbloqueará después de 4 minutos de ducha.",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
                         color: Colors.white70,
@@ -344,16 +348,28 @@ class _HudOverlayState extends State<HudOverlay> {
                     ),
                     const SizedBox(height: 18),
 
-                    // Estado visual de bloqueo
+                    // Estado visual de bloqueo y tier actual en tiempo real
                     AnimatedSwitcher(
                       duration: 300.ms,
                       child: Text(
-                        isSolved
-                            ? "✨ ¡Botón Desbloqueado! ✨"
-                            : "🔒 Esperando 3 minutos...",
-                        key: ValueKey<bool>(isSolved),
+                        !isSolved
+                            ? "🔒 Esperando 4 minutos..."
+                            : (game.elapsedShowerSeconds <= 300.0
+                                ? "🏆 ¡Récord Óptimo! (200 XP · 2 🪙)"
+                                : (game.elapsedShowerSeconds <= 480.0
+                                    ? "🥈 Tiempo Intermedio (100 XP · 1 🪙)"
+                                    : "🥉 Tiempo Extendido (50 XP)")),
+                        key: ValueKey<String>(
+                          !isSolved
+                              ? "locked"
+                              : (game.elapsedShowerSeconds <= 300.0
+                                  ? "optimo"
+                                  : (game.elapsedShowerSeconds <= 480.0
+                                      ? "intermedio"
+                                      : "extendido")),
+                        ),
                         style: GoogleFonts.outfit(
-                          color: isSolved ? Colors.greenAccent : Colors.orangeAccent,
+                          color: isSolved ? timerColor : Colors.orangeAccent,
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
                         ),
@@ -379,7 +395,7 @@ class _HudOverlayState extends State<HudOverlay> {
                       if (isSolved) {
                         game.completeShower();
                       } else {
-                        _showWarning("⚠️ ¡Aún no han pasado 3 minutos!");
+                        _showWarning("⚠️ ¡Aún no han pasado 4 minutos!");
                       }
                     },
                     child: Container(
@@ -447,8 +463,8 @@ class _HudOverlayState extends State<HudOverlay> {
                   // Botón "Salir (Modo Programador)"
                   GestureDetector(
                     onTap: () {
-                      game.gameState = SpeedrunState.success;
-                      game.onChallengeCompleted?.call();
+                      game.elapsedShowerSeconds = 240.0;
+                      game.completeShower();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

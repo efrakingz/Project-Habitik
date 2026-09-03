@@ -84,7 +84,7 @@ class StartOverlay extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "Misión: Bañarse en menos de 4 minutos",
+                                "Misión: Dúchate en menos de 10 minutos (mínimo 4 min)",
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.outfit(
                                   color: const Color(0xFF00ACC1),
@@ -101,72 +101,59 @@ class StartOverlay extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               _buildInstructionRow(
-                                Icons.lock_rounded,
-                                "El botón para finalizar la ducha se bloqueará.",
-                              ),
-                              const SizedBox(height: 12),
-                              _buildInstructionRow(
-                                Icons.extension_rounded,
-                                "Resuelve el mini-laberinto con tu dedo para desbloquear el botón.",
+                                Icons.lock_clock_rounded,
+                                "El botón para finalizar la ducha se desbloqueará a los 4 minutos.",
                               ),
                               const SizedBox(height: 12),
                               _buildInstructionRow(
                                 Icons.timer_rounded,
-                                "¡Termina en menos de 4 min para superar el reto!",
+                                "¡Termina antes de los 10 minutos para superar el reto y ganar XP!",
                               ),
                               
                               const SizedBox(height: 24),
                               
-                              // Recompensas estimadas
+                              // Recompensas escalonadas del reto
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE0F7FA),
                                   borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFB2EBF2)),
                                 ),
-                                child: Wrap(
-                                  alignment: WrapAlignment.center,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  spacing: 12,
-                                  runSpacing: 6,
+                                child: Column(
                                   children: [
                                     Text(
-                                      "Recompensa:",
+                                      "RECOMPENSAS POR DESEMPEÑO",
                                       style: GoogleFonts.outfit(
                                         color: const Color(0xFF0F2B48),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.8,
                                       ),
                                     ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text("🏆", style: TextStyle(fontSize: 14)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          "50 XP",
-                                          style: GoogleFonts.outfit(
-                                            color: const Color(0xFF00838F),
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w900,
-                                          ),
+                                    const SizedBox(height: 8),
+                                    _buildTierRow("🏆 4 a 5 min (Óptimo)", "+200 XP · +2 🪙", const Color(0xFF00838F)),
+                                    const SizedBox(height: 4),
+                                    _buildTierRow("🥈 5 a 8 min (Intermedio)", "+100 XP · +1 🪙", const Color(0xFF0097A7)),
+                                    const SizedBox(height: 4),
+                                    _buildTierRow("🥉 8 a 10 min (Extendido)", "+50 XP", const Color(0xFF00ACC1)),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF8E1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        "🎁 Bonus Constancia: +30 XP y +5 🪙 si juegas Eco-Puzzle hoy",
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.outfit(
+                                          color: const Color(0xFFE65100),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
                                         ),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text("🪙", style: TextStyle(fontSize: 14)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          "5 Monedas",
-                                          style: GoogleFonts.outfit(
-                                            color: const Color(0xFFB58D14),
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -239,6 +226,30 @@ class StartOverlay extends StatelessWidget {
               fontWeight: FontWeight.w600,
               height: 1.4,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTierRow(String title, String reward, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.outfit(
+            color: const Color(0xFF0F2B48),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          reward,
+          style: GoogleFonts.outfit(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ],

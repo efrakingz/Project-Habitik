@@ -107,9 +107,9 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const Text(
-                              "🏆",
-                              style: TextStyle(fontSize: 48),
+                            Text(
+                              game.tierBadge.isNotEmpty ? game.tierBadge : "🏆",
+                              style: const TextStyle(fontSize: 48),
                             )
                                 .animate()
                                 .scale(begin: const Offset(0.0, 0.0), end: const Offset(1.0, 1.0), duration: 600.ms, curve: Curves.elasticOut),
@@ -119,7 +119,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
         
                         // Título
                         Text(
-                          "¡DUCHA COMPLETADA!",
+                          game.tierTitulo.isNotEmpty ? game.tierTitulo : "¡DUCHA COMPLETADA!",
                           style: GoogleFonts.outfit(
                             color: const Color(0xFF2E7D32),
                             fontSize: 22,
@@ -130,7 +130,9 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                         const SizedBox(height: 6),
                         
                         Text(
-                          "¡Lograste bañarte en tiempo récord!",
+                          game.tierDesempeno.isNotEmpty
+                              ? game.tierDesempeno
+                              : "¡Lograste bañarte en tiempo récord!",
                           style: GoogleFonts.outfit(
                             color: const Color(0xFF546E7A),
                             fontSize: 13,
@@ -147,12 +149,13 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildStatCol("TIEMPO TOTAL", durationStr, Icons.timer_outlined, Colors.blue),
+                            _buildStatCol("ESTADO", "Válido", Icons.check_circle_outline_rounded, Colors.green),
                           ],
                         ).animate().fadeIn(delay: 300.ms),
         
                         const SizedBox(height: 24),
         
-                        // Caja de Recompensas
+                        // Caja de Recompensas Escalonadas
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -178,7 +181,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                                   const Text("🏆", style: TextStyle(fontSize: 16)),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "+50 XP",
+                                    "+${game.earnedXp > 0 ? game.earnedXp : 200} XP",
                                     style: GoogleFonts.outfit(
                                       color: const Color(0xFF1B5E20),
                                       fontSize: 15,
@@ -189,7 +192,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                                   const Text("🪙", style: TextStyle(fontSize: 16)),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "+5 Monedas",
+                                    "+${game.earnedMonedas} Monedas",
                                     style: GoogleFonts.outfit(
                                       color: const Color(0xFFB58D14),
                                       fontSize: 15,
@@ -198,14 +201,47 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                "(Visual en modo reto - no sumado al balance)",
-                                style: GoogleFonts.outfit(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
+                              if (game.bonusConstancia) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF8E1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFFFE082)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text("🎁", style: TextStyle(fontSize: 14)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "Bonus Constancia: +30 XP · +5 🪙",
+                                        style: GoogleFonts.outfit(
+                                          color: const Color(0xFFE65100),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                              ],
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "¡Recompensas sumadas a tu perfil!",
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFF2E7D32),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
