@@ -42,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchUserProfile() async {
     try {
-      final response = await ApiClient().get('/perfil/${_user.id}');
+      final response = await ApiClient().get('/auth/perfil/${_user.id}');
       if (!mounted) return;
 
       final jsonResponse = jsonDecode(response.body);
@@ -79,13 +79,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         // Persistir la data gamificada en la caché local
-        SessionService().updateRewardsAndXp(
+        await SessionService().updateRewardsAndXp(
           xp: newXp,
           monedas: newMonedas,
           nivel: newNivel,
+          rachaDias: newRacha,
         );
 
-        if (levelUp) {
+        if (levelUp && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -139,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else if (member.xp == 0) {
           // Si el backend no proveyó XP (porque solo existe en endpoints gamificados), lo enriquecemos
           try {
-            final perfRes = await ApiClient().get('/perfil/${member.id}');
+            final perfRes = await ApiClient().get('/auth/perfil/${member.id}');
             final perfData = jsonDecode(perfRes.body);
             if (perfData['ok'] == true && perfData['data'] != null) {
               final gData = perfData['data'];

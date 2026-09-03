@@ -259,6 +259,7 @@ class SessionService {
     int? xp,
     int? monedas,
     int? nivel,
+    int? rachaDias,
   }) async {
     final current = currentUser;
     if (current == null) return;
@@ -266,6 +267,7 @@ class SessionService {
       xp: xp ?? current.xp,
       monedas: monedas ?? current.monedas,
       nivel: nivel ?? current.nivel,
+      rachaDias: rachaDias ?? current.rachaDias,
     );
     await _prefs?.setString('user_profile', jsonEncode(updated.toJson()));
     currentUserNotifier.value = updated;

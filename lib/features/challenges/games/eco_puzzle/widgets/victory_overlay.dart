@@ -31,7 +31,9 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 4));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 4),
+    );
     widget.game.gameStateNotifier.addListener(_onStateChange);
     if (widget.game.gameState == EcoPuzzleState.success) {
       _submitResult();
@@ -46,15 +48,17 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
   }
 
   void _onStateChange() {
-    if (widget.game.gameState == EcoPuzzleState.success && !isSubmitting && xpGanada == null) {
+    if (widget.game.gameState == EcoPuzzleState.success &&
+        !isSubmitting &&
+        xpGanada == null) {
       _submitResult();
     }
   }
 
   Future<void> _submitResult() async {
     setState(() => isSubmitting = true);
+    final user = SessionService().currentUser;
     try {
-      final user = SessionService().currentUser;
       if (user == null) {
         setState(() {
           xpGanada = 150;
@@ -65,43 +69,48 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
       }
 
       final response = await ApiClient().post('/eco/completar', {
-        'user_id': user.id,
         'errores': widget.game.errors,
         'tiempo_segundos': (59.0 - widget.game.timeLeft).ceil(),
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final body = jsonDecode(response.body);
-        if (body['ok'] == true && body['data'] != null) {
-          final data = body['data'];
-          final recompensas = data['recompensas'];
+        if (body['ok'] == true &&
+            body['data'] != null &&
+            body['data']['recompensas'] != null) {
+          final recompensas = body['data']['recompensas'];
+          setState(() {
+            xpGanada = recompensas['xp_ganado'];
+            monedasGanadas = recompensas['monedas_ganadas'];
+          });
 
-          if (recompensas != null && recompensas['valido'] == true) {
-            setState(() {
-              xpGanada = recompensas['xp_ganado'];
-              monedasGanadas = recompensas['monedas_ganadas'];
-            });
+          _confettiController.play();
 
-            _confettiController.play();
-
-            await SessionService().updateRewardsAndXp(
-              xp: recompensas['xp_total'] ?? user.xp,
-              monedas: recompensas['monedas_total'] ?? user.monedas,
-              nivel: recompensas['nivel_actual'] ?? user.nivel,
-            );
-          } else {
-            setState(() {
-              xpGanada = 150;
-              monedasGanadas = 2;
-            });
-            _confettiController.play();
-          }
+          await SessionService().updateRewardsAndXp(
+            xp: recompensas['xp_total'] ?? user.xp,
+            monedas: recompensas['monedas_total'] ?? user.monedas,
+            nivel: recompensas['nivel_actual'] ?? user.nivel,
+          );
+        } else {
+          setState(() {
+            xpGanada = 150;
+            monedasGanadas = 2;
+          });
+          await SessionService().updateRewardsAndXp(
+            xp: user.xp + 150,
+            monedas: user.monedas + 2,
+          );
+          _confettiController.play();
         }
       } else {
         setState(() {
           xpGanada = 150;
           monedasGanadas = 2;
         });
+        await SessionService().updateRewardsAndXp(
+          xp: user.xp + 150,
+          monedas: user.monedas + 2,
+        );
         _confettiController.play();
       }
     } catch (e) {
@@ -110,6 +119,10 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
         xpGanada = 150;
         monedasGanadas = 2;
       });
+      await SessionService().updateRewardsAndXp(
+        xp: (user?.xp ?? 0) + 150,
+        monedas: (user?.monedas ?? 0) + 2,
+      );
       _confettiController.play();
     } finally {
       if (mounted) {
@@ -142,9 +155,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
           alignment: Alignment.center,
           children: [
             // Sombra ambiental
-            Container(
-              color: Colors.black.withValues(alpha: 0.45),
-            ),
+            Container(color: Colors.black.withValues(alpha: 0.45)),
 
             // Confetti
             Align(
@@ -167,7 +178,10 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
             LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 24.0,
+                  ),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
@@ -180,7 +194,9 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF059669).withValues(alpha: 0.22),
+                          color: const Color(
+                            0xFF059669,
+                          ).withValues(alpha: 0.22),
                           blurRadius: 36,
                           offset: const Offset(0, 14),
                         ),
@@ -188,7 +204,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                           color: Color(0xFFD1FAE5),
                           blurRadius: 0,
                           offset: Offset(0, 5), // Relieve 3D inferior
-                        )
+                        ),
                       ],
                     ),
                     child: Column(
@@ -205,24 +221,31 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                                 shape: BoxShape.circle,
                                 color: const Color(0xFFFEF3C7),
                                 border: Border.all(
-                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                                  color: const Color(
+                                    0xFFF59E0B,
+                                  ).withValues(alpha: 0.35),
                                   width: 2.0,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                                    color: const Color(
+                                      0xFFF59E0B,
+                                    ).withValues(alpha: 0.2),
                                     blurRadius: 20,
                                     spreadRadius: 4,
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
                             const Text(
                               "🏆",
                               style: TextStyle(fontSize: 54),
-                            )
-                                .animate()
-                                .scale(begin: const Offset(0.0, 0.0), end: const Offset(1.0, 1.0), duration: 500.ms, curve: Curves.elasticOut),
+                            ).animate().scale(
+                              begin: const Offset(0.0, 0.0),
+                              end: const Offset(1.0, 1.0),
+                              duration: 500.ms,
+                              curve: Curves.elasticOut,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -233,14 +256,28 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                           children: List.generate(3, (index) {
                             final isEarned = index < stars;
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: Icon(
-                                isEarned ? Icons.star_rounded : Icons.star_border_rounded,
-                                color: isEarned ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
-                                size: index == 1 ? 40 : 32, // Estrella del medio más grande
-                              )
-                                  .animate(delay: (200 + index * 150).ms)
-                                  .scale(begin: const Offset(0, 0), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
+                              ),
+                              child:
+                                  Icon(
+                                        isEarned
+                                            ? Icons.star_rounded
+                                            : Icons.star_border_rounded,
+                                        color: isEarned
+                                            ? const Color(0xFFF59E0B)
+                                            : const Color(0xFFCBD5E1),
+                                        size: index == 1
+                                            ? 40
+                                            : 32, // Estrella del medio más grande
+                                      )
+                                      .animate(delay: (200 + index * 150).ms)
+                                      .scale(
+                                        begin: const Offset(0, 0),
+                                        end: const Offset(1, 1),
+                                        duration: 400.ms,
+                                        curve: Curves.elasticOut,
+                                      ),
                             );
                           }),
                         ),
@@ -278,30 +315,33 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
 
                         // ── 3. Tarjetas de Estadísticas (Tiempo y Precisión) ──
                         Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                "TIEMPO",
-                                timeStr,
-                                Icons.timer_outlined,
-                                const Color(0xFF0284C7),
-                                const Color(0xFFF0F9FF),
-                                const Color(0xFFBAE6FD),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                "ERRORES",
-                                "${widget.game.errors}/3",
-                                Icons.favorite_rounded,
-                                const Color(0xFFEF4444),
-                                const Color(0xFFFEF2F2),
-                                const Color(0xFFFECACA),
-                              ),
-                            ),
-                          ],
-                        ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0.0),
+                              children: [
+                                Expanded(
+                                  child: _buildStatCard(
+                                    "TIEMPO",
+                                    timeStr,
+                                    Icons.timer_outlined,
+                                    const Color(0xFF0284C7),
+                                    const Color(0xFFF0F9FF),
+                                    const Color(0xFFBAE6FD),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStatCard(
+                                    "ERRORES",
+                                    "${widget.game.errors}/3",
+                                    Icons.favorite_rounded,
+                                    const Color(0xFFEF4444),
+                                    const Color(0xFFFEF2F2),
+                                    const Color(0xFFFECACA),
+                                  ),
+                                ),
+                              ],
+                            )
+                            .animate()
+                            .fadeIn(delay: 300.ms)
+                            .slideY(begin: 0.1, end: 0.0),
 
                         const SizedBox(height: 18),
 
@@ -309,70 +349,86 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                         if (isSubmitting)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 18),
-                            child: CircularProgressIndicator(color: Color(0xFF10B981)),
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF10B981),
+                            ),
                           )
                         else if (xpGanada != null) ...[
                           Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  "RECOMPENSAS OBTENIDAS",
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFFB45309),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
                                 ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const GameStarIcon(size: 20),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      "+$xpGanada XP",
-                                      style: GoogleFonts.outfit(
-                                        color: const Color(0xFF047857),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    const GameCoinIcon(size: 20),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      "+$monedasGanadas Monedas",
-                                      style: GoogleFonts.outfit(
-                                        color: const Color(0xFFB45309),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                      ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFFFBEB),
+                                      Color(0xFFFEF3C7),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFFF59E0B,
+                                    ).withValues(alpha: 0.35),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFF59E0B,
+                                      ).withValues(alpha: 0.12),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "RECOMPENSAS OBTENIDAS",
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFFB45309),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const GameStarIcon(size: 20),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "+$xpGanada XP",
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFF047857),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 20),
+                                        const GameCoinIcon(size: 20),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "+$monedasGanadas Monedas",
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFFB45309),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              )
+                              .animate()
+                              .fadeIn(delay: 400.ms)
+                              .scale(begin: const Offset(0.95, 0.95)),
                         ],
 
                         const SizedBox(height: 22),
@@ -393,7 +449,9 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                                  color: const Color(
+                                    0xFF10B981,
+                                  ).withValues(alpha: 0.4),
                                   blurRadius: 16,
                                   offset: const Offset(0, 8),
                                 ),
@@ -401,7 +459,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                                   color: Color(0xFF047857),
                                   blurRadius: 0,
                                   offset: Offset(0, 4), // Relieve 3D botón
-                                )
+                                ),
                               ],
                             ),
                             child: Text(
@@ -426,7 +484,11 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.replay_rounded, size: 18, color: Color(0xFF64748B)),
+                              const Icon(
+                                Icons.replay_rounded,
+                                size: 18,
+                                color: Color(0xFF64748B),
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 "Jugar de nuevo",
@@ -464,10 +526,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: borderColor,
-          width: 1.2,
-        ),
+        border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Column(
         children: [
