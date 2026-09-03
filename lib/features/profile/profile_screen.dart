@@ -42,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchUserProfile() async {
     try {
-      final response = await ApiClient().get('/perfil/${_user.id}');
+      final response = await ApiClient().get('/auth/perfil/${_user.id}');
       if (!mounted) return;
 
       final jsonResponse = jsonDecode(response.body);
@@ -67,31 +67,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ? (gamifiedData['racha_dias'] as num).toInt()
             : int.tryParse('${gamifiedData['racha_dias']}') ?? _user.rachaDias;
 
-        // Regla: Solución en Cliente. Si la BD falla y retorna menos XP que el caché local, preservar caché local.
-        final localUser = SessionService().currentUser;
-        final finalXp = (localUser != null && newXp < localUser.xp) ? localUser.xp : newXp;
-        final finalMonedas = (localUser != null && newMonedas < localUser.monedas) ? localUser.monedas : newMonedas;
-        final finalNivel = (localUser != null && newNivel < localUser.nivel) ? localUser.nivel : newNivel;
-
-        final levelUp = finalNivel > _user.nivel;
+        final levelUp = newNivel > _user.nivel;
 
         setState(() {
           _user = _user.copyWith(
-            nivel: finalNivel,
-            xp: finalXp,
-            monedas: finalMonedas,
+            nivel: newNivel,
+            xp: newXp,
+            monedas: newMonedas,
             rachaDias: newRacha,
           );
         });
 
         // Persistir la data gamificada en la caché local
         await SessionService().updateRewardsAndXp(
-          xp: finalXp,
-          monedas: finalMonedas,
-          nivel: finalNivel,
+          xp: newXp,
+          monedas: newMonedas,
+          nivel: newNivel,
+          rachaDias: newRacha,
         );
 
-        if (levelUp) {
+        if (levelUp && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -145,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else if (member.xp == 0) {
           // Si el backend no proveyó XP (porque solo existe en endpoints gamificados), lo enriquecemos
           try {
-            final perfRes = await ApiClient().get('/perfil/${member.id}');
+            final perfRes = await ApiClient().get('/auth/perfil/${member.id}');
             final perfData = jsonDecode(perfRes.body);
             if (perfData['ok'] == true && perfData['data'] != null) {
               final gData = perfData['data'];
