@@ -79,7 +79,7 @@ class FailureOverlay extends StatelessWidget {
                       const SizedBox(height: 8),
                       
                       Text(
-                        "Te tardaste más de los 4 minutos recomendados.",
+                        "Te tardaste más de los 10 minutos recomendados.",
                         style: GoogleFonts.outfit(
                           color: const Color(0xFF546E7A),
                           fontSize: 13,
@@ -121,7 +121,7 @@ class FailureOverlay extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Para una ducha verdaderamente sostenible, el tiempo límite óptimo es de 4 minutos. Cada minuto adicional gasta unos 12 litros de agua limpia.",
+                              "Para una ducha verdaderamente sostenible, el tiempo límite máximo es de 10 minutos. Cada minuto adicional gasta unos 12 litros de agua limpia.",
                               textAlign: TextAlign.center,
                               style: GoogleFonts.outfit(
                                 color: const Color(0xFFC62828),
