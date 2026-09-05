@@ -9,4 +9,3 @@ export 'reward.dart';
 export 'achievement.dart';
 export 'challenge.dart';
 export 'pending_validation.dart';
-export 'notification.dart';

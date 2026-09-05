@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/level_service.dart';
 import 'package:habitik/core/navigation/app_router.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/data/models/family_member.dart';
@@ -35,9 +36,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _user = widget.user ?? SessionService().currentUser ?? UserProfile.mock;
-    _fetchFamilyMembers();
-    _fetchUserProfile();
+    _user = widget.user ?? SessionService().currentUser ?? UserProfile.empty;
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _fetchUserProfile(),
+      _fetchFamilyMembers(),
+    ]);
   }
 
   Future<void> _fetchUserProfile() async {
@@ -47,68 +54,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['ok'] == true && jsonResponse['data'] != null) {
-        final gamifiedData = jsonResponse['data'];
-
-        final newNivel = gamifiedData['nivel'] is num
-            ? (gamifiedData['nivel'] as num).toInt()
-            : int.tryParse('${gamifiedData['nivel']}') ?? _user.nivel;
-
-        final rawXp = gamifiedData['xp_total'] ?? gamifiedData['total_xp'] ?? gamifiedData['xp'];
-        final newXp = rawXp is num
-            ? (rawXp as num).toInt()
-            : int.tryParse('$rawXp') ?? _user.xp;
-
-        final rawMonedas = gamifiedData['saldo_monedas'] ?? gamifiedData['monedas'];
-        final newMonedas = rawMonedas is num
-            ? (rawMonedas as num).toInt()
-            : int.tryParse('$rawMonedas') ?? _user.monedas;
-
-        final newRacha = gamifiedData['racha_dias'] is num
-            ? (gamifiedData['racha_dias'] as num).toInt()
-            : int.tryParse('${gamifiedData['racha_dias']}') ?? _user.rachaDias;
-
-        final levelUp = newNivel > _user.nivel;
+        final updatedUser = UserProfile.fromJson(jsonResponse['data']);
 
         setState(() {
-          _user = _user.copyWith(
-            nivel: newNivel,
-            xp: newXp,
-            monedas: newMonedas,
-            rachaDias: newRacha,
-          );
+          _user = updatedUser;
         });
 
         // Persistir la data gamificada en la caché local
         await SessionService().updateRewardsAndXp(
-          xp: newXp,
-          monedas: newMonedas,
-          nivel: newNivel,
-          rachaDias: newRacha,
+          xp: updatedUser.xp,
+          monedas: updatedUser.monedas,
+          nivel: updatedUser.nivel,
+          rachaDias: updatedUser.rachaDias,
         );
 
-        if (levelUp && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Text('🎉', style: TextStyle(fontSize: 24)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '¡Felicidades! Has subido al nivel $newNivel',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: HabitikColors.green600,
-              duration: const Duration(seconds: 4),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
+        if (mounted) {
+          final claimed = await LevelService.checkAndShowLevelUp(
+            context,
+            nivelForzado: updatedUser.nivel,
           );
+          if (claimed && mounted) {
+            setState(() {
+              _user = SessionService().currentUser ?? updatedUser;
+            });
+          }
         }
       }
     } catch (e) {
@@ -129,39 +98,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       final List<dynamic> data = jsonDecode(response.body);
-      
-      final List<FamilyMember> enrichedList = [];
-      for (final json in data) {
-        var member = FamilyMember.fromJson(json);
-        
-        // Si el miembro es el usuario actual, usamos sus métricas cacheadas de la sesión actual
-        if (member.id == _user.id) {
-          member = member.copyWith(xp: _user.xp, nivel: _user.nivel);
-        } else if (member.xp == 0) {
-          // Si el backend no proveyó XP (porque solo existe en endpoints gamificados), lo enriquecemos
-          try {
-            final perfRes = await ApiClient().get('/auth/perfil/${member.id}');
-            final perfData = jsonDecode(perfRes.body);
-            if (perfData['ok'] == true && perfData['data'] != null) {
-              final gData = perfData['data'];
-              final rawXp = gData['xp_total'] ?? gData['total_xp'] ?? gData['xp'];
-              final mXp = rawXp is num ? (rawXp as num).toInt() : int.tryParse('$rawXp') ?? member.xp;
-              final mNivel = gData['nivel'] is num ? (gData['nivel'] as num).toInt() : int.tryParse('${gData['nivel']}') ?? member.nivel;
-              member = member.copyWith(xp: mXp, nivel: mNivel);
-            }
-          } catch (e) {
-            // Ignorar y mantener el 0 por defecto si falla el enriquecimiento
-          }
-        }
-        enrichedList.add(member);
-      }
-      
-      // Ordenar por ranking de XP (descendente)
-      enrichedList.sort((a, b) => b.xp.compareTo(a.xp));
+      final members = data.map((json) {
+        final m = FamilyMember.fromJson(json);
+        // Si el miembro es el usuario actual, usamos sus métricas más recientes
+        return m.id == _user.id ? m.copyWith(xp: _user.xp, nivel: _user.nivel) : m;
+      }).toList()
+        ..sort((a, b) => b.xp.compareTo(a.xp));
 
       if (mounted) {
         setState(() {
-          _familyMembers = enrichedList;
+          _familyMembers = members;
           _loadingMembers = false;
         });
       }
@@ -202,10 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
         body: RefreshIndicator(
-          onRefresh: () async {
-            await _fetchUserProfile();
-            await _fetchFamilyMembers();
-          },
+          onRefresh: _loadData,
           color: HabitikColors.green600,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

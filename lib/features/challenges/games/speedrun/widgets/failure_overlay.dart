@@ -10,22 +10,29 @@ class FailureOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Formatear duración final de la ducha excesiva
-    final durationMinutes = (game.showerDurationSeconds / 60).floor();
-    final durationSeconds = (game.showerDurationSeconds % 60).floor();
-    final durationStr = "${durationMinutes}m ${durationSeconds.toString().padLeft(2, '0')}s";
+    return ValueListenableBuilder<SpeedrunState>(
+      valueListenable: game.gameStateNotifier,
+      builder: (context, state, child) {
+        if (state != SpeedrunState.failure) {
+          return const SizedBox.shrink();
+        }
 
-    return Container(
-      color: Colors.black.withValues(alpha: 0.75), // Fondo sombreado
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 48.0, // restamos el padding vertical del scrollview (24 * 2)
-              ),
-              child: Center(
+        // Formatear duración final de la ducha excesiva
+        final durationMinutes = (game.showerDurationSeconds / 60).floor();
+        final durationSeconds = (game.showerDurationSeconds % 60).floor();
+        final durationStr = "${durationMinutes}m ${durationSeconds.toString().padLeft(2, '0')}s";
+
+        return Container(
+          color: Colors.black.withValues(alpha: 0.75), // Fondo sombreado
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 48.0,
+                  ),
+                  child: Center(
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24.0),
@@ -200,11 +207,13 @@ class FailureOverlay extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        },
-      ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9)),
-    );
-  }
+            );
+          },
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildStatCol(String label, String value, IconData icon, Color color) {
     return Column(

@@ -201,7 +201,7 @@ class _HudOverlayState extends State<HudOverlay> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<EcoPuzzleState>(
       valueListenable: widget.game.gameStateNotifier,
-      builder: (context, _, __) {
+      builder: (context, state, child) {
         if (widget.game.gameState != EcoPuzzleState.playing) {
           return const SizedBox.shrink();
         }

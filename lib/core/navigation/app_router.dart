@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/network_service.dart';
 import 'package:habitik/features/auth/splash_screen.dart';
 import 'package:habitik/features/auth/login_screen.dart';
 import 'package:habitik/features/onboarding/onboarding_screen.dart';
@@ -30,10 +31,27 @@ class _RootRouterState extends State<RootRouter> {
   @override
   void initState() {
     super.initState();
+    NetworkService().isConnectedNotifier.addListener(_onNetworkChanged);
     _initSession();
   }
 
+  @override
+  void dispose() {
+    NetworkService().isConnectedNotifier.removeListener(_onNetworkChanged);
+    super.dispose();
+  }
+
+  void _onNetworkChanged() {
+    if (NetworkService().isConnected && _initialized && _splashFinished && _state == AppState.splash) {
+      _evaluateNavigation();
+    }
+  }
+
   Future<void> _initSession() async {
+    // 1. Comprobar internet real al arranque
+    await NetworkService().checkInternet();
+
+    // 2. Inicializar sesión guardada en caché
     await _sessionService.init();
     if (mounted) {
       setState(() {
@@ -54,6 +72,11 @@ class _RootRouterState extends State<RootRouter> {
 
   void _evaluateNavigation() {
     if (!_initialized) return;
+
+    // Si NO hay conexión a internet, bloquear el ingreso
+    if (!NetworkService().isConnected) {
+      return;
+    }
 
     if (_sessionService.hasSession) {
       if (_sessionService.isOnboardingCompleted) {

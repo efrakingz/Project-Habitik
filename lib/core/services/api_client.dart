@@ -1,18 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'session_service.dart';
 
 class ApiClient {
-  /// IP local de la computadora en la red Wi-Fi
-  static const String localIp = '192.168.1.14';
+  /// IP local de la computadora en la red Wi-Fi / Ethernet
+  static const String localIp = '192.168.1.16';
 
   /// Servidor backend:
-  /// En Web o Desktop usa localhost:3000.
-  /// En dispositivos móviles (físicos o emuladores) usa la IP local para conectividad total en la red.
-  static String localBaseUrl = kIsWeb
-      ? 'http://localhost:3000'
-      : 'http://$localIp:3000';
+  /// - En Web o Desktop usa localhost:3000.
+  /// - En emulador Android usa 10.0.2.2:3000 (el túnel directo de QEMU a localhost de Windows).
+  /// - En dispositivos móviles físicos usa la IP local (192.168.1.16:3000).
+  static String get localBaseUrl {
+    if (kIsWeb) return 'http://localhost:3000';
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3000';
+    }
+    return 'http://$localIp:3000';
+  }
 
   static String productionBaseUrl = 'https://backendhabitik-production.up.railway.app';
 
@@ -28,7 +34,11 @@ class ApiClient {
   factory ApiClient() => _instance;
   ApiClient._internal();
 
+  /// Cliente HTTP persistente con connection pooling y keep-alive
+  final http.Client _httpClient = http.Client();
   final _sessionService = SessionService();
+
+  static const Duration _timeout = Duration(seconds: 15);
 
   Map<String, String> _headers([String? token]) {
     final headers = {
@@ -42,15 +52,36 @@ class ApiClient {
     return headers;
   }
 
+  bool _canFallbackIp() {
+    return baseUrl.contains('10.0.2.2') || baseUrl.contains(localIp);
+  }
+
+  void _switchFallbackIp() {
+    if (baseUrl.contains('10.0.2.2')) {
+      debugPrint('🔄 [ApiClient] Alternando automáticamente a IP de red: http://$localIp:3000');
+      baseUrl = 'http://$localIp:3000';
+    } else if (baseUrl.contains(localIp) && defaultTargetPlatform == TargetPlatform.android) {
+      debugPrint('🔄 [ApiClient] Alternando automáticamente a emulador: http://10.0.2.2:3000');
+      baseUrl = 'http://10.0.2.2:3000';
+    }
+  }
+
   /// Realiza una petición GET con re-intento transparente si el token caducó
   Future<http.Response> get(String path, {bool isRetry = false}) async {
     final url = Uri.parse('$baseUrl$path');
     try {
-      final response = await http.get(url, headers: _headers());
+      final response = await _httpClient
+          .get(url, headers: _headers())
+          .timeout(_timeout);
       return await _processResponse(response, () => get(path, isRetry: true), isRetry);
     } catch (e) {
       if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
-      throw Exception('Error de conexión con el servidor: $e');
+      if (!isRetry && _canFallbackIp()) {
+        _switchFallbackIp();
+        return get(path, isRetry: true);
+      }
+      if (e is TimeoutException) throw Exception('Tiempo de espera agotado con el servidor ($baseUrl).');
+      throw Exception('Error de conexión con el servidor ($baseUrl): $e');
     }
   }
 
@@ -63,11 +94,13 @@ class ApiClient {
   }) async {
     final url = Uri.parse('$baseUrl$path');
     try {
-      final response = await http.post(
-        url,
-        headers: _headers(token),
-        body: jsonEncode(body),
-      );
+      final response = await _httpClient
+          .post(
+            url,
+            headers: _headers(token),
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
       return await _processResponse(
         response,
         () => post(path, body, token: token, isRetry: true),
@@ -75,7 +108,12 @@ class ApiClient {
       );
     } catch (e) {
       if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
-      throw Exception('Error de conexión con el servidor: $e');
+      if (!isRetry && _canFallbackIp()) {
+        _switchFallbackIp();
+        return post(path, body, token: token, isRetry: true);
+      }
+      if (e is TimeoutException) throw Exception('Tiempo de espera agotado con el servidor ($baseUrl).');
+      throw Exception('Error de conexión con el servidor ($baseUrl): $e');
     }
   }
 
@@ -87,11 +125,13 @@ class ApiClient {
   }) async {
     final url = Uri.parse('$baseUrl$path');
     try {
-      final response = await http.patch(
-        url,
-        headers: _headers(),
-        body: jsonEncode(body),
-      );
+      final response = await _httpClient
+          .patch(
+            url,
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
       return await _processResponse(
         response,
         () => patch(path, body, isRetry: true),
@@ -99,7 +139,66 @@ class ApiClient {
       );
     } catch (e) {
       if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
-      throw Exception('Error de conexión con el servidor: $e');
+      if (!isRetry && _canFallbackIp()) {
+        _switchFallbackIp();
+        return patch(path, body, isRetry: true);
+      }
+      if (e is TimeoutException) throw Exception('Tiempo de espera agotado con el servidor ($baseUrl).');
+      throw Exception('Error de conexión con el servidor ($baseUrl): $e');
+    }
+  }
+
+  /// Realiza una petición PUT con re-intento transparente
+  Future<http.Response> put(
+    String path,
+    Map<String, dynamic> body, {
+    bool isRetry = false,
+  }) async {
+    final url = Uri.parse('$baseUrl$path');
+    try {
+      final response = await _httpClient
+          .put(
+            url,
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+      return await _processResponse(
+        response,
+        () => put(path, body, isRetry: true),
+        isRetry,
+      );
+    } catch (e) {
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (!isRetry && _canFallbackIp()) {
+        _switchFallbackIp();
+        return put(path, body, isRetry: true);
+      }
+      if (e is TimeoutException) throw Exception('Tiempo de espera agotado con el servidor ($baseUrl).');
+      throw Exception('Error de conexión con el servidor ($baseUrl): $e');
+    }
+  }
+
+  /// Realiza una petición DELETE con re-intento transparente
+  Future<http.Response> delete(String path, {bool isRetry = false}) async {
+    final url = Uri.parse('$baseUrl$path');
+    try {
+      final response = await _httpClient
+          .delete(url, headers: _headers())
+          .timeout(_timeout);
+      return await _processResponse(
+        response,
+        () => delete(path, isRetry: true),
+        isRetry,
+      );
+    } catch (e) {
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (!isRetry && _canFallbackIp()) {
+        _switchFallbackIp();
+        return delete(path, isRetry: true);
+      }
+      if (e is TimeoutException) throw Exception('Tiempo de espera agotado con el servidor ($baseUrl).');
+      throw Exception('Error de conexión con el servidor ($baseUrl): $e');
     }
   }
 

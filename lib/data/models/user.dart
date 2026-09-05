@@ -153,15 +153,15 @@ class UserProfile {
       avatarUrl: url,
       rol: (json['rol'] ?? 'miembro').toString().toLowerCase(),
       familyId: json['family_id'],
-      xp: json['xp'] is num
-          ? (json['xp'] as num).toInt()
-          : int.tryParse('${json['xp']}') ?? 0,
+      xp: (json['xp_total'] ?? json['total_xp'] ?? json['xp']) is num
+          ? ((json['xp_total'] ?? json['total_xp'] ?? json['xp']) as num).toInt()
+          : int.tryParse('${json['xp_total'] ?? json['total_xp'] ?? json['xp']}') ?? 0,
       nivel: json['nivel'] is num
           ? (json['nivel'] as num).toInt()
           : int.tryParse('${json['nivel']}') ?? 1,
-      monedas: json['monedas'] is num
-          ? (json['monedas'] as num).toInt()
-          : int.tryParse('${json['monedas']}') ?? 0,
+      monedas: (json['saldo_monedas'] ?? json['monedas']) is num
+          ? ((json['saldo_monedas'] ?? json['monedas']) as num).toInt()
+          : int.tryParse('${json['saldo_monedas'] ?? json['monedas']}') ?? 0,
       rachaDias: json['racha_dias'] is num
           ? (json['racha_dias'] as num).toInt()
           : int.tryParse('${json['racha_dias']}') ?? 0,
@@ -189,35 +189,12 @@ class UserProfile {
     };
   }
 
-  static UserProfile get mock => const UserProfile(
-    id: 'mock-user-1',
-    nombre: 'Sofía Torres',
-    email: 'sofia@habitik.cl',
-    avatarLetra: 'S',
-    avatarColor: '#9C27B0',
-    rol: 'jefa',
-    familyId: 'mock-family',
-    xp: 350,
-    nivel: 3,
-    monedas: 42,
-    rachaDias: 5,
-    familyName: 'Familia Torres',
-    onboardingCompleted: true,
-  );
-
-  static UserProfile get mockJefe => const UserProfile(
-    id: 'mock-jefe',
-    nombre: 'Carlos Torres',
-    email: 'carlos@habitik.cl',
-    avatarLetra: 'C',
+  static const UserProfile empty = UserProfile(
+    id: '',
+    nombre: 'Usuario',
+    email: '',
+    avatarLetra: 'U',
     avatarColor: '#2E7D32',
-    rol: 'jefe',
-    familyId: 'mock-family',
-    xp: 820,
-    nivel: 5,
-    monedas: 80,
-    rachaDias: 12,
-    familyName: 'Familia Torres',
-    onboardingCompleted: true,
+    rol: 'miembro',
   );
 }
