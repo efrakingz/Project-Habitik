@@ -12,8 +12,6 @@ class SpeedrunGame extends FlameGame {
   final VoidCallback? onGameClosed;
   final VoidCallback? onChallengeCompleted;
 
-  SpeedrunState _gameState = SpeedrunState.loading;
-
   // Temporizador de preparación: 30 segundos
   double prepRemainingSeconds = 30.0;
   // Cronómetro de la ducha (cuenta hacia adelante)
@@ -22,10 +20,10 @@ class SpeedrunGame extends FlameGame {
 
   // Guarda el tiempo en que se resolvió para mostrarlo en la victoria
   double showerDurationSeconds = 0.0;
-
-  // Datos de recompensas escalonadas y desempeño para la victoria
   int earnedXp = 0;
   int earnedMonedas = 0;
+
+  // Datos de recompensas escalonadas y desempeño para la victoria
   bool bonusConstancia = false;
   int bonusXp = 0;
   int bonusMonedas = 0;
@@ -36,24 +34,27 @@ class SpeedrunGame extends FlameGame {
   late BackgroundComponent background;
   void Function(String)? onWarning;
 
+  final ValueNotifier<SpeedrunState> gameStateNotifier =
+      ValueNotifier(SpeedrunState.loading);
+
   SpeedrunGame({this.onGameClosed, this.onChallengeCompleted, this.onWarning});
 
   static Map<String, dynamic> calculateTierRewards(int durationSeconds) {
-    if (durationSeconds < 240) {
+    if (durationSeconds < 180) {
       return {
         'badge': '🚫',
         'titulo': 'Ducha no válida',
-        'desempeno': 'Menos de 4 minutos (Anti-trampa)',
+        'desempeno': 'Menos de 3 minutos (Anti-trampa)',
         'xp': 0,
         'monedas': 0,
         'valido': false,
       };
     } else if (durationSeconds <= 300) {
-      // Entre 4 y 5 minutos (240s – 300s)
+      // Entre 3 y 5 minutos (180s – 300s)
       return {
         'badge': '🏆',
         'titulo': '¡Ganaste el Speedrun!',
-        'desempeno': 'Récord Óptimo (4 a 5 min)',
+        'desempeno': 'Récord Óptimo (3 a 5 min)',
         'xp': 200,
         'monedas': 2,
         'valido': true,
@@ -90,16 +91,15 @@ class SpeedrunGame extends FlameGame {
     }
   }
 
-  SpeedrunState get gameState => _gameState;
+  SpeedrunState get gameState => gameStateNotifier.value;
 
   set gameState(SpeedrunState newState) {
-    if (_gameState == newState) return;
+    if (gameStateNotifier.value == newState) return;
 
-    final oldState = _gameState;
-    _gameState = newState;
+    gameStateNotifier.value = newState;
 
-    // Cambiar overlays
-    overlays.remove(oldState.name);
+    // Cambiar overlays de forma atómica y limpia
+    overlays.clear();
     overlays.add(newState.name);
 
     // Lógica especial al entrar al estado
@@ -123,6 +123,7 @@ class SpeedrunGame extends FlameGame {
     await add(background);
 
     // Iniciar en estado loading, Flame mostrará el overlay de carga
+    overlays.clear();
     overlays.add(SpeedrunState.loading.name);
 
     // Simular un tiempo de carga llamativo de 2.0 segundos para inicializar recursos
@@ -247,6 +248,9 @@ class SpeedrunGame extends FlameGame {
               nivel: (recompensas != null && recompensas['nivel_actual'] != null)
                   ? (recompensas['nivel_actual'] as int)
                   : current.nivel,
+              rachaDias: (recompensas != null && recompensas['racha_dias'] != null)
+                  ? (recompensas['racha_dias'] as int)
+                  : current.rachaDias,
             );
 
             _notificarFamilia(durationSeconds, totalToApplyXp, totalToApplyMonedas);

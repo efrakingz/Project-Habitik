@@ -15,7 +15,7 @@ class FailureOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<EcoPuzzleState>(
       valueListenable: game.gameStateNotifier,
-      builder: (context, _, __) {
+      builder: (context, state, child) {
         if (game.gameState != EcoPuzzleState.failure) {
           return const SizedBox.shrink();
         }

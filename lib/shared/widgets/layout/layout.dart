@@ -60,7 +60,9 @@ class ScreenShell extends StatelessWidget {
                     // Fondo interactivo de colinas verdes dentro del contenedor curvado
                     if (useDefaultBackground)
                       const Positioned.fill(
-                        child: LightClearBackground(),
+                        child: RepaintBoundary(
+                          child: LightClearBackground(),
+                        ),
                       ),
                     body,
                   ],

@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:confetti/confetti.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
+import 'package:habitik/shared/widgets/effects/effects.dart';
 import '../../../../../core/services/session_service.dart';
 import '../../../../../core/services/api_client.dart';
 import '../game/eco_puzzle_game.dart';
@@ -26,14 +26,10 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
   bool isSubmitting = false;
   int? xpGanada;
   int? monedasGanadas;
-  late final ConfettiController _confettiController;
 
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 4),
-    );
     widget.game.gameStateNotifier.addListener(_onStateChange);
     if (widget.game.gameState == EcoPuzzleState.success) {
       _submitResult();
@@ -42,7 +38,6 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
 
   @override
   void dispose() {
-    _confettiController.dispose();
     widget.game.gameStateNotifier.removeListener(_onStateChange);
     super.dispose();
   }
@@ -64,7 +59,6 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
           xpGanada = 150;
           monedasGanadas = 2;
         });
-        _confettiController.play();
         return;
       }
 
@@ -84,8 +78,6 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
             monedasGanadas = recompensas['monedas_ganadas'];
           });
 
-          _confettiController.play();
-
           await SessionService().updateRewardsAndXp(
             xp: recompensas['xp_total'] ?? user.xp,
             monedas: recompensas['monedas_total'] ?? user.monedas,
@@ -100,7 +92,6 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
             xp: user.xp + 150,
             monedas: user.monedas + 2,
           );
-          _confettiController.play();
         }
       } else {
         setState(() {
@@ -111,7 +102,6 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
           xp: user.xp + 150,
           monedas: user.monedas + 2,
         );
-        _confettiController.play();
       }
     } catch (e) {
       debugPrint('Info EcoPuzzle: $e');
@@ -123,7 +113,6 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
         xp: (user?.xp ?? 0) + 150,
         monedas: (user?.monedas ?? 0) + 2,
       );
-      _confettiController.play();
     } finally {
       if (mounted) {
         setState(() => isSubmitting = false);
@@ -142,7 +131,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<EcoPuzzleState>(
       valueListenable: widget.game.gameStateNotifier,
-      builder: (context, _, __) {
+      builder: (context, state, child) {
         if (widget.game.gameState != EcoPuzzleState.success) {
           return const SizedBox.shrink();
         }
@@ -157,22 +146,8 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
             // Sombra ambiental
             Container(color: Colors.black.withValues(alpha: 0.45)),
 
-            // Confetti
-            Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
-                shouldLoop: false,
-                colors: const [
-                  Color(0xFF10B981),
-                  Color(0xFF34D399),
-                  Color(0xFFF59E0B),
-                  Color(0xFF3B82F6),
-                  Color(0xFFEC4899),
-                ],
-              ),
-            ),
+            // Confetti reutilizable
+            const CelebrationConfetti(),
 
             // Tarjeta Principal Rediseñada
             LayoutBuilder(

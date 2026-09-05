@@ -1,4 +1,5 @@
 class AchievementItem {
+  final String? id;
   final String key;
   final String nombre;
   final String descripcion;
@@ -7,9 +8,11 @@ class AchievementItem {
   final int xp;
   final int monedas;
   final bool desbloqueado;
+  final bool reclamado;
   final String? desbloqueadoEn;
 
   const AchievementItem({
+    this.id,
     required this.key,
     required this.nombre,
     required this.descripcion,
@@ -18,20 +21,49 @@ class AchievementItem {
     required this.xp,
     required this.monedas,
     this.desbloqueado = false,
+    this.reclamado = false,
     this.desbloqueadoEn,
   });
 
   factory AchievementItem.fromJson(Map<String, dynamic> json) {
+    final rawKey = json['codigo']?.toString() ?? json['key']?.toString() ?? '';
+    final rawNombre = json['titulo']?.toString() ?? json['nombre']?.toString() ?? '';
+    final rawMonedas = json['monedas_recompensa'] ?? json['monedas'];
+    final parsedMonedas = rawMonedas is num ? rawMonedas.toInt() : int.tryParse('$rawMonedas') ?? 0;
+    final rawXp = json['xp'];
+    final parsedXp = rawXp is num ? rawXp.toInt() : int.tryParse('$rawXp') ?? 0;
+
+    String emoji = json['emoji']?.toString() ?? '';
+    if (emoji.isEmpty) {
+      if (rawKey.contains('ducha') || rawKey.contains('agua')) {
+        emoji = '🚿';
+      } else if (rawKey.contains('reto')) {
+        emoji = '🌱';
+      } else if (rawKey.contains('racha')) {
+        emoji = '🔥';
+      } else if (rawKey.contains('wordle')) {
+        emoji = '📝';
+      } else if (rawKey.contains('trivia')) {
+        emoji = '🧠';
+      } else if (rawKey.contains('canje')) {
+        emoji = '🎁';
+      } else {
+        emoji = '🏆';
+      }
+    }
+
     return AchievementItem(
-      key: json['key']?.toString() ?? '',
-      nombre: json['nombre']?.toString() ?? '',
+      id: json['id']?.toString(),
+      key: rawKey,
+      nombre: rawNombre,
       descripcion: json['descripcion']?.toString() ?? '',
-      emoji: json['emoji']?.toString() ?? '🏆',
-      dificultad: json['dificultad']?.toString() ?? 'fácil',
-      xp: json['xp'] is num ? (json['xp'] as num).toInt() : int.tryParse('${json['xp']}') ?? 0,
-      monedas: json['monedas'] is num ? (json['monedas'] as num).toInt() : int.tryParse('${json['monedas']}') ?? 0,
+      emoji: emoji,
+      dificultad: json['dificultad']?.toString() ?? 'medio',
+      xp: parsedXp,
+      monedas: parsedMonedas,
       desbloqueado: json['desbloqueado'] == true,
-      desbloqueadoEn: json['desbloqueado_en']?.toString(),
+      reclamado: json['reclamado'] == true,
+      desbloqueadoEn: json['fecha_desbloqueo']?.toString() ?? json['desbloqueado_en']?.toString(),
     );
   }
 

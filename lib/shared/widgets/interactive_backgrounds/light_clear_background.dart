@@ -15,6 +15,11 @@ class LightClearBackground extends StatefulWidget {
 }
 
 class _LightClearBackgroundState extends State<LightClearBackground> {
+  LightClearGame? _game;
+  double? _cachedWidth;
+  double? _cachedHeight;
+  bool? _cachedDark;
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -25,15 +30,30 @@ class _LightClearBackgroundState extends State<LightClearBackground> {
             final width = constraints.maxWidth;
             final height = constraints.maxHeight;
 
-            final game = LightClearGame(
-              screenWidth: width,
-              mapHeight: height,
-              isDark: isDark,
-            );
+            if (width <= 0 || height <= 0) {
+              return const SizedBox.shrink();
+            }
 
-            return GameWidget(
-              key: ValueKey('light_clear_${isDark}_${width}_$height'),
-              game: game,
+            final dimensionsChanged = _cachedWidth == null ||
+                (_cachedWidth! - width).abs() > 20 ||
+                (_cachedHeight! - height).abs() > 20 ||
+                _cachedDark != isDark;
+
+            if (_game == null || dimensionsChanged) {
+              _cachedWidth = width;
+              _cachedHeight = height;
+              _cachedDark = isDark;
+              _game = LightClearGame(
+                screenWidth: width,
+                mapHeight: height,
+                isDark: isDark,
+              );
+            }
+
+            return RepaintBoundary(
+              child: GameWidget(
+                game: _game!,
+              ),
             );
           },
         );

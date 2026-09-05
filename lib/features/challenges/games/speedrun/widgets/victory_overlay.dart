@@ -1,70 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:confetti/confetti.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habitik/shared/widgets/effects/effects.dart';
 import '../game/speedrun_game.dart';
+import '../game/models/speedrun_state.dart';
 
-class VictoryOverlay extends StatefulWidget {
+class VictoryOverlay extends StatelessWidget {
   final SpeedrunGame game;
   const VictoryOverlay({super.key, required this.game});
 
   @override
-  State<VictoryOverlay> createState() => _VictoryOverlayState();
-}
-
-class _VictoryOverlayState extends State<VictoryOverlay> {
-  late final ConfettiController _confettiController;
-
-  @override
-  void initState() {
-    super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 4));
-    // Reproducir confeti inmediatamente al montar la pantalla
-    _confettiController.play();
-  }
-
-  @override
-  void dispose() {
-    _confettiController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final game = widget.game;
-    
-    // Formatear duración de la ducha
-    final durationMinutes = (game.showerDurationSeconds / 60).floor();
-    final durationSeconds = (game.showerDurationSeconds % 60).floor();
-    final durationStr = "${durationMinutes}m ${durationSeconds.toString().padLeft(2, '0')}s";
+    return ValueListenableBuilder<SpeedrunState>(
+      valueListenable: game.gameStateNotifier,
+      builder: (context, state, child) {
+        if (state != SpeedrunState.success) {
+          return const SizedBox.shrink();
+        }
 
+        // Formatear duración de la ducha
+        final durationMinutes = (game.showerDurationSeconds / 60).floor();
+        final durationSeconds = (game.showerDurationSeconds % 60).floor();
+        final durationStr = "${durationMinutes}m ${durationSeconds.toString().padLeft(2, '0')}s";
 
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Fondo semi-transparente oscuro
+            Container(
+              color: Colors.black.withValues(alpha: 0.7),
+            ),
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Fondo semi-transparente oscuro
-        Container(
-          color: Colors.black.withValues(alpha: 0.7),
-        ),
-
-        // Emisor de Confeti en la parte superior central
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            colors: const [
-              Color(0xFF059669), // Green 600
-              Color(0xFF34D399), // Green 400
-              Color(0xFFF59E0B), // Gold / Amber
-              Color(0xFF00E5FF), // Cyan
-              Color(0xFF10B981), // Emerald
-              Color(0xFFFBBF24), // Amber Accent
-            ],
-          ),
-        ),
+            // Emisor de Confeti reutilizable
+            const CelebrationConfetti(),
 
         // Tarjeta de Victoria
         // Tarjeta de Victoria
@@ -288,11 +256,13 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                 ),
               ),
             );
-          }
+          },
         ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9)),
       ],
     );
-  }
+  },
+);
+}
 
   Widget _buildStatCol(String label, String value, IconData icon, Color color) {
     return Column(

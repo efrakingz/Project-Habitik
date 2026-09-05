@@ -20,25 +20,31 @@ class _HomeShellState extends State<HomeShell> {
   final _sessionService = SessionService();
   bool _hideNavbar = false;
 
+  late final List<Widget> _screens;
+
   // Para Jefe: 5 tabs (Inicio, Retos, Scan, Canjes, Panel)
   // Para Miembro: 3 tabs (Inicio, Retos, Canjes)
   bool get _isJefe {
     return _sessionService.currentUser?.isJefe ?? false;
   }
 
-  List<Widget> get _screens => _isJefe
-      ? [
-          const DashboardScreen(),
-          ChallengesScreen(onGameModeChanged: (hide) => setState(() => _hideNavbar = hide)),
-          const ScanScreen(),
-          const RewardsScreen(),
-          const ControlScreen(),
-        ]
-      : [
-          const DashboardScreen(),
-          ChallengesScreen(onGameModeChanged: (hide) => setState(() => _hideNavbar = hide)),
-          const RewardsScreen(),
-        ];
+  @override
+  void initState() {
+    super.initState();
+    _screens = _isJefe
+        ? [
+            const DashboardScreen(),
+            ChallengesScreen(onGameModeChanged: (hide) => setState(() => _hideNavbar = hide)),
+            const ScanScreen(),
+            const RewardsScreen(),
+            const ControlScreen(),
+          ]
+        : [
+            const DashboardScreen(),
+            ChallengesScreen(onGameModeChanged: (hide) => setState(() => _hideNavbar = hide)),
+            const RewardsScreen(),
+          ];
+  }
 
   @override
   Widget build(BuildContext context) {

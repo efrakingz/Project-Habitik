@@ -23,6 +23,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isLoading = true;
   String _filtro = 'Todas';
   StreamSubscription? _bgSubscription;
+  VoidCallback? _socketUnsubscribe;
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void dispose() {
     _bgSubscription?.cancel();
+    _socketUnsubscribe?.call();
     super.dispose();
   }
 
@@ -59,7 +61,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final familyId = _sessionService.currentUser?.familyId;
     if (familyId != null && familyId.isNotEmpty) {
       // 1. Escuchar eventos Socket.io en primer plano
-      SocketService.initSocket(familyId, (data) {
+      SocketService.initSocket(familyId);
+      _socketUnsubscribe = SocketService.subscribe((data) {
         if (mounted) {
           setState(() {
             _notificaciones.insert(0, data);

@@ -113,7 +113,7 @@ class ProfileSettingsCard extends StatelessWidget {
                               ),
                             );
                           },
-                          activeColor: Colors.white,
+                          activeThumbColor: Colors.white,
                           activeTrackColor: HabitikColors.green600,
                           inactiveThumbColor: Colors.white,
                           inactiveTrackColor: Colors.grey.shade300,

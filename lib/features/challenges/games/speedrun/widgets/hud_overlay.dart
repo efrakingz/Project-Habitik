@@ -33,22 +33,37 @@ class _HudOverlayState extends State<HudOverlay> {
   // Alertas flotantes interactivas en coordenadas de toque
   final List<FloatingMessage> _floatingMessages = [];
 
-  bool get isSolved => widget.game.elapsedShowerSeconds >= 240.0;
+  bool get isSolved => widget.game.elapsedShowerSeconds >= 180.0;
 
   @override
   void initState() {
     super.initState();
     widget.game.onWarning = _showWarning;
+    widget.game.gameStateNotifier.addListener(_onGameStateChanged);
     // Reconstruir la interfaz para actualizar el temporizador
     _rebuildTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (mounted) {
-        setState(() {});
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
+      if (widget.game.gameState != SpeedrunState.preparing &&
+          widget.game.gameState != SpeedrunState.playing) {
+        timer.cancel();
+        return;
+      }
+      setState(() {});
     });
+  }
+
+  void _onGameStateChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    widget.game.gameStateNotifier.removeListener(_onGameStateChanged);
     widget.game.onWarning = null;
     _rebuildTimer.cancel();
     _warningTimer?.cancel();
@@ -106,6 +121,11 @@ class _HudOverlayState extends State<HudOverlay> {
   Widget build(BuildContext context) {
     final game = widget.game;
     final state = game.gameState;
+
+    // Si ya no estamos en preparación ni jugando (ej. victoria/derrota), ocultar de inmediato
+    if (state != SpeedrunState.preparing && state != SpeedrunState.playing) {
+      return const SizedBox.shrink();
+    }
 
     // 1. MODO PREPARACIÓN (Cuenta regresiva de 30 segundos)
     if (state == SpeedrunState.preparing) {
@@ -209,7 +229,7 @@ class _HudOverlayState extends State<HudOverlay> {
       timerColor = Colors.amberAccent;
     } else if (game.elapsedShowerSeconds > 300.0) {
       timerColor = const Color(0xFF69F0AE);
-    } else if (game.elapsedShowerSeconds >= 240.0) {
+    } else if (game.elapsedShowerSeconds >= 180.0) {
       timerColor = Colors.greenAccent;
     }
 
@@ -337,7 +357,13 @@ class _HudOverlayState extends State<HudOverlay> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      "¡Báñate rápido! El botón se desbloqueará después de 4 minutos de ducha.",
+                      game.elapsedShowerSeconds > 600.0
+                          ? "⚠️ Has superado los 10 minutos. ¡Apaga la ducha para cuidar el agua!"
+                          : game.elapsedShowerSeconds > 480.0
+                              ? "⏳ Tiempo extendido (+8 min). Te recomendamos terminar pronto."
+                              : isSolved
+                                  ? "✨ ¡Meta mínima alcanzada! Puedes apagar la ducha cuando estés listo."
+                                  : "¡Báñate rápido! El botón se desbloqueará después de 4 minutos de ducha.",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
                         color: Colors.white70,
@@ -463,7 +489,7 @@ class _HudOverlayState extends State<HudOverlay> {
                   // Botón "Salir (Modo Programador)"
                   GestureDetector(
                     onTap: () {
-                      game.elapsedShowerSeconds = 240.0;
+                      game.elapsedShowerSeconds = 180.0;
                       game.completeShower();
                     },
                     child: Container(

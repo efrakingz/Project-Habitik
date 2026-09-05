@@ -9,6 +9,7 @@ import 'package:habitik/features/home/family_screen.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/level_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -23,7 +24,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _user = SessionService().currentUser ?? UserProfile.mock;
+    _user = SessionService().currentUser ?? UserProfile.empty;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        LevelService.checkAndShowLevelUp(context);
+      }
+    });
   }
 
   @override

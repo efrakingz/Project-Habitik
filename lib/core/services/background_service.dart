@@ -6,7 +6,6 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'api_client.dart';
-import 'history_service.dart';
 import 'notification_service.dart';
 
 @pragma('vm:entry-point')
@@ -111,10 +110,7 @@ void onStart(ServiceInstance service) async {
           payload: jsonEncode(parsedData),
         );
 
-        // 2. Guardar en el historial local persistente
-        await HistoryService.guardarEventoLocal(familyId, parsedData);
-
-        // 3. Emitir evento a la UI activa si está abierta
+        // 2. Emitir evento a la UI activa si está abierta
         service.invoke('nuevo_evento', parsedData);
       } catch (e) {
         debugPrint('⚠️ [BackgroundService] Error procesando evento en segundo plano: $e');
