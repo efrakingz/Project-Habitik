@@ -14,10 +14,10 @@ class ApiClient {
       ? 'http://localhost:3000'
       : 'http://$localIp:3000';
 
-  static String productionBaseUrl = 'https://backendhabitik-production.up.railway.app';
+  static String productionBaseUrl = 'https://backend-habitik.onrender.com';
 
   /// URL activa del backend (por defecto local cuando se está desarrollando)
-  static String baseUrl = localBaseUrl;
+  static String baseUrl = productionBaseUrl;
 
   /// Permite alternar y configurar la URL base del backend
   static void setBaseUrl(String url) {
