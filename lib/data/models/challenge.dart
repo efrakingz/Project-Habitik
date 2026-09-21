@@ -13,6 +13,9 @@ class ChallengeType {
   /// Darker shadow/border color for UI accents
   final String colorHex2;
 
+  /// Whether the game is actively playable or coming soon
+  final bool isAvailable;
+
   const ChallengeType({
     required this.id,
     required this.emoji,
@@ -23,6 +26,7 @@ class ChallengeType {
     required this.monedas,
     required this.colorHex,
     String? colorHex2,
+    this.isAvailable = false,
   }) : displayTitle = displayTitle ?? titulo,
        colorHex2 = colorHex2 ?? colorHex;
 
@@ -37,6 +41,7 @@ class ChallengeType {
       monedas: 2,
       colorHex: '#2196F3',
       colorHex2: '#1976D2',
+      isAvailable: true,
     ),
     ChallengeType(
       id: 'inspeccion',
@@ -48,6 +53,7 @@ class ChallengeType {
       monedas: 15,
       colorHex: '#FFB74D',
       colorHex2: '#F57C00',
+      isAvailable: false,
     ),
     ChallengeType(
       id: 'trivia',
@@ -59,6 +65,7 @@ class ChallengeType {
       monedas: 15,
       colorHex: '#E040FB',
       colorHex2: '#9C27B0',
+      isAvailable: false,
     ),
     ChallengeType(
       id: 'puzzle',
@@ -70,6 +77,7 @@ class ChallengeType {
       monedas: 20,
       colorHex: '#FF5252',
       colorHex2: '#C62828',
+      isAvailable: true,
     ),
     ChallengeType(
       id: 'wordle',
@@ -81,6 +89,7 @@ class ChallengeType {
       monedas: 5,
       colorHex: '#4CAF50',
       colorHex2: '#388E3C',
+      isAvailable: false,
     ),
     ChallengeType(
       id: 'sopa',
@@ -92,6 +101,7 @@ class ChallengeType {
       monedas: 10,
       colorHex: '#00796B',
       colorHex2: '#004D40',
+      isAvailable: false,
     ),
     ChallengeType(
       id: 'pesca',
@@ -103,6 +113,7 @@ class ChallengeType {
       monedas: 15,
       colorHex: '#0096C7',
       colorHex2: '#023E8A',
+      isAvailable: false,
     ),
   ];
 }

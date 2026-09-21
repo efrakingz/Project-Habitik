@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
 
 class OnboardingProgressHeader extends StatelessWidget {
   final int currentStep;
@@ -53,24 +54,15 @@ class OnboardingProgressHeader extends StatelessWidget {
               const Spacer(),
               GestureDetector(
                 onTap: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Cerrar Sesión'),
-                      content: const Text(
+                  final confirm = await HabitikConfirmDialog.show(
+                    context,
+                    title: 'Cerrar Sesión',
+                    description:
                         '¿Estás seguro que deseas salir? Volverás a la pantalla de inicio de sesión.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancelar'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Salir', style: TextStyle(color: Colors.redAccent)),
-                        ),
-                      ],
-                    ),
+                    confirmLabel: 'SALIR',
+                    cancelLabel: 'CANCELAR',
+                    icon: Icons.logout_rounded,
+                    isDestructive: true,
                   );
                   if (confirm == true) {
                     if (context.mounted) {

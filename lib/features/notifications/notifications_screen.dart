@@ -9,6 +9,8 @@ import 'package:habitik/core/services/history_service.dart';
 import 'package:habitik/core/services/socket_service.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -90,44 +92,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final familyId = _sessionService.currentUser?.familyId;
     if (familyId == null) return;
 
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          '¿Limpiar notificaciones?',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.w800, color: HabitikColors.textDark),
-        ),
-        content: Text(
+    final confirmar = await HabitikConfirmDialog.show(
+      context,
+      title: '¿Limpiar notificaciones?',
+      description:
           'Esta acción eliminará el historial de alertas familiares guardadas.',
-          style: GoogleFonts.outfit(fontSize: 14, color: HabitikColors.textLight),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar', style: GoogleFonts.outfit(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53935),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Eliminar', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+      confirmLabel: 'ELIMINAR',
+      cancelLabel: 'CANCELAR',
+      icon: Icons.delete_outline_rounded,
+      isDestructive: true,
     );
 
     if (confirmar == true) {
       await HistoryService.borrarHistorial(familyId);
       if (mounted) {
         setState(() => _notificaciones.clear());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Historial de notificaciones eliminado.'),
-            backgroundColor: HabitikColors.green700,
-          ),
+        HabitikFeedback.showSuccess(
+          context,
+          'Historial de notificaciones eliminado.',
         );
       }
     }
