@@ -9,7 +9,7 @@ import 'package:habitik/data/models/user.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
-import 'package:habitik/features/profile/widgets/profile_dialogs.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
 
 // Import newly created widgets
 import 'package:habitik/features/profile/widgets/profile_identity_card.dart';
@@ -124,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleInvite() async {
     if (_generatingInvite) return;
     setState(() => _generatingInvite = true);
-    await ProfileDialogs.showInviteQRDialog(context);
+    await QrInviteModal.show(context);
     if (mounted) {
       setState(() => _generatingInvite = false);
     }

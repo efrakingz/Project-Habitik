@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
 import '../game/eco_puzzle_game.dart';
 import '../game/models/eco_puzzle_state.dart';
 
@@ -56,145 +57,21 @@ class _HudOverlayState extends State<HudOverlay> {
     super.dispose();
   }
 
-  void _showExitConfirmationDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.5),
-      builder: (ctx) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(22, 26, 22, 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: const Color(0xFF10B981).withValues(alpha: 0.35),
-                width: 2.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-                const BoxShadow(
-                  color: Color(0xFFD1FAE5),
-                  blurRadius: 0,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Emblema superior
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFFEF3C7),
-                    border: Border.all(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
-                      width: 2.0,
-                    ),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "🚪",
-                      style: TextStyle(fontSize: 38),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Título
-                Text(
-                  "¿SALIR DEL RETO?",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
-                    color: HabitikColors.textDark,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Descripción
-                Text(
-                  "Si sales ahora perderás el progreso de clasificación actual y las recompensas.",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 13.5,
-                    color: const Color(0xFF64748B),
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 22),
-
-                // Botón Primario: SEGUIR JUGANDO (3D)
-                GestureDetector(
-                  onTap: () => Navigator.of(ctx).pop(),
-                  child: Container(
-                    width: double.infinity,
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF059669), Color(0xFF10B981)],
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.35),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                        const BoxShadow(
-                          color: Color(0xFF047857),
-                          blurRadius: 0,
-                          offset: Offset(0, 3),
-                        )
-                      ],
-                    ),
-                    child: Text(
-                      "CONTINUAR JUGANDO",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Botón Secundario: Salir
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    widget.game.closeGame();
-                  },
-                  child: Text(
-                    "Salir de la partida",
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFFEF4444),
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 250.ms).scale(begin: const Offset(0.92, 0.92)),
-        );
-      },
+  void _showExitConfirmationDialog() async {
+    final confirm = await HabitikConfirmDialog.show(
+      context,
+      title: '¿SALIR DEL RETO?',
+      description:
+          'Si sales ahora perderás el progreso de clasificación actual y las recompensas.',
+      confirmLabel: 'SALIR DE LA PARTIDA',
+      cancelLabel: 'CONTINUAR JUGANDO',
+      icon: Icons.exit_to_app_rounded,
+      isDestructive: true,
     );
+
+    if (confirm && mounted) {
+      widget.game.closeGame();
+    }
   }
 
   @override

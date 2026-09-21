@@ -10,15 +10,12 @@ import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/cards/cards.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import 'package:habitik/shared/widgets/effects/effects.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
 import 'package:habitik/shared/widgets/interactive_backgrounds/retos_plaza_background.dart';
 
 // Mini-juegos
 import 'package:habitik/features/challenges/games/speedrun/speedrun.dart';
 import 'package:habitik/features/challenges/games/eco_puzzle/eco_puzzle.dart';
-import 'package:habitik/features/challenges/games/trivia/trivia_challenge.dart';
-import 'package:habitik/features/challenges/games/wordle/wordle_challenge.dart';
-import 'package:habitik/features/challenges/games/home_inspection/home_inspection_challenge.dart';
-import 'package:habitik/features/challenges/games/word_search/word_search_challenge.dart';
 
 const _kAnimFast = Duration(milliseconds: 200);
 const _kAnimMedium = Duration(milliseconds: 300);
@@ -152,42 +149,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
           onChallengeCompleted: () => _completeGame(id),
         );
         break;
-      case 'trivia':
-        gameWidget = TriviaChallenge(
-          onBack: () => Navigator.of(context).pop(),
-          onComplete: () {
-            _completeGame(id);
-            Navigator.of(context).pop();
-          },
-        );
-        break;
-      case 'wordle':
-        gameWidget = WordleChallenge(
-          onBack: () => Navigator.of(context).pop(),
-          onComplete: () {
-            _completeGame(id);
-            Navigator.of(context).pop();
-          },
-        );
-        break;
-      case 'inspeccion':
-        gameWidget = HomeInspectionChallenge(
-          onBack: () => Navigator.of(context).pop(),
-          onComplete: () {
-            _completeGame(id);
-            Navigator.of(context).pop();
-          },
-        );
-        break;
-      case 'sopa':
-        gameWidget = WordSearchChallenge(
-          onBack: () => Navigator.of(context).pop(),
-          onComplete: () {
-            _completeGame(id);
-            Navigator.of(context).pop();
-          },
-        );
-        break;
       default:
         widget.onGameModeChanged?.call(false);
         return;
@@ -229,9 +190,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
           titulo: 'Desafíos de Hoy',
           subtitulo: '🎮 ¡Completa desafíos y gana XP!',
           useDefaultBackground: false,
-          headerActions: [
-            _StreakBadge(streak: streak),
-          ],
+          headerActions: [_StreakBadge(streak: streak)],
           body: LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
@@ -298,7 +257,8 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                   challenge: challenge,
                                   node: node,
                                   completedNotifier: _completedNotifier,
-                                  selectedNotifier: _selectedChallengeIdNotifier,
+                                  selectedNotifier:
+                                      _selectedChallengeIdNotifier,
                                   entranceAnim: _entranceAnimation,
                                   onTap: () {
                                     AudioService.playSFX('click.mp3');
@@ -324,15 +284,16 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                         return AnimatedSwitcher(
                           duration: const Duration(milliseconds: 250),
                           transitionBuilder: (child, anim) => SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.3),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: anim,
-                                curve: Curves.easeOutQuad,
-                              ),
-                            ),
+                            position:
+                                Tween<Offset>(
+                                  begin: const Offset(0, 0.3),
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: anim,
+                                    curve: Curves.easeOutQuad,
+                                  ),
+                                ),
                             child: FadeTransition(opacity: anim, child: child),
                           ),
                           child: selectedId == null
@@ -354,6 +315,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
   Widget _buildBottomDetailPanel(String selectedId) {
     final challenge = _challenges.firstWhere((c) => c.id == selectedId);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAvailable = challenge.isAvailable;
 
     return Container(
       key: ValueKey(selectedId),
@@ -383,19 +345,61 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      challenge.displayTitle,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : HabitikColors.textDark,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            challenge.displayTitle,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : HabitikColors.textDark,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (!isAvailable) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withAlpha(35),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isDark ? Colors.amber.shade400 : Colors.amber.shade700,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  size: 11,
+                                  color: isDark ? Colors.amber.shade300 : Colors.amber.shade800,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'PRÓXIMAMENTE',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.amber.shade300 : Colors.amber.shade800,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       challenge.desc,
                       style: TextStyle(
-                        color: isDark ? Colors.white70 : HabitikColors.textLight,
+                        color: isDark
+                            ? Colors.white70
+                            : HabitikColors.textLight,
                         fontSize: 12,
                         height: 1.3,
                       ),
@@ -469,34 +473,53 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               GestureDetector(
                 onTap: () {
                   AudioService.playSFX('click.mp3');
-                  final id = _selectedChallengeIdNotifier.value!;
-                  _onSelectChallenge(null);
-                  _playGame(id);
+                  if (isAvailable) {
+                    final id = _selectedChallengeIdNotifier.value!;
+                    _onSelectChallenge(null);
+                    _playGame(id);
+                  } else {
+                    ComingSoonModal.show(
+                      context,
+                      title: challenge.titulo,
+                      emoji: challenge.emoji,
+                      description:
+                          'El desafío "${challenge.titulo}" está actualmente en desarrollo y estará disponible en una próxima actualización. ¡Sigue cuidando el planeta con los demás retos!',
+                    );
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
+                    horizontal: 22,
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: _btnColor,
+                    color: isAvailable ? _btnColor : (isDark ? Colors.grey.shade800 : Colors.grey.shade400),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: _btnShadow,
+                        color: isAvailable ? _btnShadow : (isDark ? Colors.black45 : Colors.grey.shade600),
                         offset: const Offset(0, 4),
                         blurRadius: 0,
                       ),
                     ],
                   ),
-                  child: const Text(
-                    '¡JUGAR!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      letterSpacing: 1.1,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isAvailable) ...[
+                        const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 15),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        isAvailable ? '¡JUGAR!' : 'PRÓXIMAMENTE',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -655,10 +678,7 @@ class _WeeklyStreak extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     labels[e.key],
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                    ),
+                    style: const TextStyle(color: Colors.white70, fontSize: 10),
                   ),
                 ],
               );
@@ -727,7 +747,9 @@ class _DailyBonus extends StatelessWidget {
                           : 'Completa 3 retos hoy → +50 ',
                       style: TextStyle(
                         color: claimed
-                            ? (isDark ? Colors.white54 : HabitikColors.textLight)
+                            ? (isDark
+                                  ? Colors.white54
+                                  : HabitikColors.textLight)
                             : Colors.white.withAlpha(200),
                         fontSize: 12,
                       ),

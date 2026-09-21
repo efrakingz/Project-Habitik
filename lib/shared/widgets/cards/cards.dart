@@ -169,6 +169,27 @@ class ChallengeCard extends StatelessWidget {
                                       solidWhite: true,
                                     ),
                             ),
+                            if (!challenge.isAvailable)
+                              Positioned(
+                                bottom: 12,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withAlpha(140),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withAlpha(80),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.lock_rounded,
+                                    color: Colors.white,
+                                    size: 11,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),

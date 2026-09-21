@@ -6,6 +6,8 @@ import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
+import 'package:habitik/shared/widgets/layout/loading_overlay.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLogin;
@@ -116,25 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg.replaceAll('Exception:', '').trim()),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showError(String msg) => HabitikFeedback.showError(context, msg);
 
-  void _showSuccess(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: HabitikColors.green700,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showSuccess(String msg) => HabitikFeedback.showSuccess(context, msg);
 
   @override
   Widget build(BuildContext context) {
@@ -297,46 +283,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           
           // Pantalla de carga inteligente (Bloqueante)
-          if (_loading)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.6),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(28),
-                    margin: const EdgeInsets.symmetric(horizontal: 40),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D1B2A),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3), width: 1.5),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 44,
-                          height: 44,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 4.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00E5FF)),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          _loadingMessage,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          LoadingOverlay(
+            isLoading: _loading,
+            message: _loadingMessage,
+          ),
         ],
       ),
     );

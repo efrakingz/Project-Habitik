@@ -8,7 +8,7 @@ import 'widgets/confirmation_overlay.dart';
 import 'widgets/hud_overlay.dart';
 import 'widgets/victory_overlay.dart';
 import 'widgets/failure_overlay.dart';
-import 'widgets/exit_confirmation_dialog.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
 
 class SpeedrunScreen extends StatefulWidget {
   final VoidCallback? onChallengeCompleted;
@@ -64,12 +64,17 @@ class _SpeedrunScreenState extends State<SpeedrunScreen> {
         if (didPop) return;
         final state = _game.gameState;
         if (state == SpeedrunState.playing || state == SpeedrunState.preparing) {
-          final confirm = await showDialog<bool>(
-            context: context,
-            barrierDismissible: true,
-            builder: (context) => const ExitConfirmationDialog(),
+          final confirm = await HabitikConfirmDialog.show(
+            context,
+            title: '¿Seguro quieres salir?',
+            description:
+                'Si sales ahora, perderás todo el progreso de tu ducha actual.',
+            confirmLabel: 'SÍ, SALIR',
+            cancelLabel: 'SEGUIR JUGANDO',
+            icon: Icons.warning_rounded,
+            isDestructive: true,
           );
-          if (confirm == true && context.mounted) {
+          if (confirm && context.mounted) {
             Navigator.of(context).pop();
           }
         } else {
