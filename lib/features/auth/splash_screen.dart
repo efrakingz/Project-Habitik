@@ -17,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(2800.ms, widget.onFinish);
+    _timer = Timer(1200.ms, widget.onFinish);
   }
 
   @override

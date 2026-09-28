@@ -187,9 +187,9 @@ class BackgroundServiceManager {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        autoStart: true,
-        isForegroundMode: true,
-        autoStartOnBoot: true,
+        autoStart: false,
+        isForegroundMode: false,
+        autoStartOnBoot: false,
         notificationChannelId: 'canal_servicio_segundo_plano',
         initialNotificationTitle: '🌿 Habitik',
         initialNotificationContent: 'Conectado a la red familiar en tiempo real',

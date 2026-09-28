@@ -140,7 +140,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
               );
             }),
 
-            // 2. Capa de espuma de burbujas responsiva en la parte inferior
+            // 2. Capa de espuma de burbujas responsiva en la parte inferior (puras burbujas blancas sin línea de base)
             Positioned(
               bottom: 0,
               left: 0,
@@ -152,45 +152,41 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      // Base sólida de espuma
+                      // Burbuja 1 (Extremo izquierdo)
                       Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 50,
-                          color: Colors.white.withValues(alpha: 0.75),
-                        ),
+                        left: -30,
+                        bottom: -20,
+                        child: _buildBubble(110, 0.75, 2200.ms, -0.06),
                       ),
-                      // Burbuja 1 (Izquierda)
+                      // Burbuja 2 (Izquierda)
                       Positioned(
-                        left: -35,
-                        bottom: 20,
-                        child: _buildBubble(100, 0.7, 2200.ms, -0.08),
+                        left: width * 0.12,
+                        bottom: -15,
+                        child: _buildBubble(125, 0.8, 2500.ms, -0.05),
                       ),
-                      // Burbuja 2 (Centro-Izquierda)
+                      // Burbuja 3 (Centro-Izquierda)
                       Positioned(
-                        left: width * 0.14,
-                        bottom: 25,
-                        child: _buildBubble(120, 0.8, 2500.ms, -0.06),
-                      ),
-                      // Burbuja 3 (Centro)
-                      Positioned(
-                        left: width * 0.40,
-                        bottom: 15,
-                        child: _buildBubble(90, 0.65, 2000.ms, -0.1),
+                        left: width * 0.32,
+                        bottom: -25,
+                        child: _buildBubble(100, 0.7, 2100.ms, -0.08),
                       ),
                       // Burbuja 4 (Centro-Derecha)
                       Positioned(
-                        left: width * 0.60,
-                        bottom: 30,
-                        child: _buildBubble(130, 0.85, 2800.ms, -0.05),
+                        left: width * 0.52,
+                        bottom: -15,
+                        child: _buildBubble(135, 0.85, 2800.ms, -0.05),
                       ),
                       // Burbuja 5 (Derecha)
                       Positioned(
-                        right: -35,
-                        bottom: 20,
-                        child: _buildBubble(110, 0.75, 2300.ms, -0.07),
+                        left: width * 0.72,
+                        bottom: -25,
+                        child: _buildBubble(105, 0.75, 2400.ms, -0.07),
+                      ),
+                      // Burbuja 6 (Extremo derecho)
+                      Positioned(
+                        right: -30,
+                        bottom: -20,
+                        child: _buildBubble(115, 0.8, 2300.ms, -0.06),
                       ),
                     ],
                   );

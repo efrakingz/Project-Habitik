@@ -9,8 +9,8 @@ import 'recycle_bin.dart';
 import 'bubble_pop_particle.dart';
 
 /// Residuo interactivo dentro de una Burbuja Ecológica Translúcida.
-/// Entra cayendo suavemente desde arriba flotando con la brisa del parque,
-/// con balanceo orgánico, física gelatinosa al arrastrar y efecto "POP" al acertar.
+/// Muestra un emoji representativo con animaciones de flotación, elasticidad
+/// táctil y efecto de succión y estallido "POP" al ser clasificado.
 class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<EcoPuzzleGame> {
   final BinType targetType;
   final String emoji;
@@ -21,7 +21,7 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
   bool isDescending = true;
   double _timeAlive = 0.0;
   final double _floatSeed = math.Random().nextDouble() * math.pi * 2;
-  final double _swayAmount = 10.0 + math.Random().nextDouble() * 12.0;
+  final double _swayAmount = 8.0 + math.Random().nextDouble() * 10.0;
 
   late final TextPainter _textPainter;
 
@@ -32,7 +32,7 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
     this.dropDelay = 0.0,
   }) : super(
           position: Vector2(targetPosition.x, -80), // Inicia arriba fuera de pantalla
-          size: Vector2.all(68),
+          size: Vector2.all(72),
           anchor: Anchor.center,
           priority: 25,
         );
@@ -57,7 +57,7 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
       MoveToEffect(
         targetPosition,
         EffectController(
-          duration: 1.4,
+          duration: 1.3,
           startDelay: dropDelay,
           curve: Curves.easeOutQuad,
         ),
@@ -76,12 +76,12 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
 
       if (isDescending) {
         // Balanceo suave de izquierda a derecha durante la caída
-        final swayX = math.sin(_timeAlive * 3.2 + _floatSeed) * _swayAmount * 0.4;
+        final swayX = math.sin(_timeAlive * 3.0 + _floatSeed) * _swayAmount * 0.35;
         position.x = targetPosition.x + swayX;
       } else {
-        // Flotación en su lugar de reposo
-        final floatOffsetY = math.sin(_timeAlive * 2.2 + _floatSeed) * 4.5;
-        final floatOffsetX = math.cos(_timeAlive * 1.5 + _floatSeed) * 2.5;
+        // Flotación sutil en su lugar de reposo
+        final floatOffsetY = math.sin(_timeAlive * 2.0 + _floatSeed) * 3.5;
+        final floatOffsetX = math.cos(_timeAlive * 1.4 + _floatSeed) * 2.0;
         position.y = targetPosition.y + floatOffsetY;
         position.x = targetPosition.x + floatOffsetX;
       }
@@ -97,39 +97,27 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
 
     // Si aún está esperando su turno para caer arriba, no dibujamos sombra fuera
     if (position.y > 0) {
-      // ── 1. Sombra Suave Proyectada en el Suelo ──
-      final shadowOffsetY = isBeingDragged ? 24.0 : 16.0;
+      // ── 1. Sombra Suave Proyectada ──
+      final shadowOffsetY = isBeingDragged ? 24.0 : 14.0;
       final shadowScale = isBeingDragged ? 1.3 : (isDescending ? 0.8 : 1.0);
-      final shadowAlpha = isBeingDragged ? 0.20 : (isDescending ? 0.15 : 0.30);
+      final shadowAlpha = isBeingDragged ? 0.18 : (isDescending ? 0.12 : 0.25);
 
       final shadowPaint = Paint()
         ..color = const Color(0xFF1E3A2F).withValues(alpha: shadowAlpha)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
 
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset(center.dx, center.dy + shadowOffsetY),
-          width: (radius * 1.6) * shadowScale,
-          height: (radius * 0.55) * shadowScale,
+          width: (radius * 1.5) * shadowScale,
+          height: (radius * 0.5) * shadowScale,
         ),
         shadowPaint,
       );
     }
 
-    // ── 2. Cuerpo de la Burbuja Translúcida ──
-    Color tintColor;
-    switch (targetType) {
-      case BinType.organic:
-        tintColor = const Color(0xFF34D399); // Verde menta
-        break;
-      case BinType.recyclable:
-        tintColor = const Color(0xFFFBBF24); // Amarillo sol
-        break;
-      case BinType.inorganic:
-        tintColor = const Color(0xFF60A5FA); // Azul cielo
-        break;
-    }
-
+    // ── 2. Cuerpo de la Burbuja Translúcida e Iridiscente ──
+    const tintColor = Color(0xFF80DEEA); // Tono jabonoso neutro
     final bubbleRect = Rect.fromCircle(center: center, radius: radius);
 
     final bubblePaint = Paint()
@@ -137,9 +125,9 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
         center: const Alignment(-0.35, -0.4),
         radius: 0.95,
         colors: [
-          Colors.white.withValues(alpha: 0.55),
-          tintColor.withValues(alpha: 0.25),
-          tintColor.withValues(alpha: 0.40),
+          Colors.white.withValues(alpha: 0.60),
+          tintColor.withValues(alpha: 0.20),
+          tintColor.withValues(alpha: 0.35),
           Colors.white.withValues(alpha: 0.50),
         ],
         stops: const [0.0, 0.45, 0.85, 1.0],
@@ -147,11 +135,11 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
 
     canvas.drawCircle(center, radius, bubblePaint);
 
-    // ── 3. Borde Fino Iridiscente de Burbuja ──
+    // ── 3. Borde Fino Iridiscente ──
     final rimPaint = Paint()
       ..color = Colors.white.withValues(alpha: isBeingDragged ? 0.95 : 0.80)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isBeingDragged ? 2.5 : 1.8;
+      ..strokeWidth = isBeingDragged ? 2.4 : 1.8;
 
     canvas.drawCircle(center, radius, rimPaint);
 
@@ -162,17 +150,17 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
       1.5,
       false,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.80)
+        ..color = Colors.white.withValues(alpha: 0.85)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
+        ..strokeWidth = 2.8
         ..strokeCap = StrokeCap.round,
     );
 
-    // Pequeño punto brillante secundario
+    // Punto brillante secundario
     canvas.drawCircle(
       Offset(center.dx - radius * 0.45, center.dy - radius * 0.45),
-      2.8,
-      Paint()..color = Colors.white.withValues(alpha: 0.85),
+      2.5,
+      Paint()..color = Colors.white.withValues(alpha: 0.90),
     );
 
     // Reflejo suave inferior
@@ -188,7 +176,7 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
         ..strokeCap = StrokeCap.round,
     );
 
-    // ── 5. Residuo Limpio en el Centro de la Burbuja ──
+    // ── 5. Residuo (Emoji) en el Centro de la Burbuja ──
     _textPainter.paint(
       canvas,
       Offset(center.dx - _textPainter.width / 2, center.dy - _textPainter.height / 2),
@@ -204,7 +192,7 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
     isDescending = false; // Cancela la caída si el usuario la atrapa en el aire
     priority = 100;
 
-    add(ScaleEffect.to(Vector2.all(1.24), EffectController(duration: 0.12, curve: Curves.easeOutBack)));
+    add(ScaleEffect.to(Vector2.all(1.22), EffectController(duration: 0.12, curve: Curves.easeOutBack)));
   }
 
   @override
@@ -238,32 +226,53 @@ class TrashItem extends PositionComponent with DragCallbacks, HasGameReference<E
   void returnToStart() {
     add(
       SequenceEffect([
-        ScaleEffect.to(Vector2(1.2, 0.85), EffectController(duration: 0.08, curve: Curves.easeOut)),
-        ScaleEffect.to(Vector2(0.9, 1.15), EffectController(duration: 0.08, curve: Curves.easeIn)),
+        ScaleEffect.to(Vector2(1.15, 0.88), EffectController(duration: 0.08, curve: Curves.easeOut)),
+        ScaleEffect.to(Vector2(0.92, 1.12), EffectController(duration: 0.08, curve: Curves.easeIn)),
         ScaleEffect.to(Vector2.all(1.0), EffectController(duration: 0.15, curve: Curves.elasticOut)),
       ]),
     );
     add(MoveToEffect(targetPosition, EffectController(duration: 0.38, curve: Curves.easeOutBack)));
   }
 
-  void poofAndRemove([Vector2? targetMouthPos]) {
-    // Estallido POP con gotitas
-    game.add(
-      BubblePopParticleComponent(
-        position: position.clone(),
-        tintColor: targetType == BinType.organic
-            ? const Color(0xFF34D399)
-            : targetType == BinType.recyclable
-                ? const Color(0xFFFBBF24)
-                : const Color(0xFF60A5FA),
+  void poofAndRemove(Vector2 binHolePosition) {
+    priority = 50;
+
+    // Efecto de succión suave hacia la boca del contenedor
+    add(
+      MoveToEffect(
+        binHolePosition,
+        EffectController(duration: 0.22, curve: Curves.easeInQuad),
       ),
     );
 
-    if (targetMouthPos != null) {
-      add(MoveToEffect(targetMouthPos, EffectController(duration: 0.22, curve: Curves.easeIn)));
-    }
-    add(RotateEffect.by(math.pi * 1.5, EffectController(duration: 0.22, curve: Curves.easeIn)));
-    add(ScaleEffect.to(Vector2.zero(), EffectController(duration: 0.22, curve: Curves.easeInBack)));
-    add(RemoveEffect(delay: 0.22));
+    add(
+      ScaleEffect.to(
+        Vector2.all(0.0),
+        EffectController(duration: 0.22, curve: Curves.easeInBack),
+        onComplete: () {
+          Color popColor;
+          switch (targetType) {
+            case BinType.organic:
+              popColor = const Color(0xFF34D399);
+              break;
+            case BinType.recyclable:
+              popColor = const Color(0xFFFBBF24);
+              break;
+            case BinType.inorganic:
+              popColor = const Color(0xFF60A5FA);
+              break;
+          }
+
+          // Partículas de estallido de burbuja "POP"
+          game.add(
+            BubblePopParticleComponent(
+              position: binHolePosition,
+              tintColor: popColor,
+            ),
+          );
+          removeFromParent();
+        },
+      ),
+    );
   }
 }

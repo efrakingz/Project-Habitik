@@ -8,7 +8,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="habitik"
@@ -52,8 +51,8 @@
             android:foregroundServiceType="dataSync"
             android:enabled="true"
             android:exported="true"
-            android:stopWithTask="false"
-            tools:replace="android:foregroundServiceType" />
+            android:stopWithTask="true"
+            tools:replace="android:foregroundServiceType,android:stopWithTask" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

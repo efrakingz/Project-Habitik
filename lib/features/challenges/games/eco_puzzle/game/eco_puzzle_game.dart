@@ -1,8 +1,9 @@
+import 'dart:math' as math;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 import 'models/eco_puzzle_state.dart';
+import 'models/waste_item.dart';
 import 'components/recycle_bin.dart';
 import 'components/trash_item.dart';
 import 'components/eco_background_component.dart';
@@ -49,8 +50,8 @@ class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
     // Mostrar overlay de carga
     overlays.add(EcoPuzzleState.loading.name);
 
-    // Transición suave de carga hacia la pantalla de inicio con reglas (2.4s)
-    Future.delayed(const Duration(milliseconds: 2400), () {
+    // Transición suave de carga hacia la pantalla de inicio con reglas (2.2s)
+    Future.delayed(const Duration(milliseconds: 2200), () {
       if (gameState == EcoPuzzleState.loading) {
         gameState = EcoPuzzleState.start;
       }
@@ -61,7 +62,7 @@ class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
     errors = 0;
     correctlyClassified = 0;
     timeLeft = 59.0;
-    
+
     // Limpiar componentes de partidas anteriores
     removeAll(children.where((c) => c is RecycleBin || c is TrashItem));
 
@@ -73,66 +74,125 @@ class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
   }
 
   void _spawnBins() {
-    final binWidth = size.x / 3.4;
+    final binWidth = math.min(size.x / 3.4, 115.0);
     final spacing = (size.x - (binWidth * 3)) / 4;
-    final binY = size.y - 130; // Posición inferior óptima para interacción táctil
+    final binHeight = math.min(125.0, size.y * 0.22);
+    final binY = size.y - (binHeight / 2) - 18.0;
 
     // Orgánico (Verde)
     add(RecycleBin(
       type: BinType.organic,
       position: Vector2(spacing + binWidth / 2, binY),
-      size: Vector2(binWidth, 120),
+      size: Vector2(binWidth, binHeight),
     ));
 
     // Reciclable (Amarillo/Ámbar)
     add(RecycleBin(
       type: BinType.recyclable,
       position: Vector2(spacing * 2 + binWidth * 1.5, binY),
-      size: Vector2(binWidth, 120),
+      size: Vector2(binWidth, binHeight),
     ));
 
-    // Inorgánico (Gris/Cian)
+    // Inorgánico (Azul)
     add(RecycleBin(
       type: BinType.inorganic,
       position: Vector2(spacing * 3 + binWidth * 2.5, binY),
-      size: Vector2(binWidth, 120),
+      size: Vector2(binWidth, binHeight),
     ));
   }
 
-  void _spawnTrashItems() {
-    final random = Random();
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _repositionBins();
+  }
 
-    final organicItems = ['🍎', '🍌', '🍉', '🥑', '🥕', '🥦'];
-    final recyclableItems = ['🍾', '🥫', '📦', '📰', '🧃'];
-    final inorganicItems = ['🔋', '💡', '🛍️', '🧴', '🧻'];
+  void _repositionBins() {
+    final bins = children.whereType<RecycleBin>().toList();
+    if (bins.isEmpty) return;
+
+    final binWidth = math.min(size.x / 3.4, 115.0);
+    final spacing = (size.x - (binWidth * 3)) / 4;
+    final binHeight = math.min(125.0, size.y * 0.22);
+    final binY = size.y - (binHeight / 2) - 18.0;
+
+    for (final bin in bins) {
+      bin.size = Vector2(binWidth, binHeight);
+      switch (bin.type) {
+        case BinType.organic:
+          bin.position = Vector2(spacing + binWidth / 2, binY);
+          break;
+        case BinType.recyclable:
+          bin.position = Vector2(spacing * 2 + binWidth * 1.5, binY);
+          break;
+        case BinType.inorganic:
+          bin.position = Vector2(spacing * 3 + binWidth * 2.5, binY);
+          break;
+      }
+    }
+  }
+
+  void _spawnTrashItems() {
+    final random = math.Random();
+
+    // Barajamos todos los residuos con emojis disponibles
+    final shuffled = List<WasteItem>.from(WasteItem.allItems)..shuffle(random);
+    final selectedItems = shuffled.take(itemsToClassify).toList();
 
     final allTrashToSpawn = <TrashItem>[];
+    final positions = <Vector2>[];
 
-    for (int i = 0; i < itemsToClassify; i++) {
-      final typeChoice = random.nextInt(3);
-      BinType type;
-      String emoji;
+    const minDistance = 76.0; // Distancia mínima para evitar solapamientos
+    const padding = 45.0;
+    const topOffset = 76.0; // Debajo del HUD superior
+    final bottomLimit = math.max(topOffset + 180.0, size.y * 0.50); // Arriba de la cerca
+    final availableWidth = size.x - padding * 2;
+    final availableHeight = bottomLimit - topOffset;
 
-      if (typeChoice == 0) {
-        type = BinType.organic;
-        emoji = organicItems[random.nextInt(organicItems.length)];
-      } else if (typeChoice == 1) {
-        type = BinType.recyclable;
-        emoji = recyclableItems[random.nextInt(recyclableItems.length)];
-      } else {
-        type = BinType.inorganic;
-        emoji = inorganicItems[random.nextInt(inorganicItems.length)];
+    for (int i = 0; i < selectedItems.length; i++) {
+      final itemDef = selectedItems[i];
+
+      // Búsqueda de posición no superpuesta mediante muestreo de rechazo
+      Vector2 bestPos = Vector2(
+        padding + ((i % 3) + 0.5) * (availableWidth / 3),
+        topOffset + ((i ~/ 3) + 0.5) * (availableHeight / 4),
+      );
+      double bestMinDist = 0;
+
+      for (int attempt = 0; attempt < 80; attempt++) {
+        final rx = padding + random.nextDouble() * availableWidth;
+        final ry = topOffset + random.nextDouble() * availableHeight;
+        final candidate = Vector2(rx, ry);
+
+        if (positions.isEmpty) {
+          bestPos = candidate;
+          break;
+        }
+
+        double minDist = double.infinity;
+        for (final p in positions) {
+          final d = p.distanceTo(candidate);
+          if (d < minDist) minDist = d;
+        }
+
+        if (minDist >= minDistance) {
+          bestPos = candidate;
+          break;
+        }
+
+        if (minDist > bestMinDist) {
+          bestMinDist = minDist;
+          bestPos = candidate;
+        }
       }
 
-      final padding = 45.0;
-      final rx = padding + random.nextDouble() * (size.x - padding * 2);
-      final ry = padding * 1.8 + random.nextDouble() * (size.y * 0.44 - padding);
+      positions.add(bestPos);
 
       allTrashToSpawn.add(TrashItem(
-        targetType: type,
-        emoji: emoji,
-        targetPosition: Vector2(rx, ry),
-        dropDelay: i * 0.15, // Descenso escalonado y fluido
+        targetType: itemDef.targetType,
+        emoji: itemDef.emoji,
+        targetPosition: bestPos,
+        dropDelay: i * 0.11, // Descenso escalonado y fluido
       ));
     }
 
@@ -142,10 +202,10 @@ class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
   @override
   void update(double dt) {
     super.update(dt);
-    
+
     if (gameState == EcoPuzzleState.playing) {
       timeLeft -= dt;
-      
+
       if (timeLeft <= 0) {
         timeLeft = 0;
         _setGameOver(false);
@@ -164,7 +224,7 @@ class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
       correctlyClassified++;
       item.poofAndRemove(Vector2(bin.position.x, bin.position.y - bin.size.y * 0.35));
       bin.flashGreen();
-      
+
       if (correctlyClassified >= itemsToClassify) {
         _setGameOver(true);
       }
@@ -173,7 +233,7 @@ class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
       errors++;
       item.returnToStart();
       bin.flashRed();
-      
+
       if (errors >= maxErrors) {
         _setGameOver(false);
       }

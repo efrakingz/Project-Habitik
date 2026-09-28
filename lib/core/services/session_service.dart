@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,17 +48,18 @@ class SessionService {
     await _prefs?.setString('user_profile', jsonEncode(enriched.toJson()));
     currentUserNotifier.value = enriched;
 
-    // Conectar a la sala familiar de notificaciones en tiempo real y persistir en background
+    // Conectar a la sala familiar de notificaciones en tiempo real y persistir en background de forma asíncrona
     if (enriched.familyId != null && enriched.familyId!.isNotEmpty) {
       await _prefs?.setString('bg_family_id', enriched.familyId!);
       await _prefs?.setString('bg_user_id', enriched.id);
       await _prefs?.setString('bg_backend_url', ApiClient.baseUrl);
 
-      await BackgroundServiceManager.conectarFamilia(
+      // Lanzar en segundo plano para que la navegación de login sea instantánea
+      unawaited(BackgroundServiceManager.conectarFamilia(
         enriched.familyId!,
         userId: enriched.id,
         backendUrl: ApiClient.baseUrl,
-      );
+      ));
       SocketService.initSocket(enriched.familyId!, (data) async {
         debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
         try {
