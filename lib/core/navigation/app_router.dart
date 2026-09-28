@@ -48,11 +48,12 @@ class _RootRouterState extends State<RootRouter> {
   }
 
   Future<void> _initSession() async {
-    // 1. Comprobar internet real al arranque
-    await NetworkService().checkInternet();
-
-    // 2. Inicializar sesión guardada en caché
+    // 1. Inicializar sesión guardada en caché (inmediato desde disco local)
     await _sessionService.init();
+
+    // 2. Comprobar internet real en segundo plano
+    NetworkService().checkInternet();
+
     if (mounted) {
       setState(() {
         _initialized = true;

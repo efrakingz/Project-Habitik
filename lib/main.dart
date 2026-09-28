@@ -11,30 +11,55 @@ import 'package:habitik/shared/widgets/modals/no_internet_modal.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar servicio de conectividad de red
-  NetworkService().init();
-
-  // Inicializar notificaciones del sistema y servicio en segundo plano
-  await NotificationService.initNotificationService();
-  await BackgroundServiceManager.initializeService();
-
-  // Configurar flutter_animate
-  Animate.restartOnHotReload = true;
-
-  // Status bar transparente
+  // Configurar barra de estado transparente
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
 
+  // Lanzar la aplicación de inmediato para mostrar el primer frame sin esperas
   runApp(const HabitikApp());
+
+  // Inicializaciones en segundo plano concurrentes (no bloqueantes para la UI)
+  NetworkService().init();
+  NotificationService.initNotificationService();
+  BackgroundServiceManager.initializeService();
+
+  // Configurar flutter_animate
+  Animate.restartOnHotReload = true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App root
 // ─────────────────────────────────────────────────────────────────────────────
-class HabitikApp extends StatelessWidget {
+class HabitikApp extends StatefulWidget {
   const HabitikApp({super.key});
+
+  @override
+  State<HabitikApp> createState() => _HabitikAppState();
+}
+
+class _HabitikAppState extends State<HabitikApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    BackgroundServiceManager.detenerServicio();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Si la app se cierra o se elimina de tareas recientes, detener el servicio de inmediato
+    if (state == AppLifecycleState.detached) {
+      BackgroundServiceManager.detenerServicio();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

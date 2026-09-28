@@ -17,6 +17,7 @@ class RecycleBin extends PositionComponent with HasGameReference {
   late final Color _darkColor;
   late final Color _accentColor;
   late final String _labelStr;
+  late final TextPainter _labelPainter;
 
   double _flashTimer = 0.0;
   Color? _flashColor;
@@ -55,6 +56,20 @@ class RecycleBin extends PositionComponent with HasGameReference {
         _labelStr = 'Inorgánico';
         break;
     }
+
+    _labelPainter = TextPainter(
+      text: TextSpan(
+        text: _labelStr,
+        style: TextStyle(
+          color: _darkColor,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w900,
+          fontFamily: 'Nunito',
+          letterSpacing: 0.4,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
   }
 
   @override
@@ -215,23 +230,9 @@ class RecycleBin extends PositionComponent with HasGameReference {
       ..strokeWidth = 1.5;
     canvas.drawRRect(pillRRect, pillBorder);
 
-    final labelPainter = TextPainter(
-      text: TextSpan(
-        text: _labelStr,
-        style: TextStyle(
-          color: _darkColor,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w900,
-          fontFamily: 'Nunito',
-          letterSpacing: 0.4,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    labelPainter.paint(
+    _labelPainter.paint(
       canvas,
-      Offset(w / 2 - labelPainter.width / 2, pillRect.top + (pillRect.height - labelPainter.height) / 2),
+      Offset(w / 2 - _labelPainter.width / 2, pillRect.top + (pillRect.height - _labelPainter.height) / 2),
     );
 
     // ── 7. Destello Suave de Acierto / Error ──
