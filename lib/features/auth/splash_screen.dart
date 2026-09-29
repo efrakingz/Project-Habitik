@@ -114,7 +114,7 @@ class _ThemeTransitionScreenState extends State<ThemeTransitionScreen> {
   void initState() {
     super.initState();
     _timerSwitch = Timer(900.ms, () {
-      isDarkModeNotifier.value = widget.targetIsDark;
+      ThemeService.setDarkMode(widget.targetIsDark);
     });
     _timerClose = Timer(2300.ms, () {
       if (mounted) {

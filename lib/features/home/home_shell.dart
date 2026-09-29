@@ -48,21 +48,26 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: HabitikColors.green700,
-      body: IndexedStack(
-        index: _tab,
-        children: _screens,
-      ),
-      bottomNavigationBar: _hideNavbar
-          ? null
-          : BottomNavHabitik(
-              currentIndex: _tab,
-              onTap: (i) => setState(() => _tab = i),
-              isJefe: _isJefe,
-              notifCount: 0,
-            ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, _) {
+        return Scaffold(
+          extendBody: true,
+          backgroundColor: isDark ? const Color(0xFF111D15) : HabitikColors.green700,
+          body: IndexedStack(
+            index: _tab,
+            children: _screens,
+          ),
+          bottomNavigationBar: _hideNavbar
+              ? null
+              : BottomNavHabitik(
+                  currentIndex: _tab,
+                  onTap: (i) => setState(() => _tab = i),
+                  isJefe: _isJefe,
+                  notifCount: 0,
+                ),
+        );
+      },
     );
   }
 }

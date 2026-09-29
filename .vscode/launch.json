@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Habitik",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--android-skip-build-dependency-validation"
+      ]
+    },
+    {
+      "name": "Habitik (Profile Mode)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "args": [
+        "--android-skip-build-dependency-validation"
+      ]
+    },
+    {
+      "name": "Habitik (Release Mode)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release",
+      "args": [
+        "--android-skip-build-dependency-validation"
+      ]
+    }
+  ]
+}

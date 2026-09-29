@@ -1,7 +1,96 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
+
+/// Servicio para gestionar la persistencia en caché y detección del modo oscuro
+abstract class ThemeService {
+  static const String keyDarkMode = 'habitik_dark_mode';
+  static const String keyManualOverride = 'habitik_theme_manual_override';
+  static const String keyLastSystemBrightness = 'habitik_last_system_brightness';
+  static bool _initialized = false;
+
+  /// Inicializa el estado del tema al arrancar la app.
+  static Future<void> init() async {
+    if (_initialized) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Obtener el brillo actual del teléfono
+      final systemBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      final isSystemDark = (systemBrightness == Brightness.dark);
+      final currentSystemStr = isSystemDark ? 'dark' : 'light';
+      final lastSystemStr = prefs.getString(keyLastSystemBrightness);
+      final hasManualOverride = prefs.getBool(keyManualOverride) ?? false;
+
+      // Si el sistema cambió desde la última vez (o es primera ejecución),
+      // adaptamos inmediatamente el modo del celular.
+      if (lastSystemStr == null || lastSystemStr != currentSystemStr) {
+        debugPrint('📱 [ThemeService] Sistema detectado en arranque: $currentSystemStr (Dark: $isSystemDark)');
+        isDarkModeNotifier.value = isSystemDark;
+        await prefs.setString(keyLastSystemBrightness, currentSystemStr);
+        await prefs.setBool(keyDarkMode, isSystemDark);
+        await prefs.setBool(keyManualOverride, false);
+      } else if (hasManualOverride && prefs.containsKey(keyDarkMode)) {
+        final isDark = prefs.getBool(keyDarkMode) ?? isSystemDark;
+        isDarkModeNotifier.value = isDark;
+        debugPrint('🎨 [ThemeService] Manteniendo preferencia manual de app: $isDark');
+      } else {
+        isDarkModeNotifier.value = isSystemDark;
+        debugPrint('📱 [ThemeService] Siguiendo modo del celular: $isSystemDark');
+      }
+
+      _initialized = true;
+    } catch (e) {
+      debugPrint('⚠️ [ThemeService] Error al inicializar tema: $e');
+      final isSystemDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+      isDarkModeNotifier.value = isSystemDark;
+    }
+  }
+
+  /// Establece y guarda explícitamente el modo oscuro desde la app
+  static Future<void> setDarkMode(bool isDark) async {
+    isDarkModeNotifier.value = isDark;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(keyDarkMode, isDark);
+      await prefs.setBool(keyManualOverride, true);
+      debugPrint('🎨 [ThemeService] Modo manual guardado: $isDark');
+    } catch (e) {
+      debugPrint('⚠️ [ThemeService] Error al guardar tema: $e');
+    }
+  }
+
+  /// Sincroniza inmediatamente cuando el sistema operativo cambia de modo (claro/oscuro)
+  static Future<void> onSystemBrightnessChanged(Brightness brightness) async {
+    final isDark = (brightness == Brightness.dark);
+    debugPrint('🌓 [ThemeService] Cambio del sistema detectado en vivo: ${isDark ? "OSCURO" : "CLARO"}');
+    isDarkModeNotifier.value = isDark;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(keyLastSystemBrightness, isDark ? 'dark' : 'light');
+      await prefs.setBool(keyDarkMode, isDark);
+      await prefs.setBool(keyManualOverride, false); // El cambio del sistema toma el control
+    } catch (_) {}
+  }
+
+  /// Verifica cambios de tema al reanudar la app desde segundo plano o después del primer frame
+  static Future<void> checkOnResume() async {
+    try {
+      final currentBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      final isSystemDark = (currentBrightness == Brightness.dark);
+      final currentSystemStr = isSystemDark ? 'dark' : 'light';
+      final prefs = await SharedPreferences.getInstance();
+      final lastSystemStr = prefs.getString(keyLastSystemBrightness);
+
+      if (lastSystemStr != currentSystemStr) {
+        debugPrint('🔄 [ThemeService] Cambio del celular detectado: $currentSystemStr');
+        await onSystemBrightnessChanged(currentBrightness);
+      }
+    } catch (_) {}
+  }
+}
 
 /// Sistema de colores y tema de Habitik – estilo casual game colorido
 class HabitikColors {

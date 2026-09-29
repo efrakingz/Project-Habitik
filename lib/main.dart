@@ -17,7 +17,10 @@ void main() async {
     statusBarIconBrightness: Brightness.light,
   ));
 
-  // Lanzar la aplicación de inmediato para mostrar el primer frame sin esperas
+  // Cargar preferencia de tema (caché persistente de SharedPreferences o modo del celular)
+  await ThemeService.init();
+
+  // Lanzar la aplicación
   runApp(const HabitikApp());
 
   // Inicializaciones en segundo plano concurrentes (no bloqueantes para la UI)
@@ -44,6 +47,10 @@ class _HabitikAppState extends State<HabitikApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Verificar y sincronizar el brillo del sistema tras adjuntar el primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ThemeService.checkOnResume();
+    });
   }
 
   @override
@@ -54,12 +61,24 @@ class _HabitikAppState extends State<HabitikApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    ThemeService.onSystemBrightnessChanged(
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ThemeService.checkOnResume();
+    }
     // Si la app se cierra o se elimina de tareas recientes, detener el servicio de inmediato
     if (state == AppLifecycleState.detached) {
       BackgroundServiceManager.detenerServicio();
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

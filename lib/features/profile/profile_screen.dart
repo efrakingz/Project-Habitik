@@ -132,53 +132,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, _) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: ScreenShell(
+            titulo: 'Mi Perfil',
+            subtitulo: '${_user.nombre} · ${_user.rol.toUpperCase()}',
+            showBackButton: true,
+            headerActions: [
+              IconActionButton(
+                icon: Icons.info_outline_rounded,
+                onTap: () => ProfileStatsInfoModal.show(context, isDark: isDark),
+                bgColor: Colors.white.withAlpha(50),
+                iconColor: Colors.white,
+              ),
+              const SizedBox(width: 8),
+              IconActionButton(
+                icon: Icons.logout_rounded,
+                onTap: () => RootRouter.logout(context),
+                bgColor: HabitikColors.orange500,
+              ),
+            ],
+            body: RefreshIndicator(
+              onRefresh: _loadData,
+              color: HabitikColors.green600,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                child: Column(
+                  children: [
+                    ProfileIdentityCard(user: _user, isDark: isDark),
+                    const SizedBox(height: 20),
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ScreenShell(
-        titulo: 'Mi Perfil',
-        subtitulo: '${_user.nombre} · ${_user.rol.toUpperCase()}',
-        showBackButton: true,
-        headerActions: [
-          IconActionButton(
-            icon: Icons.logout_rounded,
-            onTap: () => RootRouter.logout(context),
-            bgColor: HabitikColors.orange500,
-          ),
-        ],
-        body: RefreshIndicator(
-          onRefresh: _loadData,
-          color: HabitikColors.green600,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-            child: Column(
-              children: [
-                ProfileIdentityCard(user: _user, isDark: isDark),
-                const SizedBox(height: 20),
+                    ProfileInviteCard(
+                      user: _user,
+                      isDark: isDark,
+                      isGenerating: _generatingInvite,
+                      onInvite: _handleInvite,
+                    ),
 
-                ProfileInviteCard(
-                  user: _user,
-                  isDark: isDark,
-                  isGenerating: _generatingInvite,
-                  onInvite: _handleInvite,
+                    ProfileSettingsCard(isDark: isDark),
+
+                    ProfileFamilyList(
+                      loading: _loadingMembers,
+                      errorMessage: _errorMessage,
+                      familyMembers: _familyMembers,
+                      onRetry: _fetchFamilyMembers,
+                      isDark: isDark,
+                    ),
+                  ],
                 ),
-
-                ProfileSettingsCard(isDark: isDark),
-
-                ProfileFamilyList(
-                  loading: _loadingMembers,
-                  errorMessage: _errorMessage,
-                  familyMembers: _familyMembers,
-                  onRetry: _fetchFamilyMembers,
-                  isDark: isDark,
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
