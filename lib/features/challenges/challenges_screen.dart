@@ -17,6 +17,7 @@ import 'package:habitik/shared/widgets/interactive_backgrounds/retos_plaza_backg
 import 'package:habitik/features/challenges/games/speedrun/speedrun.dart';
 import 'package:habitik/features/challenges/games/eco_puzzle/eco_puzzle.dart';
 import 'package:habitik/features/challenges/games/eco_wordle/eco_wordle.dart';
+import 'package:habitik/features/challenges/games/trivia/trivia.dart';
 
 const _kAnimFast = Duration(milliseconds: 200);
 const _kAnimMedium = Duration(milliseconds: 300);
@@ -153,6 +154,12 @@ class _ChallengesScreenState extends State<ChallengesScreen>
       case 'wordle':
         gameWidget = EcoWordleScreen(
           onChallengeCompleted: () => _completeGame(id),
+        );
+        break;
+      case 'trivia':
+        gameWidget = TriviaScreen(
+          onChallengeCompleted: () => _completeGame(id),
+          onGameModeChanged: widget.onGameModeChanged,
         );
         break;
       default:
