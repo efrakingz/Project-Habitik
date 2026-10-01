@@ -5,7 +5,9 @@ class FamilyMember {
   final String nombre;
   final String rol;
   final int xp;
+  final int xpSemanal;
   final int nivel;
+  final int rachaDias;
   final String avatarLetra;
   final String avatarColor;
   final String? avatarUrl;
@@ -15,7 +17,9 @@ class FamilyMember {
     required this.nombre,
     required this.rol,
     required this.xp,
+    this.xpSemanal = 0,
     required this.nivel,
+    this.rachaDias = 0,
     required this.avatarLetra,
     required this.avatarColor,
     this.avatarUrl,
@@ -26,7 +30,9 @@ class FamilyMember {
     String? nombre,
     String? rol,
     int? xp,
+    int? xpSemanal,
     int? nivel,
+    int? rachaDias,
     String? avatarLetra,
     String? avatarColor,
     String? avatarUrl,
@@ -36,7 +42,9 @@ class FamilyMember {
       nombre: nombre ?? this.nombre,
       rol: rol ?? this.rol,
       xp: xp ?? this.xp,
+      xpSemanal: xpSemanal ?? this.xpSemanal,
       nivel: nivel ?? this.nivel,
+      rachaDias: rachaDias ?? this.rachaDias,
       avatarLetra: avatarLetra ?? this.avatarLetra,
       avatarColor: avatarColor ?? this.avatarColor,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -89,9 +97,15 @@ class FamilyMember {
       xp: (json['xp_total'] ?? json['total_xp'] ?? json['xp']) is num
           ? ((json['xp_total'] ?? json['total_xp'] ?? json['xp']) as num).toInt()
           : int.tryParse('${json['xp_total'] ?? json['total_xp'] ?? json['xp']}') ?? 0,
+      xpSemanal: (json['xp_semanal'] ?? json['weekly_xp']) is num
+          ? ((json['xp_semanal'] ?? json['weekly_xp']) as num).toInt()
+          : int.tryParse('${json['xp_semanal'] ?? json['weekly_xp']}') ?? 0,
       nivel: json['nivel'] is num
           ? (json['nivel'] as num).toInt()
           : int.tryParse('${json['nivel']}') ?? 1,
+      rachaDias: (json['racha_dias'] ?? json['racha']) is num
+          ? ((json['racha_dias'] ?? json['racha']) as num).toInt()
+          : int.tryParse('${json['racha_dias'] ?? json['racha']}') ?? 0,
       avatarLetra: letra,
       avatarColor: color,
       avatarUrl: url,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habitik/features/challenges/games/trivia/widgets/trivia_start_overlay.dart';
+import 'package:habitik/features/challenges/games/trivia/widgets/trivia_loading_overlay.dart';
 import 'package:habitik/features/challenges/games/trivia/widgets/trivia_header.dart';
 import 'package:habitik/features/challenges/games/trivia/widgets/answer_option.dart';
 import 'package:habitik/features/challenges/games/trivia/widgets/answer_feedback.dart';
@@ -199,6 +200,65 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('TriviaLoadingOverlay muestra elementos visuales, título y eco-dato', (
+      tester,
+    ) async {
+      bool closed = false;
+      bool completed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TriviaLoadingOverlay(
+              loadingDuration: const Duration(milliseconds: 500),
+              onLoadingComplete: () => completed = true,
+              onClose: () => closed = true,
+            ),
+          ),
+        ),
+      );
+
+      // Verificaciones de contenido y estética adaptada
+      expect(find.text('🌱 HABITIK RETOS'), findsOneWidget);
+      expect(find.text('Eco-Trivia'), findsOneWidget);
+      expect(find.text('Preparando el desafío de preguntas...'), findsOneWidget);
+      expect(find.text('ECO-DATO FAMILIAR'), findsOneWidget);
+      expect(find.text('Cargando desafío...'), findsOneWidget);
+
+      // Probar cierre mediante botón X
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pump();
+      expect(closed, isTrue);
+      expect(completed, isFalse);
+
+      // Drenar el temporizador para finalizar el test limpiamente
+      await tester.pump(const Duration(milliseconds: 600));
+    });
+
+    testWidgets('TriviaLoadingOverlay completa la carga tras expirar la duración', (
+      tester,
+    ) async {
+      bool completed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TriviaLoadingOverlay(
+              loadingDuration: const Duration(milliseconds: 500),
+              onLoadingComplete: () => completed = true,
+              onClose: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(completed, isFalse);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(completed, isTrue);
+
+      await tester.pumpWidget(const SizedBox());
     });
   });
 }

@@ -5,6 +5,7 @@ import 'models/trivia_question.dart';
 import 'trivia_controller.dart';
 import 'widgets/trivia_header.dart';
 import 'widgets/trivia_start_overlay.dart';
+import 'widgets/trivia_loading_overlay.dart';
 import 'widgets/answer_option.dart';
 import 'widgets/answer_feedback.dart';
 import 'widgets/extra_life_dialog.dart';
@@ -14,12 +15,16 @@ class TriviaScreen extends StatefulWidget {
   final VoidCallback? onChallengeCompleted;
   final void Function(bool)? onGameModeChanged;
   final TriviaController? controller;
+  final bool initialLoading;
+  final Duration? loadingDuration;
 
   const TriviaScreen({
     super.key,
     this.onChallengeCompleted,
     this.onGameModeChanged,
     this.controller,
+    this.initialLoading = true,
+    this.loadingDuration,
   });
 
   @override
@@ -29,11 +34,13 @@ class TriviaScreen extends StatefulWidget {
 class _TriviaScreenState extends State<TriviaScreen> {
   late final TriviaController _controller;
   bool _isLocalController = false;
+  late bool _isLoading;
   bool _hasStarted = false;
 
   @override
   void initState() {
     super.initState();
+    _isLoading = widget.initialLoading;
     if (widget.controller != null) {
       _controller = widget.controller!;
     } else {
@@ -132,8 +139,21 @@ class _TriviaScreenState extends State<TriviaScreen> {
         backgroundColor: const Color(0xFFF9F6FC),
         body: Stack(
           children: [
+            // Pantalla previa de carga
+            if (_isLoading)
+              TriviaLoadingOverlay(
+                loadingDuration: widget.loadingDuration ?? const Duration(milliseconds: 2200),
+                onLoadingComplete: () {
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = false;
+                    });
+                  }
+                },
+                onClose: () => Navigator.of(context).pop(),
+              )
             // Pantalla previa si no ha comenzado
-            if (!_hasStarted)
+            else if (!_hasStarted)
               TriviaStartOverlay(
                 onStart: _startGame,
                 onExit: () => Navigator.of(context).pop(),

@@ -10,3 +10,5 @@ export 'achievement.dart';
 export 'challenge.dart';
 export 'pending_validation.dart';
 export 'pending_canje_model.dart';
+export 'family_energy_model.dart';
+export 'family_feed_item.dart';

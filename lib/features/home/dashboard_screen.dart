@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/features/notifications/notifications_screen.dart';
 import 'package:habitik/features/profile/profile_screen.dart';
 import 'package:habitik/features/home/family_screen.dart';
+import 'package:habitik/features/home/services/family_wall_service.dart';
+import 'package:habitik/features/home/widgets/family_energy_card.dart';
+import 'package:habitik/features/home/widgets/family_ranking_section.dart';
+import 'package:habitik/features/home/widgets/family_feed_section.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/services/level_service.dart';
 
+/// Dashboard y Muro Social Familiar en Tiempo Real (HU 4.1).
+/// Incorpora:
+/// - CA-4.1-1: Barra de Energía Colectiva animada y meta mensual.
+/// - CA-4.1-2: Ranking Familiar con avatares, nivel, rachas y filtros semanal/mensual.
+/// - CA-4.1-3: Feed de actividad con emisión de retos y reacciones rápidas (👏, 🔥, 💧, ❤️).
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -20,11 +28,15 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late final UserProfile _user;
+  late final FamilyWallService _wallService;
 
   @override
   void initState() {
     super.initState();
     _user = SessionService().currentUser ?? UserProfile.empty;
+    _wallService = FamilyWallService();
+    _wallService.loadWallData(notify: false);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         LevelService.checkAndShowLevelUp(context);
@@ -34,11 +46,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenShell(
-      titulo: 'Muro Familiar',
-      subtitulo: (_user.familyName != null && _user.familyName!.isNotEmpty)
-          ? 'Hogar: ${_user.familyName}'
-          : 'Aquí debe ir tu familia',
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, _) {
+        final familyTitle = (_user.familyName != null && _user.familyName!.isNotEmpty)
+            ? 'Hogar: ${_user.familyName}'
+            : 'Muro del Hogar';
+
+        return ScreenShell(
+          titulo: 'Muro Familiar',
+          subtitulo: familyTitle,
           headerLeft: GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -75,86 +92,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-            child: Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF1E2E22)
-                        : Colors.white,
-                    borderRadius: HabitikRadius.lg_,
-                    border: Border.all(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0x30FFFFFF)
-                          : Colors.grey.shade200,
-                      width: 2,
-                    ),
-                    boxShadow: HabitikShadows.card,
-                  ),
+          body: ListenableBuilder(
+            listenable: _wallService,
+            builder: (context, _) {
+              return RefreshIndicator(
+                color: HabitikColors.green500,
+                backgroundColor: isDark ? const Color(0xFF1B2E22) : Colors.white,
+                onRefresh: () => _wallService.loadWallData(notify: true),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                   child: Column(
                     children: [
-                      const Text(
-                        '🏡',
-                        style: TextStyle(fontSize: 54),
-                      ).animate().scale(
-                        begin: const Offset(0.8, 0.8),
-                        duration: 500.ms,
-                        curve: Curves.elasticOut,
+                      // ── CA-4.1-1: Barra de Energía Familiar Colectiva ──
+                      FamilyEnergyCard(
+                        energy: _wallService.energy,
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Muro Familiar',
-                        style: TextStyle(
-                          color: HabitikColors.textDark,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
+
+                      const SizedBox(height: 18),
+
+                      // ── CA-4.1-2: Ranking Familiar con Podio, Rachas y Filtros ──
+                      FamilyRankingSection(
+                        members: _wallService.members,
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Visualiza la actividad de ahorro y el progreso ecológico de tu hogar en tiempo real.',
-                        style: TextStyle(
-                          color: HabitikColors.textLight,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      GestureDetector(
-                        onTap: () {},
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: HabitikColors.heroGreen,
-                            borderRadius: HabitikRadius.md_,
-                            boxShadow: HabitikShadows.colored(
-                              HabitikColors.green600,
-                            ),
-                          ),
-                          child: const Text(
-                            '🏡 Ver Muro Completo',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
+
+                      const SizedBox(height: 18),
+
+                      // ── CA-4.1-3: Feed Social en Tiempo Real con Reacciones ──
+                      FamilyFeedSection(
+                        items: _wallService.feed,
+                        onReactionTap: (feedId, emoji) {
+                          _wallService.toggleReaction(feedId, emoji);
+                        },
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
         );
+      },
+    );
   }
 }
