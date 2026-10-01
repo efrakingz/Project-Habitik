@@ -11,6 +11,10 @@ class ProfileFamilyList extends StatelessWidget {
   final VoidCallback onRetry;
   final bool isDark;
 
+  final String title;
+  final String emoji;
+  final String? emptyMessage;
+
   const ProfileFamilyList({
     super.key,
     required this.loading,
@@ -18,6 +22,9 @@ class ProfileFamilyList extends StatelessWidget {
     required this.familyMembers,
     required this.onRetry,
     required this.isDark,
+    this.title = 'Miembros del Hogar',
+    this.emoji = '👥',
+    this.emptyMessage,
   });
 
   @override
@@ -28,10 +35,10 @@ class ProfileFamilyList extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 16),
           child: Row(
             children: [
-              const Text('👥', style: TextStyle(fontSize: 22)),
+              Text(emoji, style: const TextStyle(fontSize: 22)),
               const SizedBox(width: 10),
               Text(
-                'Miembros del Hogar',
+                title,
                 style: TextStyle(
                   color: isDark ? Colors.white : HabitikColors.textDark,
                   fontSize: 18,
@@ -90,9 +97,9 @@ class ProfileFamilyList extends StatelessWidget {
                 color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
               ),
             ),
-            child: const Text(
-              'No hay otros miembros en la familia todavía.',
-              style: TextStyle(color: HabitikColors.textLight, fontSize: 13),
+            child: Text(
+              emptyMessage ?? 'No hay otros miembros en la familia todavía.',
+              style: const TextStyle(color: HabitikColors.textLight, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           )

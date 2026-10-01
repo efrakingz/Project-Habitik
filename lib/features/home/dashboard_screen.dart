@@ -6,7 +6,6 @@ import 'package:habitik/features/notifications/notifications_screen.dart';
 import 'package:habitik/features/profile/profile_screen.dart';
 import 'package:habitik/features/home/family_screen.dart';
 import 'package:habitik/features/home/services/family_wall_service.dart';
-import 'package:habitik/features/home/widgets/family_energy_card.dart';
 import 'package:habitik/features/home/widgets/family_ranking_section.dart';
 import 'package:habitik/features/home/widgets/family_feed_section.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
@@ -104,16 +103,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                   child: Column(
                     children: [
-                      // ── CA-4.1-1: Barra de Energía Familiar Colectiva ──
-                      FamilyEnergyCard(
-                        energy: _wallService.energy,
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      // ── CA-4.1-2: Ranking Familiar con Podio, Rachas y Filtros ──
+                      // ── Ranking Familiar (En cuadrito como el feed) ──
                       FamilyRankingSection(
                         members: _wallService.members,
+                        loading: _wallService.membersLoading,
+                        errorMessage: _wallService.membersError,
+                        onRetry: () => _wallService.loadWallData(notify: true),
                       ),
 
                       const SizedBox(height: 18),

@@ -25,6 +25,11 @@ class FamilyMember {
     this.avatarUrl,
   });
 
+  bool get isJefe {
+    final r = rol.toLowerCase().trim();
+    return r == 'jefe' || r == 'jefa' || r == 'admin' || r == 'co-admin';
+  }
+
   FamilyMember copyWith({
     String? id,
     String? nombre,

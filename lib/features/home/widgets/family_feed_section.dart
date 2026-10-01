@@ -6,7 +6,8 @@ import 'family_feed_card.dart';
 
 /// Sección de Feed Familiar en Tiempo Real (CA-4.1-3).
 /// Despliega las tarjetas de retos completados con indicador en vivo y reacciones rápidas.
-class FamilyFeedSection extends StatelessWidget {
+/// Muestra por defecto los 2 primeros retos y permite expandir para ver más.
+class FamilyFeedSection extends StatefulWidget {
   final List<FamilyFeedItem> items;
   final void Function(String feedId, String emoji)? onReactionTap;
 
@@ -17,13 +18,25 @@ class FamilyFeedSection extends StatelessWidget {
   });
 
   @override
+  State<FamilyFeedSection> createState() => _FamilyFeedSectionState();
+}
+
+class _FamilyFeedSectionState extends State<FamilyFeedSection> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: isDarkModeNotifier,
       builder: (context, isDark, _) {
+        final hasMoreThanTwo = widget.items.length > 2;
+        final displayedItems = _expanded || !hasMoreThanTwo
+            ? widget.items
+            : widget.items.take(2).toList();
+
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1B2E22) : Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -45,6 +58,7 @@ class FamilyFeedSection extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // ── Encabezado del Feed con Indicador de Tiempo Real ──
               Row(
@@ -105,15 +119,15 @@ class FamilyFeedSection extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              if (items.isEmpty)
+              if (widget.items.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Column(
                       children: [
-                        const Text('🌱', style: TextStyle(fontSize: 36)),
+                        const Text('🌱', style: TextStyle(fontSize: 34)),
                         const SizedBox(height: 8),
                         Text(
                           'Aún no hay retos completados hoy',
@@ -125,7 +139,7 @@ class FamilyFeedSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '¡Completa un reto en la pestaña de Retos para inaugurar el muro!',
+                          '¡Completa un reto para inaugurar el muro!',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
                             color: isDark ? Colors.white54 : HabitikColors.textLight,
@@ -136,19 +150,66 @@ class FamilyFeedSection extends StatelessWidget {
                     ),
                   ),
                 )
-              else
-                ListView.builder(
+              else ...[
+                ListView.separated(
                   shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: items.length,
+                  itemCount: displayedItems.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final item = items[index];
+                    final item = displayedItems[index];
                     return FamilyFeedCard(
                       item: item,
-                      onReactionTap: (emoji) => onReactionTap?.call(item.id, emoji),
+                      margin: EdgeInsets.zero,
+                      onReactionTap: (emoji) => widget.onReactionTap?.call(item.id, emoji),
                     );
                   },
                 ),
+
+                // ── Botón para Cargar / Mostrar más actividades ──
+                if (hasMoreThanTwo) ...[
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF132217) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark ? const Color(0x20FFFFFF) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _expanded
+                                ? 'Mostrar menos'
+                                : 'Ver más actividades (${widget.items.length - 2} más)',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? const Color(0xFF34D399) : HabitikColors.green700,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _expanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: isDark ? const Color(0xFF34D399) : HabitikColors.green700,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
         );

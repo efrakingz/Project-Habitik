@@ -1,20 +1,25 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:habitik/core/services/api_client.dart';
+import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/family_energy_model.dart';
 import 'package:habitik/data/models/family_feed_item.dart';
 import 'package:habitik/data/models/family_member.dart';
 
-/// Servicio puramente de Frontend para el Muro Social Familiar (HU 4.1).
-/// Opera con datos Mock desacoplados del backend y soporte para actualizaciones reactivas.
+/// Servicio para el Muro Social Familiar (HU 4.1).
+/// Conecta con la API para los miembros reales y gestiona el feed social.
 class FamilyWallService extends ChangeNotifier {
   static final FamilyWallService _instance = FamilyWallService._internal();
   factory FamilyWallService() => _instance;
   FamilyWallService._internal();
 
-  FamilyEnergyModel _energy = FamilyEnergyModel.mockDefault;
+  final FamilyEnergyModel _energy = FamilyEnergyModel.mockDefault;
   List<FamilyMember> _members = [];
   List<FamilyFeedItem> _feed = [];
   bool _isLoading = false;
+  bool _membersLoading = false;
+  String? _membersError;
 
   // StreamController para simular eventos en tiempo real (CA-4.1-3)
   final StreamController<FamilyFeedItem> _realtimeFeedController =
@@ -24,68 +29,39 @@ class FamilyWallService extends ChangeNotifier {
   List<FamilyMember> get members => List.unmodifiable(_members);
   List<FamilyFeedItem> get feed => List.unmodifiable(_feed);
   bool get isLoading => _isLoading;
+  bool get membersLoading => _membersLoading;
+  String? get membersError => _membersError;
   Stream<FamilyFeedItem> get realtimeStream => _realtimeFeedController.stream;
 
-  /// Carga inicial de datos del muro
+  /// Carga de datos del muro (miembros reales del hogar + feed)
   Future<void> loadWallData({bool notify = true}) async {
     _isLoading = true;
+    _membersLoading = true;
+    _membersError = null;
     if (notify) notifyListeners();
 
-    // Pequeño retardo simulado para suavidad visual
-    await Future.delayed(const Duration(milliseconds: 350));
-
-    _energy = const FamilyEnergyModel(
-      totalXpMes: 3680,
-      metaMensualXp: 5000,
-      periodo: 'Mes Actual',
-    );
-
-    _members = [
-      const FamilyMember(
-        id: 'mem_1',
-        nombre: 'Sofía',
-        rol: 'miembro',
-        xp: 1420,
-        xpSemanal: 380,
-        nivel: 5,
-        rachaDias: 12,
-        avatarLetra: 'S',
-        avatarColor: '#E91E63',
-      ),
-      const FamilyMember(
-        id: 'mem_2',
-        nombre: 'Papá',
-        rol: 'jefe',
-        xp: 1150,
-        xpSemanal: 290,
-        nivel: 4,
-        rachaDias: 9,
-        avatarLetra: 'P',
-        avatarColor: '#2E7D32',
-      ),
-      const FamilyMember(
-        id: 'mem_3',
-        nombre: 'Mamá',
-        rol: 'jefe',
-        xp: 980,
-        xpSemanal: 310,
-        nivel: 4,
-        rachaDias: 7,
-        avatarLetra: 'M',
-        avatarColor: '#9C27B0',
-      ),
-      const FamilyMember(
-        id: 'mem_4',
-        nombre: 'Mateo',
-        rol: 'miembro',
-        xp: 630,
-        xpSemanal: 190,
-        nivel: 3,
-        rachaDias: 4,
-        avatarLetra: 'M',
-        avatarColor: '#1976D2',
-      ),
-    ];
+    try {
+      final user = SessionService().currentUser;
+      if (user != null && user.familyId != null && user.familyId!.isNotEmpty) {
+        final path = '/familia/miembros?family_id=${user.familyId}';
+        final response = await ApiClient().get(path);
+        final dynamic data = jsonDecode(response.body);
+        if (data is List) {
+          _members = data.map((json) {
+            final m = FamilyMember.fromJson(json as Map<String, dynamic>);
+            return m.id == user.id ? m.copyWith(xp: user.xp, nivel: user.nivel) : m;
+          }).toList()
+            ..sort((a, b) => b.xp.compareTo(a.xp));
+        }
+      } else {
+        _members = [];
+      }
+    } catch (e) {
+      debugPrint('⚠️ [FamilyWallService] Error al cargar miembros familiares: $e');
+      _membersError = e.toString().replaceAll('Exception:', '').trim();
+    } finally {
+      _membersLoading = false;
+    }
 
     if (_feed.isEmpty) {
       _feed = List.from(FamilyFeedItem.mockList);

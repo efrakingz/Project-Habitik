@@ -12,10 +12,13 @@ class FamilyFeedCard extends StatelessWidget {
   final FamilyFeedItem item;
   final void Function(String emoji)? onReactionTap;
 
+  final EdgeInsetsGeometry? margin;
+
   const FamilyFeedCard({
     super.key,
     required this.item,
     this.onReactionTap,
+    this.margin,
   });
 
   @override
@@ -25,7 +28,7 @@ class FamilyFeedCard extends StatelessWidget {
       builder: (context, isDark, _) {
         return Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: margin ?? const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF132217) : Colors.white,

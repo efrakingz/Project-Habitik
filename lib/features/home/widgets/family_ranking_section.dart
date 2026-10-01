@@ -4,16 +4,21 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 
-enum RankingPeriodFilter { semanal, mensual }
-
 /// Sección de Ranking Familiar (CA-4.1-2).
-/// Muestra avatar, nivel, racha y posición con ordenamiento semanal y mensual.
+/// Diseñada en un cuadro idéntico al Feed de Actividad, compacto y sin espacios sobrantes.
+/// Muestra por defecto los 2 primeros puestos y permite expandir para ver a todos.
 class FamilyRankingSection extends StatefulWidget {
   final List<FamilyMember> members;
+  final bool loading;
+  final String? errorMessage;
+  final VoidCallback? onRetry;
 
   const FamilyRankingSection({
     super.key,
     required this.members,
+    this.loading = false,
+    this.errorMessage,
+    this.onRetry,
   });
 
   @override
@@ -21,37 +26,26 @@ class FamilyRankingSection extends StatefulWidget {
 }
 
 class _FamilyRankingSectionState extends State<FamilyRankingSection> {
-  RankingPeriodFilter _selectedFilter = RankingPeriodFilter.semanal;
-
-  List<FamilyMember> get _sortedMembers {
-    final list = List<FamilyMember>.from(widget.members);
-    if (_selectedFilter == RankingPeriodFilter.semanal) {
-      list.sort((a, b) => b.xpSemanal.compareTo(a.xpSemanal));
-    } else {
-      list.sort((a, b) => b.xp.compareTo(a.xp));
-    }
-    return list;
-  }
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: isDarkModeNotifier,
       builder: (context, isDark, _) {
-        final sorted = _sortedMembers;
-        final maxScore = sorted.fold<int>(
+        final hasMoreThanTwo = widget.members.length > 2;
+        final displayedMembers = _expanded || !hasMoreThanTwo
+            ? widget.members
+            : widget.members.take(2).toList();
+
+        final maxScore = widget.members.fold<int>(
           1,
-          (prev, m) {
-            final score = _selectedFilter == RankingPeriodFilter.semanal
-                ? m.xpSemanal
-                : m.xp;
-            return score > prev ? score : prev;
-          },
+          (prev, m) => m.xp > prev ? m.xp : prev,
         );
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1B2E22) : Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -73,8 +67,9 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // ── 1. Encabezado y Filtro Semanal / Mensual ──
+              // ── Encabezado del Ranking ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -92,121 +87,144 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
                       ),
                     ],
                   ),
-                  // Selector de Periodo
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF102015)
-                          : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildFilterChip(
-                          label: 'Semanal',
-                          filter: RankingPeriodFilter.semanal,
-                          isDark: isDark,
+                  if (widget.members.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF122C1D)
+                            : const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${widget.members.length} ${widget.members.length == 1 ? "miembro" : "miembros"}',
+                        style: GoogleFonts.outfit(
+                          color: isDark ? HabitikColors.green300 : HabitikColors.green800,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                         ),
-                        _buildFilterChip(
-                          label: 'Mensual',
-                          filter: RankingPeriodFilter.mensual,
-                          isDark: isDark,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              if (sorted.isEmpty)
+              if (widget.loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: HabitikColors.green500,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                )
+              else if (widget.errorMessage != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Error al cargar miembros: ${widget.errorMessage}',
+                          style: TextStyle(
+                            color: isDark ? Colors.redAccent : Colors.red.shade800,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (widget.onRetry != null) ...[
+                          const SizedBox(height: 6),
+                          TextButton.icon(
+                            onPressed: widget.onRetry,
+                            icon: const Icon(Icons.refresh, size: 16),
+                            label: const Text('Reintentar', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                )
+              else if (widget.members.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
                     child: Text(
-                      'No hay datos de miembros disponibles',
+                      'No hay otros miembros en la familia todavía.',
                       style: GoogleFonts.outfit(
-                        color: isDark ? Colors.white54 : HabitikColors.textLight,
+                        color: isDark ? Colors.white60 : HabitikColors.textLight,
                         fontSize: 13,
                       ),
                     ),
                   ),
                 )
-              else
+              else ...[
                 ListView.separated(
                   shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: sorted.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 10),
+                  itemCount: displayedMembers.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    final member = sorted[index];
-                    final position = index + 1;
-                    final currentXp = _selectedFilter == RankingPeriodFilter.semanal
-                        ? member.xpSemanal
-                        : member.xp;
-
+                    final member = displayedMembers[index];
                     return _buildRankingRow(
-                      position: position,
+                      position: index + 1,
                       member: member,
-                      score: currentXp,
+                      score: member.xp,
                       maxScore: maxScore,
                       isDark: isDark,
                     );
                   },
                 ),
+
+                // ── Botón para Expandir / Contraer Ranking si hay más de 2 ──
+                if (hasMoreThanTwo) ...[
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF132217) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark ? const Color(0x20FFFFFF) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _expanded
+                                ? 'Mostrar menos'
+                                : 'Ver ranking completo (${widget.members.length - 2} más)',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? const Color(0xFF34D399) : HabitikColors.green700,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _expanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: isDark ? const Color(0xFF34D399) : HabitikColors.green700,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildFilterChip({
-    required String label,
-    required RankingPeriodFilter filter,
-    required bool isDark,
-  }) {
-    final isSelected = _selectedFilter == filter;
-    return GestureDetector(
-      onTap: () {
-        if (!isSelected) {
-          setState(() {
-            _selectedFilter = filter;
-          });
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? HabitikColors.green500
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: HabitikColors.green500.withValues(alpha: 0.35),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.outfit(
-            color: isSelected
-                ? Colors.white
-                : (isDark ? Colors.white60 : HabitikColors.textLight),
-            fontSize: 11.5,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-          ),
-        ),
-      ),
     );
   }
 
@@ -256,7 +274,7 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
         children: [
           // Medalla o Número de Posición
           SizedBox(
-            width: 32,
+            width: 30,
             child: Center(
               child: Text(
                 badgeEmoji,
@@ -274,9 +292,10 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
           UserAvatar(
             letra: member.avatarLetra,
             colorHex: member.avatarColor,
-            radius: 19,
+            avatarUrl: member.avatarUrl,
+            radius: 18,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
           // Nombre, Nivel y Racha
           Expanded(
@@ -297,7 +316,7 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (member.rol == 'jefe') ...[
+                    if (member.isJefe || member.rol == 'jefe') ...[
                       const SizedBox(width: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -328,30 +347,31 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Racha de días (fuego)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFEDD5),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🔥', style: TextStyle(fontSize: 10)),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${member.rachaDias} d',
-                            style: const TextStyle(
-                              color: Color(0xFFC2410C),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
+                    if (member.rachaDias > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEDD5),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🔥', style: TextStyle(fontSize: 9)),
+                            const SizedBox(width: 2),
+                            Text(
+                              '${member.rachaDias} d',
+                              style: const TextStyle(
+                                color: Color(0xFFC2410C),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ],
@@ -372,7 +392,7 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
               ),
               const SizedBox(height: 4),
               SizedBox(
-                width: 65,
+                width: 60,
                 height: 5,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
