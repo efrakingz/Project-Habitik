@@ -20,9 +20,93 @@ class _RewardsScreenState extends State<RewardsScreen> {
   void initState() {
     super.initState();
     _controller = RewardsController();
+    _controller.onCanjeResuelto = (titulo, mensaje, esExito) {
+      if (!mounted) return;
+      _mostrarDialogoCanjeResuelto(titulo, mensaje, esExito);
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.loadRewards();
     });
+  }
+
+  void _mostrarDialogoCanjeResuelto(String titulo, String mensaje, bool esExito) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: esExito
+                  ? [const Color(0xFF1C3D28), const Color(0xFF172F1F)]
+                  : [const Color(0xFF3A1C1C), const Color(0xFF2A1010)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                esExito ? '🎉' : '❌',
+                style: const TextStyle(fontSize: 52),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                titulo,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                mensaje,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: esExito
+                        ? HabitikColors.green500
+                        : Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  child: Text(
+                    esExito ? '¡Entendido!' : 'Cerrar',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

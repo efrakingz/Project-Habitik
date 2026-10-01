@@ -14,7 +14,7 @@ class RewardsHudOverlay extends StatelessWidget {
       onRefresh: controller.loadRewards,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 160),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

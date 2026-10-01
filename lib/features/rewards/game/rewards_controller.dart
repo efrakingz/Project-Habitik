@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:habitik/core/services/socket_service.dart';
 import 'package:habitik/data/models/reward.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/core/services/session_service.dart';
@@ -21,6 +22,52 @@ class RewardsController extends ChangeNotifier {
   UserProfile get currentUser => SessionService().currentUser ?? UserProfile.empty;
 
   final RewardsService _rewardsService = RewardsService();
+
+  /// Callback al que la pantalla puede suscribirse para mostrar diálogos/snackbars
+  void Function(String titulo, String mensaje, bool esExito)? onCanjeResuelto;
+
+  late final VoidCallback _unsubscribeSocket;
+
+  RewardsController() {
+    _unsubscribeSocket = SocketService.subscribe(_onSocketEvent);
+  }
+
+  /// Escucha eventos del socket relacionados con canjes del usuario actual
+  void _onSocketEvent(Map<String, dynamic> data) {
+    final tipo = data['tipo']?.toString() ?? '';
+    final userId = data['user_id']?.toString() ?? '';
+    final myId = currentUser.id;
+
+    // Solo procesamos eventos dirigidos a este usuario
+    if (userId.isNotEmpty && userId != myId) return;
+
+    if (tipo == 'CANJE_APROBADO') {
+      final premio = data['reward_titulo']?.toString() ?? 'tu premio';
+      onCanjeResuelto?.call(
+        '🎉 ¡Canje aprobado!',
+        'El Jefe aprobó tu solicitud de "$premio". ¡Disfrútalo!',
+        true,
+      );
+      loadRewards(); // Refrescar lista (quitar cooldown si aplica)
+    } else if (tipo == 'CANJE_RECHAZADO') {
+      final premio = data['reward_titulo']?.toString() ?? 'tu premio';
+      final motivo = data['motivo']?.toString();
+      final mensajeExtra = motivo != null ? '\nMotivo: $motivo' : '';
+      onCanjeResuelto?.call(
+        '❌ Solicitud rechazada',
+        'El Jefe rechazó tu solicitud de "$premio". Tus monedas fueron reembolsadas.$mensajeExtra',
+        false,
+      );
+      // Refrescar monedas desde la sesión (el backend ya las reembolsó)
+      loadRewards();
+    }
+  }
+
+  @override
+  void dispose() {
+    _unsubscribeSocket();
+    super.dispose();
+  }
 
   Future<void> init(BuildContext context) async {
     await loadRewards();
@@ -53,11 +100,11 @@ class RewardsController extends ChangeNotifier {
       // Actualizamos las monedas localmente usando lo que dice el backend
       SessionService().updateRewardsAndXp(
         xp: currentUser.xp, 
-        monedas: result['monedas_restantes'] as int,
+        monedas: (result['monedas_restantes'] as num).toInt(),
       );
       
       if (context.mounted) {
-        _showSnackBar(context, result['message'], isSuccess: true);
+        _showSnackBar(context, result['message'] ?? '¡Canje enviado! Espera la aprobación del Jefe.', isSuccess: true);
       }
       
       await loadRewards(); // Recargamos para actualizar los estados (cooldowns, etc)
@@ -70,7 +117,7 @@ class RewardsController extends ChangeNotifier {
 
   Future<void> createReward(RewardItem newReward, BuildContext context) async {
     try {
-      final rewardData = {
+      final rewardPayload = {
         'titulo': newReward.titulo,
         'descripcion': newReward.descripcion,
         'emoji': newReward.emoji,
@@ -79,7 +126,7 @@ class RewardsController extends ChangeNotifier {
         'metadata': newReward.metadata,
       };
 
-      await _rewardsService.createReward(rewardData);
+      await _rewardsService.createReward(rewardPayload);
       
       if (context.mounted) {
         _showSnackBar(context, 'Premio creado exitosamente.', isSuccess: true);

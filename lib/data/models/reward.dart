@@ -8,6 +8,7 @@ class RewardItem {
   final bool esFamiliar;
   final DateTime? createdAt;
   final DateTime? lastRedeemedAt;
+  final String? lastRedeemedByNombre;
   final Map<String, dynamic> metadata;
 
   const RewardItem({
@@ -20,14 +21,21 @@ class RewardItem {
     this.esFamiliar = true,
     this.createdAt,
     this.lastRedeemedAt,
+    this.lastRedeemedByNombre,
     this.metadata = const {},
   });
 
   bool get isCooldownActive {
+    // Si el backend marca explícitamente como no disponible → cooldown activo
+    if (!disponible) return true;
+
+    // Verificación local basada en tiempo de enfriamiento según frecuencia
     if (lastRedeemedAt == null) return false;
     final String frecuencia = metadata['frecuencia']?.toString() ?? '';
     final now = DateTime.now();
-    if (frecuencia == 'semanal') {
+    if (frecuencia == 'diario') {
+      return now.difference(lastRedeemedAt!).inHours < 24;
+    } else if (frecuencia == 'semanal') {
       return now.difference(lastRedeemedAt!).inDays < 7;
     } else if (frecuencia == 'mensual') {
       return now.difference(lastRedeemedAt!).inDays < 30;
@@ -46,6 +54,7 @@ class RewardItem {
       esFamiliar: json['es_familiar'] == true,
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
       lastRedeemedAt: json['last_redeemed_at'] != null ? DateTime.tryParse(json['last_redeemed_at'].toString()) : null,
+      lastRedeemedByNombre: json['last_redeemed_by_nombre']?.toString(),
       metadata: json['metadata'] is Map ? Map<String, dynamic>.from(json['metadata']) : {},
     );
   }

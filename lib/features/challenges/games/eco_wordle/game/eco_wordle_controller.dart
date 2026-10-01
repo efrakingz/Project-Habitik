@@ -99,7 +99,8 @@ class EcoWordleController extends ChangeNotifier {
         }
 
         if (status.estado == 'ganado') {
-          _gameState = EcoWordleState.success;
+          // El usuario ya ganó anteriormente: no mostrar recompensas ni botón de reclamar
+          _gameState = EcoWordleState.alreadyWon;
           if (_evaluationMatrix.isNotEmpty) {
             _evaluationMatrix.last = List.filled(_evaluationMatrix.last.length, 'verde');
           }

@@ -123,7 +123,7 @@ class RewardsList extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (isCooldownActive)
+                      if (isCooldownActive) ...[
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Row(
@@ -141,6 +141,30 @@ class RewardsList extends StatelessWidget {
                             ],
                           ),
                         ),
+                        if (reward.lastRedeemedByNombre != null &&
+                            reward.lastRedeemedByNombre!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 13,
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Canjeado por: ${reward.lastRedeemedByNombre}',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ],
                   ),
                 ),

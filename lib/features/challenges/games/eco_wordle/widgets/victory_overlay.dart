@@ -12,6 +12,7 @@ class WordleVictoryOverlay extends StatelessWidget {
   final int maxIntentos;
   final String? pistaEducativa;
   final Map<String, dynamic>? recompensas;
+  final bool isReentry;
   final VoidCallback onContinue;
   final VoidCallback onClose;
 
@@ -21,6 +22,7 @@ class WordleVictoryOverlay extends StatelessWidget {
     required this.maxIntentos,
     this.pistaEducativa,
     this.recompensas,
+    this.isReentry = false,
     required this.onContinue,
     required this.onClose,
   });
@@ -225,101 +227,103 @@ class WordleVictoryOverlay extends StatelessWidget {
 
                     const SizedBox(height: 18),
 
-                    // ── 4. Cofre de Recompensas ──
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                    if (!isReentry) ...[
+                      // ── 4. Cofre de Recompensas ──
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            "RECOMPENSAS OBTENIDAS",
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFFB45309),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 16,
-                            runSpacing: 8,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const GameStarIcon(size: 20),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    "+$xp XP",
-                                    style: GoogleFonts.outfit(
-                                      color: const Color(0xFF047857),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              "RECOMPENSAS OBTENIDAS",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFFB45309),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const GameCoinIcon(size: 20),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    "+$monedas Monedas",
-                                    style: GoogleFonts.outfit(
-                                      color: const Color(0xFFB45309),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w900,
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 16,
+                              runSpacing: 8,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const GameStarIcon(size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "+$xp XP",
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFF047857),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const GameFireIcon(size: 20),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    "+1 Racha",
-                                    style: GoogleFonts.outfit(
-                                      color: const Color(0xFFEA580C),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w900,
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const GameCoinIcon(size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "+$monedas Monedas",
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFFB45309),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const GameFireIcon(size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "+1 Racha",
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFFEA580C),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
 
-                    const SizedBox(height: 22),
+                      const SizedBox(height: 22),
+                    ],
 
                     // ── 5. Botón Continuar ──
                     GestureDetector(
-                      onTap: onContinue,
+                      onTap: isReentry ? onClose : onContinue,
                       child: Container(
                         width: double.infinity,
                         height: 56,
@@ -343,7 +347,7 @@ class WordleVictoryOverlay extends StatelessWidget {
                           ],
                         ),
                         child: Text(
-                          "¡RECLAMAR RECOMPENSA! ✨",
+                          isReentry ? "VOLVER A DESAFÍOS 🌿" : "¡RECLAMAR RECOMPENSA! ✨",
                           style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontSize: 16,
@@ -354,27 +358,29 @@ class WordleVictoryOverlay extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    if (!isReentry) ...[
+                      const SizedBox(height: 12),
 
-                    // Botón secundario para volver
-                    TextButton(
-                      onPressed: onClose,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF64748B)),
-                          const SizedBox(width: 6),
-                          Text(
-                            "Volver a desafíos",
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF64748B),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                      // Botón secundario para volver
+                      TextButton(
+                        onPressed: onClose,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF64748B)),
+                            const SizedBox(width: 6),
+                            Text(
+                              "Volver a desafíos",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF64748B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

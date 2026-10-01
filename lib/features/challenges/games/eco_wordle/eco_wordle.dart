@@ -11,8 +11,13 @@ import 'widgets/victory_overlay.dart';
 /// Diseñada siguiendo la arquitectura y estándares de Clean Code de Habitik.
 class EcoWordleScreen extends StatefulWidget {
   final VoidCallback? onChallengeCompleted;
+  final VoidCallback? onChallengeAlreadyCompleted;
 
-  const EcoWordleScreen({super.key, this.onChallengeCompleted});
+  const EcoWordleScreen({
+    super.key, 
+    this.onChallengeCompleted,
+    this.onChallengeAlreadyCompleted,
+  });
 
   @override
   State<EcoWordleScreen> createState() => _EcoWordleScreenState();
@@ -59,6 +64,7 @@ class _EcoWordleScreenState extends State<EcoWordleScreen> {
           builder: (context, _) {
             final isPlaying = _controller.gameState == EcoWordleState.playing ||
                 _controller.gameState == EcoWordleState.success ||
+                _controller.gameState == EcoWordleState.alreadyWon ||
                 _controller.gameState == EcoWordleState.failure;
 
             return Stack(
@@ -87,18 +93,24 @@ class _EcoWordleScreenState extends State<EcoWordleScreen> {
                     onClose: _closeGame,
                   ),
 
-                if (_controller.gameState == EcoWordleState.success)
+                if (_controller.gameState == EcoWordleState.success || _controller.gameState == EcoWordleState.alreadyWon)
                   Positioned.fill(
                     child: WordleVictoryOverlay(
                       intentosUsados: _controller.attempts.length,
                       maxIntentos: _controller.maxIntentos,
                       pistaEducativa: _controller.pistaEducativa,
                       recompensas: _controller.recompensas,
+                      isReentry: _controller.gameState == EcoWordleState.alreadyWon,
                       onContinue: () {
                         widget.onChallengeCompleted?.call();
                         _closeGame();
                       },
-                      onClose: _closeGame,
+                      onClose: () {
+                        if (_controller.gameState == EcoWordleState.alreadyWon) {
+                          widget.onChallengeAlreadyCompleted?.call();
+                        }
+                        _closeGame();
+                      },
                     ),
                   ),
 

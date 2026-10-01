@@ -34,6 +34,7 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
   int _costo = 10;
   bool _esFamiliar = true;
   String _frecuencia = 'semanal';
+  String _emoji = '🎁';
 
   static const _frecuencias = {
     'diario': '1x día',
@@ -41,6 +42,15 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
     'mensual': '1x mes',
     'unico': 'Único',
   };
+
+  static const _emojis = [
+    '🎁', '🛒', '🎥', '🍕', '🍔', '🍜', '🥩',
+    '🏆', '⭐', '💫', '💰', '🪙',
+    '🏠', '🌴', '🤺', '🎮', '📱', '💻',
+    '🎤', '🎵', '🐟', '🐶', '🦄',
+    '🌸', '🌿', '☕', '🛋️', '😴',
+    '📚', '🎨', '⚽', '🏄', '🚴', '🌟',
+  ];
 
   bool get _isValid => _tituloCtrl.text.trim().isNotEmpty;
 
@@ -51,12 +61,129 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
         titulo: _tituloCtrl.text.trim(),
         descripcion: _descCtrl.text.trim(),
         costo: _costo,
-        emoji: _esFamiliar ? '🎁' : '🛍️',
+        emoji: _emoji,
         esFamiliar: _esFamiliar,
         metadata: _esFamiliar ? {'frecuencia': _frecuencia} : {},
       ));
       Navigator.pop(context);
     }
+  }
+
+  void _mostrarEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (_, setSheetState) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1C3D28),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36, height: 4,
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Text(
+                'Elige un emoji',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _emojis.map((e) {
+                  final selected = e == _emoji;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _emoji = e);
+                      Navigator.pop(context);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? HabitikColors.green500.withValues(alpha: 0.35)
+                            : Colors.white.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected
+                              ? HabitikColors.green400
+                              : Colors.white.withValues(alpha: 0.1),
+                          width: 1.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(e, style: const TextStyle(fontSize: 24)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmojiRow() {
+    return GestureDetector(
+      onTap: _mostrarEmojiPicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Text(_emoji, style: const TextStyle(fontSize: 26)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Emoji del premio',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  Text(
+                    'Toca para cambiar',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withValues(alpha: 0.3),
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -93,7 +220,10 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildHeader(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+                // ── Selector de emoji minimalista ──
+                _buildEmojiRow(),
+                const SizedBox(height: 14),
                 _SectionLabel('Tipo de premio'),
                 const SizedBox(height: 8),
                 _buildTypePills(),

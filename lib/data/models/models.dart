@@ -9,3 +9,4 @@ export 'reward.dart';
 export 'achievement.dart';
 export 'challenge.dart';
 export 'pending_validation.dart';
+export 'pending_canje_model.dart';

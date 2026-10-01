@@ -76,7 +76,7 @@ class ApiClient {
           .timeout(_timeout);
       return await _processResponse(response, () => get(path, isRetry: true), isRetry);
     } catch (e) {
-      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException || e is ServerException) rethrow;
       if (!isRetry && _canFallbackIp()) {
         _switchFallbackIp();
         return get(path, isRetry: true);
@@ -108,7 +108,7 @@ class ApiClient {
         isRetry,
       );
     } catch (e) {
-      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException || e is ServerException) rethrow;
       if (!isRetry && _canFallbackIp()) {
         _switchFallbackIp();
         return post(path, body, token: token, isRetry: true);
@@ -139,7 +139,7 @@ class ApiClient {
         isRetry,
       );
     } catch (e) {
-      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException || e is ServerException) rethrow;
       if (!isRetry && _canFallbackIp()) {
         _switchFallbackIp();
         return patch(path, body, isRetry: true);
@@ -170,7 +170,7 @@ class ApiClient {
         isRetry,
       );
     } catch (e) {
-      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException || e is ServerException) rethrow;
       if (!isRetry && _canFallbackIp()) {
         _switchFallbackIp();
         return put(path, body, isRetry: true);
@@ -193,7 +193,7 @@ class ApiClient {
         isRetry,
       );
     } catch (e) {
-      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException) rethrow;
+      if (e is UnauthorizedException || e is GoneException || e is ForbiddenException || e is ServerException) rethrow;
       if (!isRetry && _canFallbackIp()) {
         _switchFallbackIp();
         return delete(path, isRetry: true);
@@ -239,7 +239,7 @@ class ApiClient {
       throw ForbiddenException(errorMsg);
     }
 
-    throw Exception(errorMsg);
+    throw ServerException(errorMsg);
   }
 }
 
@@ -260,6 +260,16 @@ class GoneException implements Exception {
 class ForbiddenException implements Exception {
   final String message;
   ForbiddenException(this.message);
+  @override
+  String toString() => message;
+}
+
+/// Error de negocio retornado por el servidor (4xx/5xx con mensaje del backend).
+/// Se diferencia de los errores de red para no envolver el mensaje en
+/// "Error de conexión con el servidor".
+class ServerException implements Exception {
+  final String message;
+  ServerException(this.message);
   @override
   String toString() => message;
 }

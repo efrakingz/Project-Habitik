@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
@@ -71,6 +72,18 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
     _entranceCtrl.forward();
     _cargarRachaSemanal();
+    _loadCompletedChallenges();
+  }
+
+  Future<void> _loadCompletedChallenges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateStr = DateTime.now().toIso8601String().substring(0, 10);
+    final user = SessionService().currentUser;
+    final key = 'completed_challenges_${user?.id}_$dateStr';
+    final completed = prefs.getStringList(key) ?? [];
+    if (completed.isNotEmpty && mounted) {
+      _completedNotifier.value = completed.toSet();
+    }
   }
 
   Future<void> _cargarRachaSemanal() async {
@@ -154,6 +167,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
       case 'wordle':
         gameWidget = EcoWordleScreen(
           onChallengeCompleted: () => _completeGame(id),
+          onChallengeAlreadyCompleted: () => _completeGame(id, showConfetti: false),
         );
         break;
       case 'trivia':
@@ -182,13 +196,24 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     });
   }
 
-  void _completeGame(String id) {
-    _completedNotifier.value = {..._completedNotifier.value, id};
+  void _completeGame(String id, {bool showConfetti = true}) async {
+    final newCompleted = {..._completedNotifier.value, id};
+    _completedNotifier.value = newCompleted;
     if (mounted) {
-      CelebrationConfetti.show(context);
-      LevelService.checkAndShowLevelUp(context);
+      if (showConfetti) {
+        CelebrationConfetti.show(context);
+        LevelService.checkAndShowLevelUp(context);
+      }
       _cargarRachaSemanal();
     }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dateStr = DateTime.now().toIso8601String().substring(0, 10);
+      final user = SessionService().currentUser;
+      final key = 'completed_challenges_${user?.id}_$dateStr';
+      await prefs.setStringList(key, newCompleted.toList());
+    } catch (_) {}
   }
 
   @override
