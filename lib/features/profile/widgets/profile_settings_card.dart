@@ -89,13 +89,26 @@ class ProfileSettingsCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: Text(
-                        'Modo Oscuro',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : HabitikColors.textDark,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Modo Oscuro',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : HabitikColors.textDark,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Sincronizado con el celular',
+                            style: TextStyle(
+                              color: isDark ? Colors.white54 : HabitikColors.textLight,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     ValueListenableBuilder<bool>(

@@ -20,46 +20,46 @@ class ProfileIdentityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Hero Header (Identity)
+        // Ultra-compact Profile Card (Identity + Inline Coins & Streak)
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            gradient: isDark 
-                ? null 
+            gradient: isDark
+                ? null
                 : const LinearGradient(
-                    colors: [HabitikColors.green50, Color(0xFFDFF0DF)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+                    colors: [HabitikColors.green50, Color(0xFFE8F5E9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
             color: isDark ? const Color(0xFF16221A) : null,
             borderRadius: HabitikRadius.xl_,
             border: Border.all(
-              color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green200.withValues(alpha: 0.6),
+              color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green200.withValues(alpha: 0.7),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: isDark 
-                    ? HabitikColors.green500.withValues(alpha: 0.05) 
-                    : HabitikColors.green900.withValues(alpha: 0.05),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 8),
+                color: isDark
+                    ? HabitikColors.green500.withValues(alpha: 0.05)
+                    : HabitikColors.green900.withValues(alpha: 0.06),
+                blurRadius: 16,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
-              // Avatar with Glow
+              // Avatar with subtle glow
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: _getGlowColor(user.nivel).withValues(alpha: 0.3),
-                      blurRadius: 30,
-                      spreadRadius: 2,
+                      color: _getGlowColor(user.nivel).withValues(alpha: 0.25),
+                      blurRadius: 14,
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
@@ -67,104 +67,99 @@ class ProfileIdentityCard extends StatelessWidget {
                   letra: user.avatarLetra,
                   colorHex: user.avatarColor,
                   avatarUrl: user.avatarUrl,
-                  radius: 48,
+                  radius: 28,
                   showBorder: true,
                 ),
               ).animate().scale(
-                begin: const Offset(0.8, 0.8),
-                duration: 600.ms,
+                begin: const Offset(0.85, 0.85),
+                duration: 400.ms,
                 curve: Curves.easeOutBack,
               ),
-              const SizedBox(height: 16),
-              
-              // Name & Email
-              Text(
-                user.nombre,
-                style: TextStyle(
-                  color: isDark ? Colors.white : HabitikColors.textDark,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
-              
-              if (user.email != null && user.email!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  user.email!,
-                  style: TextStyle(
-                    color: isDark ? Colors.white60 : HabitikColors.textLight,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ).animate().fadeIn(delay: 200.ms),
-              ],
-              
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  RolBadge(user.rol, fontSize: 12),
-                  if (user.familyName != null && user.familyName!.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E2E22) : HabitikColors.green50,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: HabitikColors.green200.withValues(alpha: 0.3)),
+              const SizedBox(width: 14),
+
+              // User Info (Name, Email, Role)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      user.nombre,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : HabitikColors.textDark,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.home_rounded, size: 14, color: HabitikColors.green600),
-                          const SizedBox(width: 4),
-                          Text(
-                            user.familyName!,
-                            style: TextStyle(
-                              color: isDark ? HabitikColors.green300 : HabitikColors.green800,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+
+                    if (user.email != null && user.email!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        user.email!,
+                        style: TextStyle(
+                          color: isDark ? Colors.white60 : HabitikColors.textLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+
+                    const SizedBox(height: 6),
+
+                    // Role Badge (Miembro / Jefe)
+                    RolBadge(user.rol, fontSize: 11),
                   ],
-                ],
-              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // Stats stacked on the right (Symmetrical & Tappable for info)
+              GestureDetector(
+                onTap: () => ProfileStatsInfoModal.show(context, isDark: isDark),
+                child: IntrinsicWidth(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Coins pill (🪙)
+                      _MiniStatBadge(
+                        icon: '🪙',
+                        value: '${user.monedas}',
+                        bgColor: isDark ? const Color(0xFF2E2412) : const Color(0xFFFFF8E7),
+                        textColor: isDark ? HabitikColors.amber300 : const Color(0xFFB78103),
+                        borderColor: HabitikColors.amber400.withValues(alpha: isDark ? 0.4 : 0.6),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Streak pill (🔥)
+                      _MiniStatBadge(
+                        icon: '🔥',
+                        value: '${user.rachaDias}',
+                        bgColor: isDark ? const Color(0xFF2E1A12) : const Color(0xFFFFF0EA),
+                        textColor: isDark ? HabitikColors.orange300 : const Color(0xFFD84315),
+                        borderColor: HabitikColors.orange500.withValues(alpha: isDark ? 0.4 : 0.6),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // Gamification Stats (Glassmorphism inspired)
-        XpProgressBar(xp: user.xp, nivel: user.nivel).animate().fadeIn(delay: 400.ms).slideX(begin: -0.05),
-        const SizedBox(height: 16),
-        
-        Row(
-          children: [
-            Expanded(
-              child: _GlassStatBadge(
-                icon: '🪙',
-                label: 'Monedas',
-                value: '${user.monedas}',
-                color: HabitikColors.amber400,
-                isDark: isDark,
-              ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _GlassStatBadge(
-                icon: '🔥',
-                label: 'Racha',
-                value: '${user.rachaDias} días',
-                color: HabitikColors.orange500,
-                isDark: isDark,
-              ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
-            ),
-          ],
-        ),
+        ).animate().fadeIn(duration: 350.ms),
+
+        const SizedBox(height: 12),
+
+        // Level / XP Progress Bar right below
+        XpProgressBar(xp: user.xp, nivel: user.nivel)
+            .animate()
+            .fadeIn(delay: 200.ms)
+            .slideY(begin: 0.05),
       ],
     );
   }
@@ -176,61 +171,222 @@ class ProfileIdentityCard extends StatelessWidget {
   }
 }
 
-class _GlassStatBadge extends StatelessWidget {
-  final String icon;
-  final String label;
-  final String value;
-  final Color color;
-  final bool isDark;
+/// Modal que explica las monedas y la racha del usuario
+abstract class ProfileStatsInfoModal {
+  static void show(BuildContext context, {required bool isDark}) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E2E22) : Colors.white,
+            borderRadius: HabitikRadius.xl_,
+            border: Border.all(
+              color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green500.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 44,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.info_rounded,
+                    color: isDark ? HabitikColors.green400 : HabitikColors.green700,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Tus Estadísticas',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : HabitikColors.textDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-  const _GlassStatBadge({
+              // Monedas explanation
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF262010) : const Color(0xFFFFF8E7),
+                  borderRadius: HabitikRadius.md_,
+                  border: Border.all(
+                    color: HabitikColors.amber400.withValues(alpha: isDark ? 0.3 : 0.5),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('🪙', style: TextStyle(fontSize: 26)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Estas son tus Monedas',
+                            style: TextStyle(
+                              color: isDark ? HabitikColors.amber300 : const Color(0xFF9E6C00),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Monedas acumuladas al completar retos y hábitos sostenibles. Úsalas para canjear recompensas en la tienda.',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : HabitikColors.textMid,
+                              fontSize: 12.5,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Racha explanation
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF281810) : const Color(0xFFFFF0EA),
+                  borderRadius: HabitikRadius.md_,
+                  border: Border.all(
+                    color: HabitikColors.orange500.withValues(alpha: isDark ? 0.3 : 0.5),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('🔥', style: TextStyle(fontSize: 26)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Este es tu Día de Racha',
+                            style: TextStyle(
+                              color: isDark ? HabitikColors.orange300 : const Color(0xFFC8380A),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Representa los días consecutivos que llevas realizando hábitos ecológicos. ¡Cumple al menos un hábito al día para mantener encendida la llama!',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : HabitikColors.textMid,
+                              fontSize: 12.5,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: HabitikColors.green700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    '¡Entendido!',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MiniStatBadge extends StatelessWidget {
+  final String icon;
+  final String value;
+  final Color bgColor;
+  final Color textColor;
+  final Color borderColor;
+
+  const _MiniStatBadge({
     required this.icon,
-    required this.label,
     required this.value,
-    required this.color,
-    required this.isDark,
+    required this.bgColor,
+    required this.textColor,
+    required this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      constraints: const BoxConstraints(minWidth: 62, minHeight: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF16221A) : HabitikColors.green50,
-        borderRadius: HabitikRadius.lg_,
-        border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.2 : 0.6),
-          width: 2.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: isDark ? 0.05 : 0.15),
-            blurRadius: 12,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.2),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 28)),
-          const SizedBox(height: 8),
+          Text(icon, style: const TextStyle(fontSize: 15)),
+          const SizedBox(width: 4),
           Text(
             value,
             style: TextStyle(
-              color: isDark ? Colors.white : HabitikColors.textDark,
-              fontSize: 20,
+              color: textColor,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
+              letterSpacing: -0.2,
             ),
           ),
         ],

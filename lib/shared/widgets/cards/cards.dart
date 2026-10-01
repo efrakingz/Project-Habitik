@@ -6,7 +6,11 @@ import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/badges/badges.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 
+export 'ranking_card.dart';
+export 'invite_qr_card.dart';
+
 // ChallengeCard – tarjeta de reto en el grid de gamificación
+
 
 class ChallengeCard extends StatelessWidget {
   final ChallengeType challenge;
@@ -1062,22 +1066,121 @@ class ValidationCard extends StatelessWidget {
 class HeroBannerCard extends StatelessWidget {
   final String emoji;
   final String title;
-  final String description;
+  final String? subtitle;
+  final String? description;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool compact;
+  final Widget? trailing;
 
   const HeroBannerCard({
     super.key,
     required this.emoji,
     required this.title,
-    required this.description,
+    this.subtitle,
+    this.description,
     this.actionLabel,
     this.onAction,
+    this.compact = false,
+    this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+
+    if (compact) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF16221A) : Colors.white,
+          borderRadius: HabitikRadius.lg_,
+          border: Border.all(
+            color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green200.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withValues(alpha: 0.2) : HabitikColors.green900.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? HabitikColors.green900.withValues(alpha: 0.35)
+                    : HabitikColors.green50,
+                borderRadius: HabitikRadius.md_,
+                border: Border.all(
+                  color: isDark
+                      ? HabitikColors.green700.withValues(alpha: 0.4)
+                      : HabitikColors.green200,
+                  width: 1,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                emoji,
+                style: const TextStyle(fontSize: 22),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (subtitle != null) ...[
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        color: isDark ? HabitikColors.green300 : HabitikColors.green700,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                  ],
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : HabitikColors.textDark,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (description != null && description!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      description!,
+                      style: TextStyle(
+                        color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
+                        fontSize: 11.5,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 10),
+              trailing!,
+            ],
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,
@@ -1099,6 +1202,18 @@ class HeroBannerCard extends StatelessWidget {
             curve: Curves.elasticOut,
           ),
           const SizedBox(height: 10),
+          if (subtitle != null) ...[
+            Text(
+              subtitle!,
+              style: TextStyle(
+                color: isDark ? HabitikColors.green300 : HabitikColors.green700,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
           Text(
             title,
             style: TextStyle(
@@ -1107,16 +1222,18 @@ class HeroBannerCard extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: TextStyle(
-              color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
-              fontSize: 12,
-              height: 1.4,
+          if (description != null && description!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              description!,
+              style: TextStyle(
+                color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
+                fontSize: 12,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 18),
             GestureDetector(

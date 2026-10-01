@@ -48,6 +48,9 @@ class _RootRouterState extends State<RootRouter> {
   }
 
   Future<void> _initSession() async {
+    // 0. Asegurar carga de tema en caché / celular
+    await ThemeService.init();
+
     // 1. Inicializar sesión guardada en caché (inmediato desde disco local)
     await _sessionService.init();
 

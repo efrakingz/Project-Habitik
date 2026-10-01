@@ -97,24 +97,28 @@ class ProfileFamilyList extends StatelessWidget {
             ),
           )
         else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: familyMembers.length,
-            itemBuilder: (context, index) {
-              final member = familyMembers[index];
+          Builder(
+            builder: (context) {
               final maxXP = familyMembers.fold<int>(
                 1,
                 (prev, elem) => elem.xp > prev ? elem.xp : prev,
               );
-              return RankingCard(
-                position: index + 1,
-                member: member,
-                maxXp: maxXP,
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: familyMembers.length,
+                itemBuilder: (context, index) {
+                  return RankingCard(
+                    position: index + 1,
+                    member: familyMembers[index],
+                    maxXp: maxXP,
+                  );
+                },
               );
             },
           ),
       ],
     );
+
   }
 }
