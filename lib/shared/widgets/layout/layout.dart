@@ -33,8 +33,12 @@ class ScreenShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
+      decoration: BoxDecoration(
+        gradient: isDark ? HabitikColors.heroGreenDark : HabitikColors.heroGreen,
+      ),
       child: SafeArea(
         bottom: false,
         child: Column(

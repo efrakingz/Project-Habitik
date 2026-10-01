@@ -14,6 +14,7 @@ Widget buildScreenHeader({
   bool showBackButton = false,
   EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(20, 16, 20, 12),
 }) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   return Padding(
     padding: padding,
     child: Row(
@@ -29,7 +30,7 @@ Widget buildScreenHeader({
               height: 34,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(50),
+                color: isDark ? Colors.white.withAlpha(25) : Colors.white.withAlpha(50),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
@@ -48,8 +49,8 @@ Widget buildScreenHeader({
                   if (subtitulo != null)
                     Text(
                       subtitulo,
-                      style: const TextStyle(
-                        color: HabitikColors.green200,
+                      style: TextStyle(
+                        color: isDark ? HabitikColors.green300 : HabitikColors.green200,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),

@@ -363,7 +363,7 @@ class _HudOverlayState extends State<HudOverlay> {
                               ? "⏳ Tiempo extendido (+8 min). Te recomendamos terminar pronto."
                               : isSolved
                                   ? "✨ ¡Meta mínima alcanzada! Puedes apagar la ducha cuando estés listo."
-                                  : "¡Báñate rápido! El botón se desbloqueará después de 4 minutos de ducha.",
+                                  : "¡Báñate rápido! El botón se desbloqueará después de 3 minutos de ducha.",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
                         color: Colors.white70,
@@ -379,7 +379,7 @@ class _HudOverlayState extends State<HudOverlay> {
                       duration: 300.ms,
                       child: Text(
                         !isSolved
-                            ? "🔒 Esperando 4 minutos..."
+                            ? "🔒 Esperando 3 minutos..."
                             : (game.elapsedShowerSeconds <= 300.0
                                 ? "🏆 ¡Récord Óptimo! (200 XP · 2 🪙)"
                                 : (game.elapsedShowerSeconds <= 480.0
@@ -421,7 +421,7 @@ class _HudOverlayState extends State<HudOverlay> {
                       if (isSolved) {
                         game.completeShower();
                       } else {
-                        _showWarning("⚠️ ¡Aún no han pasado 4 minutos!");
+                        _showWarning("⚠️ ¡Aún no han pasado 3 minutos!");
                       }
                     },
                     child: Container(
@@ -489,7 +489,7 @@ class _HudOverlayState extends State<HudOverlay> {
                   // Botón "Salir (Modo Programador)"
                   GestureDetector(
                     onTap: () {
-                      game.elapsedShowerSeconds = 180.0;
+                      // Evalúa con el tiempo real de la ducha
                       game.completeShower();
                     },
                     child: Container(

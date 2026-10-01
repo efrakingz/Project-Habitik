@@ -217,10 +217,10 @@ class VictoryOverlay extends StatelessWidget {
         
                         const SizedBox(height: 24),
         
-                        // Botón Entendido / Salir
+                        // Botón Reclamar Recompensa
                         GestureDetector(
                           onTap: () {
-                            game.closeGame();
+                            game.completeChallenge();
                           },
                           child: Container(
                             width: double.infinity,
@@ -240,7 +240,7 @@ class VictoryOverlay extends StatelessWidget {
                               ],
                             ),
                             child: Text(
-                              "¡ENTENDIDO!",
+                              "¡RECLAMAR RECOMPENSA! ✨",
                               style: GoogleFonts.outfit(
                                 color: Colors.white,
                                 fontSize: 15,

@@ -88,7 +88,7 @@ class _TriviaScreenState extends State<TriviaScreen> {
     if (confirm && mounted) {
       await _controller.finishGame();
       if (mounted) {
-        widget.onChallengeCompleted?.call();
+        // Al salir o abandonar la partida antes de completarla, no se marca el desafío como completado
         Navigator.of(context).pop();
       }
     }
@@ -153,7 +153,10 @@ class _TriviaScreenState extends State<TriviaScreen> {
       return TriviaResultView(
         result: _controller.finalResult!,
         onClose: () {
-          widget.onChallengeCompleted?.call();
+          final res = _controller.finalResult!;
+          if (res.correctCount > 0 || res.xpEarned > 0) {
+            widget.onChallengeCompleted?.call();
+          }
           Navigator.of(context).pop();
         },
       );

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../game/speedrun_game.dart';
 import '../game/models/speedrun_state.dart';
 
+import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/history_service.dart';
 import 'package:habitik/core/services/session_service.dart';
 
@@ -11,7 +12,7 @@ class ConfirmationOverlay extends StatelessWidget {
   final SpeedrunGame game;
   const ConfirmationOverlay({super.key, required this.game});
 
-  void _iniciarDuchaYNotificar(BuildContext context) {
+  void _iniciarDuchaYNotificar(BuildContext context) async {
     final user = SessionService().currentUser;
     final familyId = user?.familyId;
     final nombre = (user?.nombre != null && user!.nombre.isNotEmpty)
@@ -33,6 +34,17 @@ class ConfirmationOverlay extends StatelessWidget {
           'iniciado_en': DateTime.now().toIso8601String(),
         },
       );
+    }
+
+    // Registrar inicio de la ducha en el servidor de forma autoritaria
+    if (user?.id != null) {
+      try {
+        await ApiClient().post('/reto/ducha/iniciar', {
+          'user_id': user!.id,
+        });
+      } catch (err) {
+        debugPrint('Error notificando inicio de ducha al backend: $err');
+      }
     }
 
     // Iniciar la preparación (30 segundos para entrar)

@@ -31,6 +31,9 @@ class SpeedrunGame extends FlameGame {
   String tierBadge = "";
   String tierDesempeno = "";
 
+  // Razón de fallo en caso de no ser válida
+  ShowerFailureReason failureReason = ShowerFailureReason.tooShort;
+
   late BackgroundComponent background;
   void Function(String)? onWarning;
 
@@ -99,8 +102,12 @@ class SpeedrunGame extends FlameGame {
     gameStateNotifier.value = newState;
 
     // Cambiar overlays de forma atómica y limpia
-    overlays.clear();
-    overlays.add(newState.name);
+    try {
+      overlays.clear();
+      overlays.add(newState.name);
+    } catch (_) {
+      // Ignorar en tests unitarios sin árbol de widgets
+    }
 
     // Lógica especial al entrar al estado
     if (newState == SpeedrunState.preparing) {
@@ -155,6 +162,7 @@ class SpeedrunGame extends FlameGame {
       // Si superó los 10 minutos (600s), se considera automáticamente ducha excesiva (failure)
       if (elapsedShowerSeconds >= 600.0) {
         showerDurationSeconds = elapsedShowerSeconds;
+        failureReason = ShowerFailureReason.tooLong;
         _persistShowerLog(elapsedShowerSeconds.toInt(), isSuccess: false);
         gameState = SpeedrunState.failure;
       }
@@ -165,17 +173,23 @@ class SpeedrunGame extends FlameGame {
   void completeShower() {
     if (gameState == SpeedrunState.playing) {
       showerDurationSeconds = elapsedShowerSeconds;
+      final int duration = elapsedShowerSeconds.toInt();
 
-      // Si superó los 10 minutos (600s), se considera una ducha excesiva (failure)
-      if (elapsedShowerSeconds > 600.0) {
-        _persistShowerLog(elapsedShowerSeconds.toInt(), isSuccess: false);
+      if (duration < 180) {
+        // Menos de 3 minutos: fallo estricto anti-trampa
+        failureReason = ShowerFailureReason.tooShort;
+        _persistShowerLog(duration, isSuccess: false);
+        gameState = SpeedrunState.failure;
+      } else if (duration > 600) {
+        // Ducha excesiva: más de 10 minutos
+        failureReason = ShowerFailureReason.tooLong;
+        _persistShowerLog(duration, isSuccess: false);
         gameState = SpeedrunState.failure;
       } else {
-        // Ducha exitosa (entre 4 minutos y 10 minutos)
-        _persistShowerLog(elapsedShowerSeconds.toInt(), isSuccess: true);
+        // Ducha válida y exitosa (entre 3 y 10 minutos)
+        failureReason = ShowerFailureReason.tooShort;
+        _persistShowerLog(duration, isSuccess: true);
         gameState = SpeedrunState.success;
-        // Notificar al shell del reto que se completó con éxito
-        onChallengeCompleted?.call();
       }
     }
   }
@@ -185,92 +199,135 @@ class SpeedrunGame extends FlameGame {
     tierBadge = tier['badge'] ?? '🏆';
     tierTitulo = tier['titulo'] ?? '¡Ducha Completada!';
     tierDesempeno = tier['desempeno'] ?? '';
-    earnedXp = tier['xp'] ?? 50;
-    earnedMonedas = tier['monedas'] ?? 0;
+    earnedXp = (tier['valido'] == true) ? (tier['xp'] ?? 0) : 0;
+    earnedMonedas = (tier['valido'] == true) ? (tier['monedas'] ?? 0) : 0;
+
+    // Si la duración es menor a 180s o mayor a 600s, NUNCA otorgar recompensas
+    if (!isSuccess || durationSeconds < 180 || durationSeconds > 600) {
+      earnedXp = 0;
+      earnedMonedas = 0;
+      if (durationSeconds < 180) {
+        failureReason = ShowerFailureReason.tooShort;
+      } else {
+        failureReason = ShowerFailureReason.tooLong;
+      }
+
+      // Notificar al backend de la finalización para que mantenga sincronizada la sesión
+      try {
+        final current = SessionService().currentUser;
+        if (current?.id != null) {
+          await ApiClient().post('/reto/ducha/finalizar', {
+            'user_id': current!.id,
+          });
+        }
+      } catch (e) {
+        debugPrint('Finalización de ducha rechazada por backend (esperado para < 3min): $e');
+      }
+      return;
+    }
 
     try {
-      final response = await ApiClient().post('/reto/ducha', {
-        'duracion_segundos': durationSeconds,
+      final current = SessionService().currentUser;
+      final response = await ApiClient().post('/reto/ducha/finalizar', {
+        'user_id': current?.id,
       });
 
-      if (isSuccess) {
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          final body = jsonDecode(response.body);
-          Map<String, dynamic>? recompensas;
-          if (body is Map<String, dynamic>) {
-            if (body['recompensas'] is Map<String, dynamic>) {
-              recompensas = body['recompensas'];
-            } else if (body['data'] is Map<String, dynamic> &&
-                body['data']['recompensas'] is Map<String, dynamic>) {
-              recompensas = body['data']['recompensas'];
-            } else if (body['data'] is Map<String, dynamic>) {
-              recompensas = body['data'];
-            }
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = jsonDecode(response.body);
+        Map<String, dynamic>? recompensas;
+        if (body is Map<String, dynamic>) {
+          if (body['recompensas'] is Map<String, dynamic>) {
+            recompensas = body['recompensas'];
+          } else if (body['data'] is Map<String, dynamic> &&
+              body['data']['recompensas'] is Map<String, dynamic>) {
+            recompensas = body['data']['recompensas'];
+          } else if (body['data'] is Map<String, dynamic>) {
+            recompensas = body['data'];
           }
-
-          final current = SessionService().currentUser;
-          if (current != null) {
-            int baseScoreXp = earnedXp;
-            int baseScoreMonedas = earnedMonedas;
-
-            if (recompensas != null) {
-              baseScoreXp = recompensas['xp_ganada'] ??
-                  recompensas['xp_ganado'] ??
-                  recompensas['xp'] ??
-                  earnedXp;
-              baseScoreMonedas = recompensas['monedas_ganadas'] ??
-                  recompensas['monedas'] ??
-                  earnedMonedas;
-
-              if (recompensas['bonus_constancia'] == true ||
-                  body['bonus_constancia'] == true ||
-                  recompensas['bonus_diario'] == true) {
-                bonusConstancia = true;
-                bonusXp = 30;
-                bonusMonedas = 5;
-              }
-            }
-
-            earnedXp = baseScoreXp;
-            earnedMonedas = baseScoreMonedas;
-
-            final totalToApplyXp = earnedXp + (bonusConstancia ? bonusXp : 0);
-            final totalToApplyMonedas =
-                earnedMonedas + (bonusConstancia ? bonusMonedas : 0);
-
-            await SessionService().updateRewardsAndXp(
-              xp: (recompensas != null && recompensas['total_xp'] != null)
-                  ? (recompensas['total_xp'] as int)
-                  : (current.xp + totalToApplyXp),
-              monedas: (recompensas != null && recompensas['saldo_monedas'] != null)
-                  ? (recompensas['saldo_monedas'] as int)
-                  : (current.monedas + totalToApplyMonedas),
-              nivel: (recompensas != null && recompensas['nivel_actual'] != null)
-                  ? (recompensas['nivel_actual'] as int)
-                  : current.nivel,
-              rachaDias: (recompensas != null && recompensas['racha_dias'] != null)
-                  ? (recompensas['racha_dias'] as int)
-                  : current.rachaDias,
-            );
-
-            _notificarFamilia(durationSeconds, totalToApplyXp, totalToApplyMonedas);
-          }
-        } else {
-          await _applyLocalRewards(durationSeconds);
         }
+
+        if (current != null) {
+          int baseScoreXp = earnedXp;
+          int baseScoreMonedas = earnedMonedas;
+
+          if (recompensas != null) {
+            baseScoreXp = recompensas['xp_ganada'] ??
+                recompensas['xp_ganado'] ??
+                recompensas['xp'] ??
+                earnedXp;
+            baseScoreMonedas = recompensas['monedas_ganadas'] ??
+                recompensas['monedas'] ??
+                earnedMonedas;
+
+            if (recompensas['bonus_constancia'] == true ||
+                body['bonus_constancia'] == true ||
+                recompensas['bonus_diario'] == true) {
+              bonusConstancia = true;
+              bonusXp = 30;
+              bonusMonedas = 5;
+            }
+          }
+
+          earnedXp = baseScoreXp;
+          earnedMonedas = baseScoreMonedas;
+
+          final totalToApplyXp = earnedXp + (bonusConstancia ? bonusXp : 0);
+          final totalToApplyMonedas =
+              earnedMonedas + (bonusConstancia ? bonusMonedas : 0);
+
+          await SessionService().updateRewardsAndXp(
+            xp: (recompensas != null && recompensas['total_xp'] != null)
+                ? (recompensas['total_xp'] as int)
+                : (current.xp + totalToApplyXp),
+            monedas: (recompensas != null && recompensas['saldo_monedas'] != null)
+                ? (recompensas['saldo_monedas'] as int)
+                : (current.monedas + totalToApplyMonedas),
+            nivel: (recompensas != null && recompensas['nivel_actual'] != null)
+                ? (recompensas['nivel_actual'] as int)
+                : current.nivel,
+            rachaDias: (recompensas != null && recompensas['racha_dias'] != null)
+                ? (recompensas['racha_dias'] as int)
+                : current.rachaDias,
+          );
+
+          _notificarFamilia(durationSeconds, totalToApplyXp, totalToApplyMonedas);
+        }
+      } else {
+        await _applyLocalRewards(durationSeconds);
       }
     } catch (e) {
       debugPrint('Error persistiendo registro de ducha: $e');
-      if (isSuccess) {
+      final errorStr = e.toString().toLowerCase();
+      // Si el backend rechazó autoritariamente por ser menor a 3 minutos
+      if (errorStr.contains('menor a 3 minutos') ||
+          errorStr.contains('duración mínima') ||
+          errorStr.contains('rechazada')) {
+        failureReason = ShowerFailureReason.tooShort;
+        earnedXp = 0;
+        earnedMonedas = 0;
+        gameState = SpeedrunState.failure;
+        return;
+      }
+
+      if (isSuccess && durationSeconds >= 180 && durationSeconds <= 600) {
         await _applyLocalRewards(durationSeconds);
       }
     }
   }
 
   Future<void> _applyLocalRewards(int durationSeconds) async {
+    // Protección estricta: bajo ninguna condición otorgar recompensas a duchas < 3 min o > 10 min
+    if (durationSeconds < 180 || durationSeconds > 600) {
+      earnedXp = 0;
+      earnedMonedas = 0;
+      return;
+    }
+
     final current = SessionService().currentUser;
     if (current != null) {
       final tier = calculateTierRewards(durationSeconds);
+      if (tier['valido'] != true) return;
+
       tierBadge = tier['badge'] ?? '🏆';
       tierTitulo = tier['titulo'] ?? '¡Ducha Completada!';
       tierDesempeno = tier['desempeno'] ?? '';
@@ -307,6 +364,11 @@ class SpeedrunGame extends FlameGame {
         },
       );
     }
+  }
+
+  void completeChallenge() {
+    onChallengeCompleted?.call();
+    onGameClosed?.call();
   }
 
   void closeGame() {

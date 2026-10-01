@@ -53,7 +53,7 @@ class _HomeShellState extends State<HomeShell> {
       builder: (context, isDark, _) {
         return Scaffold(
           extendBody: true,
-          backgroundColor: isDark ? const Color(0xFF111D15) : HabitikColors.green700,
+          backgroundColor: isDark ? const Color(0xFF142419) : HabitikColors.green700,
           body: IndexedStack(
             index: _tab,
             children: _screens,

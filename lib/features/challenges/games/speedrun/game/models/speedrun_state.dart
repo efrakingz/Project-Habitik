@@ -7,3 +7,9 @@ enum SpeedrunState {
   success,
   failure,
 }
+
+enum ShowerFailureReason {
+  tooShort,
+  tooLong,
+}
+

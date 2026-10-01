@@ -438,7 +438,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                               ],
                             ),
                             child: Text(
-                              "¡RECLAMAR Y CONTINUAR! ✨",
+                              "¡RECLAMAR RECOMPENSA! ✨",
                               style: GoogleFonts.outfit(
                                 color: Colors.white,
                                 fontSize: 16,

@@ -194,9 +194,12 @@ class _ChallengesScreenState extends State<ChallengesScreen>
   @override
   Widget build(BuildContext context) {
     final streak = SessionService().currentUser?.rachaDias ?? 3;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
+      decoration: BoxDecoration(
+        gradient: isDark ? HabitikColors.heroGreenDark : HabitikColors.heroGreen,
+      ),
       child: SafeArea(
         bottom: false,
         child: ScreenShell(

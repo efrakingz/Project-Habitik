@@ -158,6 +158,12 @@ class HabitikColors {
     end: Alignment.bottomRight,
   );
 
+  static const Gradient heroGreenDark = LinearGradient(
+    colors: [Color(0xFF142419), Color(0xFF1D3725)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const Gradient xpGold = LinearGradient(
     colors: [Color(0xFFFFD600), Color(0xFFFF9800)],
     begin: Alignment.topLeft,
@@ -306,7 +312,7 @@ class AppTheme {
     ),
     scaffoldBackgroundColor: const Color(0xFF111D15),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF1A3322),
+      backgroundColor: Color(0xFF142419),
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,

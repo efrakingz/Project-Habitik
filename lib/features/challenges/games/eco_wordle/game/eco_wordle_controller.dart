@@ -229,7 +229,7 @@ class EcoWordleController extends ChangeNotifier {
           }
           if (context.mounted) {
             CelebrationConfetti.show(context);
-            onChallengeCompleted?.call();
+            // La compleción del desafío se invoca exclusivamente al pulsar el botón de reclamar recompensa en el overlay de victoria
           }
         } else if (result.estado == 'perdido') {
           _gameState = EcoWordleState.failure;

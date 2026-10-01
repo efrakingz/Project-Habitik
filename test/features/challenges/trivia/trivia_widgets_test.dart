@@ -173,11 +173,11 @@ void main() {
       expect(find.text('8'), findsOneWidget); // Aciertos
       expect(find.text('+360'), findsOneWidget); // XP
       expect(find.text('+1'), findsOneWidget); // Monedas
-      expect(find.text('VOLVER A DESAFÍOS'), findsOneWidget);
+      expect(find.text('¡RECLAMAR RECOMPENSA! ✨'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('VOLVER A DESAFÍOS'), 100);
+      await tester.scrollUntilVisible(find.text('¡RECLAMAR RECOMPENSA! ✨'), 100);
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('VOLVER A DESAFÍOS'));
+      await tester.tap(find.text('¡RECLAMAR RECOMPENSA! ✨'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(closed, isTrue);
     });

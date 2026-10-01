@@ -17,10 +17,18 @@ class FailureOverlay extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        // Formatear duración final de la ducha excesiva
+        // Formatear duración final de la ducha
         final durationMinutes = (game.showerDurationSeconds / 60).floor();
         final durationSeconds = (game.showerDurationSeconds % 60).floor();
         final durationStr = "${durationMinutes}m ${durationSeconds.toString().padLeft(2, '0')}s";
+
+        final bool isTooShort = game.failureReason == ShowerFailureReason.tooShort ||
+            game.showerDurationSeconds < 180.0;
+
+        final Color primaryColor = isTooShort ? const Color(0xFFE65100) : const Color(0xFFC62828);
+        final Color cardBorderColor = isTooShort
+            ? const Color(0xFFFFB74D).withValues(alpha: 0.5)
+            : Colors.redAccent.withValues(alpha: 0.3);
 
         return Container(
           color: Colors.black.withValues(alpha: 0.75), // Fondo sombreado
@@ -39,7 +47,7 @@ class FailureOverlay extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 2.0),
+                    border: Border.all(color: cardBorderColor, width: 2.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.15),
@@ -58,14 +66,14 @@ class FailureOverlay extends StatelessWidget {
                           Container(
                             width: 80,
                             height: 80,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFEEBEE),
+                            decoration: BoxDecoration(
+                              color: isTooShort ? const Color(0xFFFFF3E0) : const Color(0xFFFEEBEE),
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const Text(
-                            "🚿⚠️",
-                            style: TextStyle(fontSize: 36),
+                          Text(
+                            isTooShort ? "⏱️⚠️" : "🚿⚠️",
+                            style: const TextStyle(fontSize: 36),
                           )
                               .animate()
                               .scale(begin: const Offset(0.0, 0.0), end: const Offset(1.0, 1.0), duration: 600.ms, curve: Curves.elasticOut),
@@ -75,9 +83,10 @@ class FailureOverlay extends StatelessWidget {
         
                       // Título
                       Text(
-                        "¡DUCHA EXCESIVA!",
+                        isTooShort ? "¡DUCHA INCOMPLETA!" : "¡DUCHA EXCESIVA!",
+                        textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
-                          color: const Color(0xFFC62828),
+                          color: primaryColor,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
@@ -86,7 +95,10 @@ class FailureOverlay extends StatelessWidget {
                       const SizedBox(height: 8),
                       
                       Text(
-                        "Te tardaste más de los 10 minutos recomendados.",
+                        isTooShort
+                            ? "Tu ducha duró solo $durationStr. El reto Speedrun requiere un mínimo de 3 minutos para registrarse."
+                            : "Te tardaste más de los 10 minutos recomendados.",
+                        textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           color: const Color(0xFF546E7A),
                           fontSize: 13,
@@ -98,29 +110,39 @@ class FailureOverlay extends StatelessWidget {
                       const Divider(height: 1),
                       const SizedBox(height: 16),
         
-                      // Estadísticas de consumo excesivo
+                      // Estadísticas
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildStatCol("TU TIEMPO", durationStr, Icons.timer_rounded, Colors.redAccent),
+                          _buildStatCol("TU TIEMPO", durationStr, Icons.timer_rounded, primaryColor),
+                          _buildStatCol(
+                            "ESTADO",
+                            isTooShort ? "No Válida" : "Excesiva",
+                            isTooShort ? Icons.timer_off_rounded : Icons.warning_amber_rounded,
+                            Colors.redAccent,
+                          ),
+                          _buildStatCol("RECOMPENSA", "0 XP", Icons.stars_rounded, Colors.grey.shade600),
                         ],
                       ).animate().fadeIn(delay: 250.ms),
                       const SizedBox(height: 16),
         
-                      // Mensaje ecológico reflexivo
+                      // Mensaje ecológico / anti-trampa reflexivo
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
+                          color: isTooShort ? const Color(0xFFFFF8E1) : const Color(0xFFFFEBEE),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFFFCDD2), width: 1.0),
+                          border: Border.all(
+                            color: isTooShort ? const Color(0xFFFFE082) : const Color(0xFFFFCDD2),
+                            width: 1.0,
+                          ),
                         ),
                         child: Column(
                           children: [
                             Text(
-                              "¿SABÍAS QUÉ?",
+                              isTooShort ? "¿POR QUÉ NO ES VÁLIDA?" : "¿SABÍAS QUÉ?",
                               style: GoogleFonts.outfit(
-                                color: const Color(0xFFC62828),
+                                color: primaryColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.0,
@@ -128,10 +150,12 @@ class FailureOverlay extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Para una ducha verdaderamente sostenible, el tiempo límite máximo es de 10 minutos. Cada minuto adicional gasta unos 12 litros de agua limpia.",
+                              isTooShort
+                                  ? "Para fomentar un aseo adecuado y prevenir registros erróneos o fraudulentos, el reto Speedrun exige un mínimo de 3 minutos (180 segundos). ¡Toma tu ducha real y vuelve a intentarlo!"
+                                  : "Para una ducha verdaderamente sostenible, el tiempo límite máximo es de 10 minutos. Cada minuto adicional gasta unos 12 litros de agua limpia.",
                               textAlign: TextAlign.center,
                               style: GoogleFonts.outfit(
-                                color: const Color(0xFFC62828),
+                                color: isTooShort ? const Color(0xFFBF360C) : const Color(0xFFC62828),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 height: 1.4,
@@ -154,13 +178,15 @@ class FailureOverlay extends StatelessWidget {
                           height: 52,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFC62828), Color(0xFFE53935)],
+                            gradient: LinearGradient(
+                              colors: isTooShort
+                                  ? const [Color(0xFFE65100), Color(0xFFFF9800)]
+                                  : const [Color(0xFFC62828), Color(0xFFE53935)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFC62828).withValues(alpha: 0.3),
+                                color: primaryColor.withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 6),
                               )
