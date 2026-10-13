@@ -88,7 +88,7 @@ void main() {
       expect(find.textContaining('Faltan 1500 XP'), findsOneWidget);
     });
 
-    testWidgets('FamilyRankingSection ordena por semanal/mensual y muestra rachas (CA-4.1-2)', (
+    testWidgets('FamilyRankingSection muestra miembros, puntos, rachas y roles (CA-4.1-2)', (
       tester,
     ) async {
       final members = [
@@ -97,7 +97,6 @@ void main() {
           nombre: 'Hijo',
           rol: 'miembro',
           xp: 800,
-          xpSemanal: 500, // Top semanal
           nivel: 3,
           rachaDias: 8,
           avatarLetra: 'H',
@@ -107,8 +106,7 @@ void main() {
           id: '2',
           nombre: 'Mamá',
           rol: 'jefe',
-          xp: 2000, // Top mensual
-          xpSemanal: 300,
+          xp: 2000,
           nivel: 5,
           rachaDias: 14,
           avatarLetra: 'M',
@@ -126,20 +124,15 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Por defecto arranca en Semanal -> Hijo debe tener 500 XP
       expect(find.text('Ranking Familiar'), findsOneWidget);
-      expect(find.text('Semanal'), findsOneWidget);
-      expect(find.text('Mensual'), findsOneWidget);
-      expect(find.text('500 XP'), findsOneWidget);
+      expect(find.text('2 miembros'), findsOneWidget);
+      expect(find.text('Hijo'), findsOneWidget);
+      expect(find.text('Mamá'), findsOneWidget);
+      expect(find.text('800 XP'), findsOneWidget);
+      expect(find.text('2000 XP'), findsOneWidget);
       expect(find.textContaining('8 d'), findsOneWidget); // Racha Hijo
       expect(find.textContaining('14 d'), findsOneWidget); // Racha Mamá
-
-      // Cambiar a filtro Mensual
-      await tester.tap(find.text('Mensual'));
-      await tester.pumpAndSettle();
-
-      // En mensual, Mamá tiene 2000 XP
-      expect(find.text('2000 XP'), findsOneWidget);
+      expect(find.text('Jefe'), findsOneWidget); // Tag de Jefe
     });
 
     testWidgets('FamilyFeedCard muestra reto y permite reaccionar (CA-4.1-3)', (

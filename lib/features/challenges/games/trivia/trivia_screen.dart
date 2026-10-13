@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/modals/confirm_dialog.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'models/trivia_question.dart';
 import 'trivia_controller.dart';
 import 'widgets/trivia_header.dart';
@@ -388,43 +388,10 @@ class _TriviaScreenState extends State<TriviaScreen> {
   }
 
   Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              size: 48,
-              color: Color(0xFFE53935),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              _controller.errorMessage ??
-                  'Ocurrió un error inesperado al conectar.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: HabitikColors.textMid,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () => _controller.retry(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('REINTENTAR'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9C27B0),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return HabitikErrorView(
+      message: _controller.errorMessage ??
+          'Ocurrió un error inesperado al conectar.',
+      onRetry: () => _controller.retry(),
     );
   }
 }

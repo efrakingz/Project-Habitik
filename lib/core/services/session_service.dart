@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import '../../data/models/user.dart';
 import 'api_client.dart';
 import 'background_service.dart';
@@ -84,14 +83,20 @@ class SessionService {
     }
   }
 
-  /// Guarda temporalmente email y contraseña para re-login silencioso de fondo.
-  Future<void> saveCredentials(String email, String pwd) async {
-    await _prefs?.setString('temp_email', email);
-    await _prefs?.setString('temp_pwd', pwd);
+  /// Guarda el último email utilizado para recordar al usuario de forma segura.
+  Future<void> saveLastEmail(String email) async {
+    await _prefs?.setString('last_email', email);
+    // Eliminar claves legadas inseguras si existiesen en el dispositivo
+    await _prefs?.remove('temp_pwd');
+    await _prefs?.remove('temp_email');
   }
 
-  String? get tempEmail => _prefs?.getString('temp_email');
-  String? get tempPwd => _prefs?.getString('temp_pwd');
+  String? get lastEmail => _prefs?.getString('last_email');
+
+  @Deprecated('No guardar contraseñas en almacenamiento no seguro. Usar saveLastEmail.')
+  Future<void> saveCredentials(String email, [String? pwd]) async {
+    await saveLastEmail(email);
+  }
 
   /// Evalúa si el token JWT ya expiró o expira en los próximos 2 minutos
   bool isTokenExpired(String? jwtToken) {
@@ -115,37 +120,8 @@ class SessionService {
     return false;
   }
 
-  /// Ejecuta un inicio de sesión silencioso en segundo plano con las credenciales guardadas
+  /// Intento de refresco de sesión transparente (se conectará a refresh token cuando el backend lo exponga)
   Future<bool> silentRelogin() async {
-    final email = tempEmail;
-    final pwd = tempPwd;
-    if (email == null || email.isEmpty || pwd == null || pwd.isEmpty) {
-      return false;
-    }
-
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiClient.baseUrl}/auth/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': pwd,
-        }),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final newToken = data['token_jwt'];
-        final newProfile = UserProfile.fromJson(data['profile']);
-        await saveSession(token: newToken, profile: newProfile);
-        return true;
-      }
-    } catch (e) {
-      debugPrint("Re-login silencioso no completado: $e");
-    }
     return false;
   }
 

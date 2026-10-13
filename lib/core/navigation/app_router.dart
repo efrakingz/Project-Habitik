@@ -77,18 +77,17 @@ class _RootRouterState extends State<RootRouter> {
   void _evaluateNavigation() {
     if (!_initialized) return;
 
-    // Si NO hay conexión a internet, bloquear el ingreso
-    if (!NetworkService().isConnected) {
-      return;
-    }
-
     if (_sessionService.hasSession) {
       if (_sessionService.isOnboardingCompleted) {
         setState(() => _state = AppState.home);
       } else {
+        // El onboarding requiere conexión para configurar el hogar
+        if (!NetworkService().isConnected) return;
         setState(() => _state = AppState.onboarding);
       }
     } else {
+      // El inicio de sesión requiere conexión
+      if (!NetworkService().isConnected) return;
       setState(() => _state = AppState.login);
     }
   }

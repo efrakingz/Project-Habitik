@@ -5,13 +5,22 @@ import 'package:http/http.dart' as http;
 import 'session_service.dart';
 
 class ApiClient {
-  /// IP local de la computadora en la red Wi-Fi / Ethernet
-  static const String localIp = '192.168.1.16';
+  /// IP local configurable por flag de compilación: --dart-define=API_LOCAL_IP=192.168.x.x
+  static const String localIp = String.fromEnvironment(
+    'API_LOCAL_IP',
+    defaultValue: '192.168.1.16',
+  );
+
+  /// URL de backend configurable por flag de compilación: --dart-define=API_BASE_URL=https://...
+  static const String configuredBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '',
+  );
 
   /// Servidor backend:
   /// - En Web o Desktop usa localhost:3000.
   /// - En emulador Android usa 10.0.2.2:3000 (el túnel directo de QEMU a localhost de Windows).
-  /// - En dispositivos móviles físicos usa la IP local (192.168.1.16:3000).
+  /// - En dispositivos móviles físicos usa la IP local ($localIp:3000).
   static String get localBaseUrl {
     if (kIsWeb) return 'http://localhost:3000';
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
@@ -23,8 +32,10 @@ class ApiClient {
   static String productionBaseUrl =
       'https://backendhabitik-production-dd43.up.railway.app';
 
-  /// URL activa del backend (por defecto local cuando se está desarrollando)
-  static String baseUrl = productionBaseUrl;
+  /// URL activa del backend (prioriza API_BASE_URL si fue inyectada por flag)
+  static String baseUrl = configuredBaseUrl.isNotEmpty
+      ? configuredBaseUrl
+      : productionBaseUrl;
 
   /// Permite alternar y configurar la URL base del backend
   static void setBaseUrl(String url) {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'game/rewards_controller.dart';
 import 'widgets/rewards_hud_overlay.dart';
-import 'widgets/rewards_error_view.dart';
 import 'widgets/create_reward_dialog.dart';
 
 class RewardsScreen extends StatefulWidget {
@@ -321,7 +321,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
       );
     }
     if (_controller.state == RewardsState.error) {
-      return RewardsErrorView(
+      return HabitikErrorView(
         message: _controller.errorMessage ?? 'Error desconocido',
         onRetry: _controller.loadRewards,
       );

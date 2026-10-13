@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 
 /// Sección de Ranking Familiar (CA-4.1-2).
 /// Diseñada en un cuadro idéntico al Feed de Actividad, compacto y sin espacios sobrantes.
@@ -121,30 +122,9 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
                   ),
                 )
               else if (widget.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          'Error al cargar miembros: ${widget.errorMessage}',
-                          style: TextStyle(
-                            color: isDark ? Colors.redAccent : Colors.red.shade800,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (widget.onRetry != null) ...[
-                          const SizedBox(height: 6),
-                          TextButton.icon(
-                            onPressed: widget.onRetry,
-                            icon: const Icon(Icons.refresh, size: 16),
-                            label: const Text('Reintentar', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                HabitikErrorView.compact(
+                  message: 'Error al cargar miembros: ${widget.errorMessage}',
+                  onRetry: widget.onRetry,
                 )
               else if (widget.members.isEmpty)
                 Padding(

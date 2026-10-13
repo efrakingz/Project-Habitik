@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/stats/stats.dart';
-import 'package:habitik/shared/widgets/buttons/buttons.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 
 class ProfileFamilyList extends StatelessWidget {
   final bool loading;
@@ -58,33 +58,9 @@ class ProfileFamilyList extends StatelessWidget {
             ),
           )
         else if (errorMessage != null)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C1E1E) : Colors.red.shade50,
-              borderRadius: HabitikRadius.md_,
-              border: Border.all(
-                color: isDark ? Colors.redAccent.withAlpha(50) : Colors.red.shade200,
-              ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Error al cargar miembros: $errorMessage',
-                  style: TextStyle(
-                    color: isDark ? Colors.redAccent : Colors.red.shade800,
-                    fontSize: 13,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                SecondaryButton(
-                  label: 'Reintentar',
-                  onTap: onRetry,
-                  color: Colors.redAccent,
-                ),
-              ],
-            ),
+          HabitikErrorView.compact(
+            message: 'Error al cargar miembros: $errorMessage',
+            onRetry: onRetry,
           )
         else if (familyMembers.isEmpty)
           Container(

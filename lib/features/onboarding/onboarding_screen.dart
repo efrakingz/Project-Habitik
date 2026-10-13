@@ -7,7 +7,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
-import 'package:habitik/data/models/user.dart';
 import 'package:habitik/shared/widgets/layout/loading_overlay.dart';
 
 import 'widgets/onboarding_progress_header.dart';
@@ -258,39 +257,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final data = jsonDecode(response.body);
       final family = data['family'];
 
-      final email = SessionService().tempEmail;
-      final pwd = SessionService().tempPwd;
-      if (email != null && pwd != null) {
-        try {
-          final loginRes = await ApiClient().post('/auth/login', {
-            'email': email,
-            'password': pwd,
-          });
-          final loginData = jsonDecode(loginRes.body);
-          final newToken = loginData['token_jwt'];
-          final newProfile = UserProfile.fromJson(loginData['profile']).copyWith(
-            familyId: family['id'],
-            familyName: family['nombre'],
-            rol: 'miembro',
-          );
-          await SessionService().saveSession(token: newToken, profile: newProfile);
-        } catch (_) {
-          if (user != null) {
-            final updatedProfile = user.copyWith(
-              familyId: family['id'],
-              familyName: family['nombre'],
-              rol: 'miembro',
-            );
-            await SessionService().saveSession(token: SessionService().token ?? '', profile: updatedProfile);
-          }
-        }
-      } else if (user != null) {
+      if (user != null) {
         final updatedProfile = user.copyWith(
           familyId: family['id'],
           familyName: family['nombre'],
           rol: 'miembro',
         );
-        await SessionService().saveSession(token: SessionService().token ?? '', profile: updatedProfile);
+        await SessionService().saveSession(
+          token: SessionService().token ?? '',
+          profile: updatedProfile,
+        );
       }
 
       _showSuccess('¡Te has unido con éxito a la ${family['nombre']}!');
