@@ -10,16 +10,25 @@ import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  final int? initialTab;
+  const HomeShell({super.key, this.initialTab});
 
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _tab = 0;
+  late int _tab;
   final _sessionService = SessionService();
   bool _hideNavbar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final isJefe = _sessionService.currentUser?.isJefe ?? false;
+    // Si se especifica initialTab se respeta; por defecto el miembro inicia en Retos (índice 1) y el jefe en Inicio (0)
+    _tab = widget.initialTab ?? (isJefe ? 0 : 1);
+  }
 
   List<Widget> _buildScreens(bool isJefe) {
     return isJefe

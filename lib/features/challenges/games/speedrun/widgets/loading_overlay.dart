@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import '../game/speedrun_game.dart';
 
 class LoadingOverlay extends StatefulWidget {
@@ -206,25 +208,34 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                       alignment: Alignment.center,
                       children: [
                         Container(
-                          width: 120,
-                          height: 120,
-                          decoration: const BoxDecoration(
-                            color: Colors.white24,
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            color: const Color(0xFFE0F2FE),
+                            border: Border.all(
+                              color: const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+                              width: 2.0,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
                         )
                             .animate(onPlay: (c) => c.repeat(reverse: true))
-                            .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 1500.ms),
+                            .scale(begin: const Offset(0.92, 0.92), end: const Offset(1.08, 1.08), duration: 1500.ms, curve: Curves.easeInOut),
                         
-                        // Icono de burbujas/baño
-                        const Text(
-                          "🧼🫧",
-                          style: TextStyle(fontSize: 58),
+                        // Ícono de gota consistente con el resto de pantallas
+                        const GameChallengeIcon(
+                          challengeId: 'ducha',
+                          size: 58,
                         )
                             .animate(onPlay: (c) => c.repeat(reverse: true))
-                            .slideY(begin: -0.1, end: 0.1, duration: 1000.ms, curve: Curves.easeInOut)
-                            .then()
-                            .shake(hz: 2, curve: Curves.easeInOut),
+                            .scale(begin: const Offset(0.92, 0.92), end: const Offset(1.08, 1.08), duration: 1200.ms, curve: Curves.easeInOut),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -264,22 +275,27 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                     
                     const SizedBox(height: 54),
                     
-                    // Caja de consejos ecológicos
+                    // Caja de consejos ecológicos estilo Habitik 3D
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.45),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: const Color(0xFF0EA5E9).withValues(alpha: 0.35),
                           width: 2.0,
                         ),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
+                            color: Color(0xFFBAE6FD),
+                            offset: Offset(0, 4), // Relieve 3D inferior
+                            blurRadius: 0,
+                          ),
+                          BoxShadow(
+                            color: Color(0x1F0284C7),
+                            blurRadius: 16,
+                            offset: Offset(0, 8),
+                          ),
                         ],
                       ),
                       child: Column(
@@ -287,12 +303,12 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.eco_rounded, color: Color(0xFF2E7D32), size: 20),
+                              const Icon(Icons.eco_rounded, color: Color(0xFF10B981), size: 20),
                               const SizedBox(width: 8),
                               Text(
                                 "CONSEJO DE AHORRO",
                                 style: GoogleFonts.outfit(
-                                  color: const Color(0xFF2E7D32),
+                                  color: const Color(0xFF047857),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1.0,
@@ -300,7 +316,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           AnimatedSwitcher(
                             duration: 400.ms,
                             transitionBuilder: (Widget child, Animation<double> animation) {
@@ -311,10 +327,10 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                               key: ValueKey<int>(_currentTipIndex),
                               textAlign: TextAlign.center,
                               style: GoogleFonts.outfit(
-                                color: const Color(0xFF1B4965),
+                                color: HabitikColors.textDark,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                height: 1.5,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
                               ),
                             ),
                           ),

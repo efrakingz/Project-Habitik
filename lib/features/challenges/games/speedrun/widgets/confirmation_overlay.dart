@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import '../game/speedrun_game.dart';
 import '../game/models/speedrun_state.dart';
 
@@ -27,7 +29,7 @@ class ConfirmationOverlay extends StatelessWidget {
         titulo: '🚿 ¡Hora de la Ducha!',
         mensaje: '¡$nombre ha comenzado a bañarse en modo Speedrun! Ahorrando agua en el hogar.',
         tipo: 'DUCHA_SPEEDRUN',
-        visual: {'icon': 'shower', 'color': '#00ACC1'},
+        visual: const {'icon': 'shower', 'color': '#00ACC1'},
         payload: {
           'juego': 'speedrun_ducha',
           'usuario_nombre': nombre,
@@ -54,14 +56,14 @@ class ConfirmationOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withValues(alpha: 0.6), // Sombra de fondo
+      color: Colors.black.withValues(alpha: 0.45), // Sombra de fondo estándar Habitik
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 48.0, // restamos el padding vertical del scrollview (24 * 2)
+                minHeight: constraints.maxHeight - 48.0,
               ),
               child: Center(
                 child: Container(
@@ -69,93 +71,138 @@ class ConfirmationOverlay extends StatelessWidget {
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.2), width: 2.0),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+                      width: 2.0,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 25,
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.18),
+                        blurRadius: 30,
                         offset: const Offset(0, 12),
-                      )
+                      ),
+                      const BoxShadow(
+                        color: Color(0xFFBAE6FD),
+                        blurRadius: 0,
+                        offset: Offset(0, 5), // Relieve 3D inferior
+                      ),
                     ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Icono de campana/alerta familiar
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFF3E0),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.notification_important_rounded,
-                            color: Color(0xFFFF9800),
-                            size: 38,
+                      // Icono con halo y microanimación
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE0F2FE),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF0EA5E9).withValues(alpha: 0.3),
+                                width: 1.5,
+                              ),
+                            ),
                           ),
-                        ),
-                      )
-                          .animate(onPlay: (c) => c.repeat(reverse: true))
-                          .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 1000.ms, curve: Curves.easeInOut),
+                          const GameChallengeIcon(
+                            challengeId: 'ducha',
+                            size: 44,
+                          )
+                              .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .scale(
+                                begin: const Offset(0.92, 0.92),
+                                end: const Offset(1.08, 1.08),
+                                duration: 1000.ms,
+                                curve: Curves.easeInOut,
+                              ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
-                      
+
                       // Título
                       Text(
                         "¿Listo para bañarte?",
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFF0F2B48),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Explicación
-                      Text(
-                        "Tendrás 30 segundos para entrar a la ducha. Después, el cronómetro empezará a subir y no podrás detenerlo hasta secarte las manos.",
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
-                          color: const Color(0xFF546E7A),
+                          color: HabitikColors.textDark,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Explicación
+                      Text(
+                        "Tendrás 30 segundos de preparación para entrar a la ducha. Luego el cronómetro correrá automáticamente.",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          color: HabitikColors.textMid,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          height: 1.4,
+                          height: 1.35,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Alerta de notificación familiar (Solicitado por el usuario)
+
+                      // Tarjeta de Alerta Familiar en vivo
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF3E0),
+                          color: const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFFFE0B2), width: 1.0),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                            width: 1.5,
+                          ),
                         ),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("📢", style: TextStyle(fontSize: 18)),
-                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Text("📢", style: TextStyle(fontSize: 18)),
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                "¡Les llegará una notificación a toda la familia de que te estás bañando!",
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFFE65100),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.4,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "AVISO FAMILIAR",
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFF92400E),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Tu familia verá en el muro del hogar que estás ahorrando agua.",
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFF78350F),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.25,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      
-                      // Botón Sí
+                      const SizedBox(height: 22),
+
+                      // Botón Primario Chunky 3D
                       GestureDetector(
                         onTap: () => _iniciarDuchaYNotificar(context),
                         child: Container(
@@ -164,15 +211,20 @@ class ConfirmationOverlay extends StatelessWidget {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF00ACC1), Color(0xFF00838F)],
+                              colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
                             ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: const [
                               BoxShadow(
-                                color: const Color(0xFF00ACC1).withValues(alpha: 0.35),
+                                color: Color(0xFF0369A1),
+                                offset: Offset(0, 4), // Relieve 3D
+                                blurRadius: 0,
+                              ),
+                              BoxShadow(
+                                color: Color(0x330284C7),
                                 blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              )
+                                offset: Offset(0, 6),
+                              ),
                             ],
                           ),
                           child: Text(
@@ -186,9 +238,9 @@ class ConfirmationOverlay extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      
-                      // Botón Cancelar
+                      const SizedBox(height: 12),
+
+                      // Botón Secundario Relieve
                       GestureDetector(
                         onTap: () {
                           game.gameState = SpeedrunState.start;
@@ -198,14 +250,24 @@ class ConfirmationOverlay extends StatelessWidget {
                           height: 48,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: const Color(0xFFE2E8F0),
+                              width: 1.5,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0xFFCBD5E1),
+                                offset: Offset(0, 3), // Relieve 3D inferior
+                                blurRadius: 0,
+                              ),
+                            ],
                           ),
                           child: Text(
                             "No, todavía no",
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF546E7A),
+                              color: HabitikColors.textMid,
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                             ),
@@ -219,7 +281,7 @@ class ConfirmationOverlay extends StatelessWidget {
             ),
           );
         },
-      ).animate().fadeIn(duration: 350.ms).scale(begin: const Offset(0.95, 0.95)),
+      ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.96, 0.96)),
     );
   }
 }
