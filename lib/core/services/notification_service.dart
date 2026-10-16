@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -232,24 +233,50 @@ class NotificationService {
     String? deduplicationKey,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final key = deduplicationKey ?? '${id}_${titulo}_$cuerpo';
 
-    // Si la misma notificación se disparó hace menos de 3 segundos, ignorar el duplicado
-    if (_ultimasNotificaciones.containsKey(key)) {
-      final lastTime = _ultimasNotificaciones[key]!;
-      if (now - lastTime < 3000) {
-        debugPrint('🛡️ [NotificationService] Notificación duplicada bloqueada: $titulo');
+    // Normalizar para evitar discrepancias por emojis, espacios o mayúsculas
+    final String cleanTitle = titulo
+        .replaceAll(RegExp(r'^[^\w\s]+'), '')
+        .trim()
+        .toLowerCase();
+    final String cleanBody = cuerpo
+        .replaceAll(RegExp(r'^[^\w\s]+'), '')
+        .trim()
+        .toLowerCase();
+    final String normKey = deduplicationKey ?? '${cleanTitle}_$cleanBody';
+
+    // 1. Verificación en memoria del isolate actual
+    if (_ultimasNotificaciones.containsKey(normKey)) {
+      final lastTime = _ultimasNotificaciones[normKey]!;
+      if (now - lastTime < 4000) {
+        debugPrint('🛡️ [NotificationService] Notificación duplicada bloqueada (en memoria): $titulo');
         return;
       }
     }
-    _ultimasNotificaciones[key] = now;
+    _ultimasNotificaciones[normKey] = now;
     _ultimasNotificaciones.removeWhere((k, t) => now - t > 15000);
+
+    // 2. Verificación inter-isolate persistente (para sincronizar BackgroundService y Foreground)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final lastCrossTime = prefs.getInt('notif_ts_$normKey');
+      if (lastCrossTime != null && (now - lastCrossTime < 4000)) {
+        debugPrint('🛡️ [NotificationService] Notificación duplicada bloqueada (inter-isolate): $titulo');
+        return;
+      }
+      await prefs.setInt('notif_ts_$normKey', now);
+    } catch (_) {}
 
     final pref = obtenerPreferencias(tipo);
 
     final String tituloFormateado = titulo.startsWith(pref.prefijoEmoji)
         ? titulo
         : '${pref.prefijoEmoji} $titulo';
+
+    // ID determinista para que el sistema operativo reemplace en vez de apilar duplicados
+    final deterministicId = (normKey.hashCode.abs() % 100000);
+    final targetId = id != 0 ? id : deterministicId;
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -272,7 +299,7 @@ class NotificationService {
     );
 
     await _notificationsPlugin.show(
-      id,
+      targetId,
       tituloFormateado,
       cuerpo,
       platformChannelSpecifics,

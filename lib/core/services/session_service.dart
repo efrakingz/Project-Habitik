@@ -161,27 +161,8 @@ class SessionService {
             userId: p.id,
             backendUrl: ApiClient.baseUrl,
           );
-          SocketService.initSocket(p.familyId!, (data) async {
-            debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
-            try {
-              final String notifKey = '${data['id'] ?? data['titulo']}_${data['tipo'] ?? 'ALERTA'}';
-              final int notifId = notifKey.hashCode.abs() % 100000;
-              final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
-              final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
-              final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
-
-              await NotificationService.mostrarNotificacionSistema(
-                id: notifId,
-                titulo: '$sender: $titulo',
-                cuerpo: cuerpo,
-                tipo: data['tipo'],
-                deduplicationKey: notifKey,
-                payload: jsonEncode(data),
-              );
-            } catch (e) {
-              debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
-            }
-          });
+          // Conectar socket en primer plano para eventos reactivos de la UI
+          SocketService.initSocket(p.familyId!);
         }
       } catch (e) {
         final refreshed = await silentRelogin();

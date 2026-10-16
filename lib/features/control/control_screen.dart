@@ -141,15 +141,33 @@ class _ControlScreenState extends State<ControlScreen> {
     }
   }
 
-  Future<void> _aprobarPropuesta(RewardProposal proposal, int costo) async {
+  Future<void> _aprobarPropuesta(
+    RewardProposal proposal, 
+    int costo, {
+    required bool esFamiliar,
+    String? titulo,
+    String? descripcion,
+    String? icono,
+  }) async {
     try {
-      await _rewardsService.approveProposal(proposal.id, costo);
+      await _rewardsService.approveProposal(
+        proposal.id, 
+        costo,
+        esFamiliar: esFamiliar,
+        titulo: titulo,
+        descripcion: descripcion,
+        icono: icono,
+      );
       if (!mounted) return;
+      final finalTitulo = (titulo != null && titulo.isNotEmpty) ? titulo : proposal.titulo;
+      final tipoMensaje = esFamiliar 
+          ? 'como Colecta Familiar Colaborativa' 
+          : 'como Premio Personal';
       HabitikFeedback.showSuccess(
         context, 
-        '¡Propuesta "${proposal.titulo}" aprobada por $costo 🪙 y publicada en la tienda!',
+        '¡"$finalTitulo" aprobada $tipoMensaje por $costo 🪙!',
       );
-      _loadProposals();
+      _refreshAll();
     } catch (e) {
       if (!mounted) return;
       HabitikFeedback.showError(context, 'Error al aprobar: ${e.toString().replaceAll('Exception: ', '')}');
@@ -260,7 +278,16 @@ class _ControlScreenState extends State<ControlScreen> {
               else
                 ..._proposals.map((prop) => _ProposalModerationCard(
                       proposal: prop,
-                      onApprove: (costo) => _aprobarPropuesta(prop, costo),
+                      onApprove: (costo, {required bool esFamiliar, String? titulo, String? descripcion, String? icono}) {
+                        _aprobarPropuesta(
+                          prop, 
+                          costo,
+                          esFamiliar: esFamiliar,
+                          titulo: titulo,
+                          descripcion: descripcion,
+                          icono: icono,
+                        );
+                      },
                       onReject: () => _rechazarPropuesta(prop),
                     )),
               
@@ -401,9 +428,17 @@ class _EmptySectionCard extends StatelessWidget {
   }
 }
 
+typedef OnApproveProposalCallback = void Function(
+  int costo, {
+  required bool esFamiliar,
+  String? titulo,
+  String? descripcion,
+  String? icono,
+});
+
 class _ProposalModerationCard extends StatefulWidget {
   final RewardProposal proposal;
-  final ValueChanged<int> onApprove;
+  final OnApproveProposalCallback onApprove;
   final VoidCallback onReject;
 
   const _ProposalModerationCard({
@@ -417,7 +452,57 @@ class _ProposalModerationCard extends StatefulWidget {
 }
 
 class _ProposalModerationCardState extends State<_ProposalModerationCard> {
-  int _costoAsignado = 15; // Costo por defecto
+  late int _costoAsignado;
+  late bool _esFamiliar;
+  late String _titulo;
+  late String _descripcion;
+  late String _emoji;
+
+  @override
+  void initState() {
+    super.initState();
+    _costoAsignado = widget.proposal.esFamiliar ? 40 : 15;
+    _esFamiliar = widget.proposal.esFamiliar;
+    _titulo = widget.proposal.titulo;
+    _descripcion = widget.proposal.descripcion;
+    _emoji = widget.proposal.emoji;
+  }
+
+  @override
+  void didUpdateWidget(_ProposalModerationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.proposal.id != widget.proposal.id) {
+      _costoAsignado = widget.proposal.esFamiliar ? 40 : 15;
+      _esFamiliar = widget.proposal.esFamiliar;
+      _titulo = widget.proposal.titulo;
+      _descripcion = widget.proposal.descripcion;
+      _emoji = widget.proposal.emoji;
+    }
+  }
+
+  Future<void> _abrirDialogoEdicion() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => _EditProposalDialog(
+        initialTitulo: _titulo,
+        initialDescripcion: _descripcion,
+        initialEmoji: _emoji,
+        initialEsFamiliar: _esFamiliar,
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _titulo = result['titulo']?.toString() ?? _titulo;
+        _descripcion = result['descripcion']?.toString() ?? _descripcion;
+        _emoji = result['emoji']?.toString() ?? _emoji;
+        _esFamiliar = result['esFamiliar'] == true;
+        if (_esFamiliar && _costoAsignado < 20) {
+          _costoAsignado = 30;
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -432,24 +517,33 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
         borderRadius: HabitikRadius.lg_,
         boxShadow: HabitikShadows.card,
         border: Border.all(
-          color: HabitikColors.amber400.withValues(alpha: 0.4),
-          width: 1.2,
+          color: _esFamiliar 
+              ? HabitikColors.green500.withValues(alpha: 0.5) 
+              : HabitikColors.amber400.withValues(alpha: 0.4),
+          width: 1.4,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2E381C) : const Color(0xFFFFF8E1),
-                  shape: BoxShape.circle,
+              GestureDetector(
+                onTap: _abrirDialogoEdicion,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2E381C) : const Color(0xFFFFF8E1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: HabitikColors.amber400.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(_emoji, style: const TextStyle(fontSize: 26)),
                 ),
-                alignment: Alignment.center,
-                child: Text(prop.emoji, style: const TextStyle(fontSize: 26)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -457,36 +551,74 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        UserAvatar(
-                          letra: prop.usuarioNombre.isNotEmpty ? prop.usuarioNombre[0].toUpperCase() : 'U',
-                          colorHex: '#43A047',
-                          radius: 10,
+                        Row(
+                          children: [
+                            UserAvatar(
+                              letra: prop.usuarioNombre.isNotEmpty ? prop.usuarioNombre[0].toUpperCase() : 'U',
+                              colorHex: '#43A047',
+                              radius: 10,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Propuesto por: ${prop.usuarioNombre}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: HabitikColors.green500,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Propuesto por: ${prop.usuarioNombre}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: HabitikColors.green500,
+                        // Botón para editar detalles
+                        InkWell(
+                          onTap: _abrirDialogoEdicion,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isDark 
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : HabitikColors.amber400.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: HabitikColors.amber400.withValues(alpha: 0.5),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit_rounded, size: 12, color: HabitikColors.amber400),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.amber[200] : const Color(0xFF8D6E63),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
-                      prop.titulo,
+                      _titulo,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                         color: isDark ? Colors.white : HabitikColors.textDark,
                       ),
                     ),
-                    if (prop.descripcion.isNotEmpty) ...[
+                    if (_descripcion.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        prop.descripcion,
+                        _descripcion,
                         style: TextStyle(
                           fontSize: 12.5,
                           color: isDark ? Colors.white70 : HabitikColors.textMid,
@@ -498,7 +630,154 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // ── Selector de Tipo: Personal vs Familiar Colaborativo ───────
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFFF1F5F2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _esFamiliar = false);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_esFamiliar
+                            ? (isDark ? const Color(0xFF2C3E50) : Colors.white)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: !_esFamiliar ? HabitikShadows.card : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('👤', style: TextStyle(fontSize: 13)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Personal',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: !_esFamiliar ? FontWeight.w800 : FontWeight.w600,
+                              color: !_esFamiliar
+                                  ? (isDark ? Colors.white : HabitikColors.textDark)
+                                  : HabitikColors.textMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _esFamiliar = true;
+                        if (_costoAsignado < 20) {
+                          _costoAsignado = 30;
+                        }
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _esFamiliar
+                            ? (isDark ? const Color(0xFF2E7D32) : HabitikColors.green500)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: _esFamiliar ? HabitikShadows.card : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('👨‍👩‍👧‍👦', style: TextStyle(fontSize: 13)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Familiar Colaborativo',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: _esFamiliar ? FontWeight.w800 : FontWeight.w600,
+                              color: _esFamiliar ? Colors.white : HabitikColors.textMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Banner explicativo contextual ─────────────────────────────
+          const SizedBox(height: 8),
+          if (_esFamiliar)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: HabitikColors.green500.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: HabitikColors.green500.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Text('🤝', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Colecta Colaborativa: Las $_costoAsignado 🪙 se distribuirán entre todos los integrantes y el premio se canjeará para la familia al completarse.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white70 : const Color(0xFF2E7D32),
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Text('👤', style: TextStyle(fontSize: 15)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Premio Individual: Estará disponible en la tienda para que el integrante lo canjee individualmente por $_costoAsignado 🪙.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white60 : HabitikColors.textMid,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 14),
+
           // Slider de costo
           Container(
             padding: const EdgeInsets.all(12),
@@ -539,7 +818,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                   min: 5,
                   max: 200,
                   divisions: 39,
-                  activeColor: HabitikColors.green500,
+                  activeColor: _esFamiliar ? HabitikColors.green500 : HabitikColors.green500,
                   inactiveColor: isDark ? Colors.white12 : Colors.black12,
                   onChanged: (v) {
                     HapticFeedback.selectionClick();
@@ -575,7 +854,15 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: () => widget.onApprove(_costoAsignado),
+                  onPressed: () {
+                    widget.onApprove(
+                      _costoAsignado,
+                      esFamiliar: _esFamiliar,
+                      titulo: _titulo,
+                      descripcion: _descripcion,
+                      icono: _emoji,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: HabitikColors.green500,
                     foregroundColor: Colors.white,
@@ -586,11 +873,19 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.check_circle, size: 16),
+                      Icon(
+                        _esFamiliar ? Icons.groups_rounded : Icons.check_circle, 
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
-                      Text(
-                        'Aprobar por $_costoAsignado 🪙',
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                      Flexible(
+                        child: Text(
+                          _esFamiliar
+                              ? 'Aprobar Familiar ($_costoAsignado 🪙)'
+                              : 'Aprobar Personal ($_costoAsignado 🪙)',
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -599,6 +894,287 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EditProposalDialog extends StatefulWidget {
+  final String initialTitulo;
+  final String initialDescripcion;
+  final String initialEmoji;
+  final bool initialEsFamiliar;
+
+  const _EditProposalDialog({
+    required this.initialTitulo,
+    required this.initialDescripcion,
+    required this.initialEmoji,
+    required this.initialEsFamiliar,
+  });
+
+  @override
+  State<_EditProposalDialog> createState() => _EditProposalDialogState();
+}
+
+class _EditProposalDialogState extends State<_EditProposalDialog> {
+  late final TextEditingController _tituloController;
+  late final TextEditingController _descController;
+  late String _selectedEmoji;
+  late bool _esFamiliar;
+
+  static const List<String> _emojisSugeridos = [
+    '🍕', '🍦', '🎮', '🎬', '🚴', '🏖️', '🎳', '🎁', '🍔', '🍿', '🧁', '⚽'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tituloController = TextEditingController(text: widget.initialTitulo);
+    _descController = TextEditingController(text: widget.initialDescripcion);
+    _selectedEmoji = widget.initialEmoji;
+    _esFamiliar = widget.initialEsFamiliar;
+  }
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  void _guardar() {
+    final titulo = _tituloController.text.trim();
+    if (titulo.isEmpty) {
+      HabitikFeedback.showError(context, 'El título del premio no puede estar vacío.');
+      return;
+    }
+
+    Navigator.of(context).pop({
+      'titulo': titulo,
+      'descripcion': _descController.text.trim(),
+      'emoji': _selectedEmoji,
+      'esFamiliar': _esFamiliar,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+
+    return Dialog(
+      backgroundColor: isDark ? const Color(0xFF1B271E) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: HabitikColors.amber400.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: HabitikColors.amber400, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Editar Solicitud',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : HabitikColors.textDark,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Selector de emoji
+            Text(
+              'Icono / Emoji:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white70 : HabitikColors.textMid,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _emojisSugeridos.map((e) {
+                final isSelected = e == _selectedEmoji;
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _selectedEmoji = e);
+                  },
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                          ? HabitikColors.amber400.withValues(alpha: 0.3) 
+                          : (isDark ? Colors.white10 : const Color(0xFFF1F5F2)),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? HabitikColors.amber400 : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(e, style: const TextStyle(fontSize: 19)),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Título
+            Text(
+              'Título del premio:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white70 : HabitikColors.textMid,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _tituloController,
+              decoration: InputDecoration(
+                hintText: 'Ej. Noche de pizza',
+                filled: true,
+                fillColor: isDark ? Colors.black26 : const Color(0xFFF9FBE7),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: HabitikColors.amber400.withValues(alpha: 0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: HabitikColors.green500, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Descripción
+            Text(
+              'Descripción o detalle:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white70 : HabitikColors.textMid,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _descController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Ej. Noche de pizza en familia viendo una película',
+                filled: true,
+                fillColor: isDark ? Colors.black26 : const Color(0xFFF9FBE7),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: HabitikColors.amber400.withValues(alpha: 0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: HabitikColors.green500, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Switch tipo familiar colaborativo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _esFamiliar 
+                    ? HabitikColors.green500.withValues(alpha: 0.12)
+                    : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF5F5F5)),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _esFamiliar 
+                      ? HabitikColors.green500.withValues(alpha: 0.3) 
+                      : Colors.transparent,
+                ),
+              ),
+              child: SwitchListTile.adaptive(
+                value: _esFamiliar,
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _esFamiliar = v);
+                },
+                activeThumbColor: HabitikColors.green500,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'Familiar Colaborativo',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : HabitikColors.textDark,
+                  ),
+                ),
+                subtitle: Text(
+                  'Divide la meta entre todos los miembros de la familia',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white60 : HabitikColors.textMid,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
+                    child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _guardar,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: HabitikColors.green500,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      elevation: 0,
+                    ),
+                    child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
