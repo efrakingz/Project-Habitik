@@ -11,6 +11,9 @@ enum HabitikNotificationType {
   alertaConsumo,
   conexionFamiliar,
   general,
+  ecoCuriosidad,
+  alertaRacha,
+  tipOnboarding,
 }
 
 /// Modelo de configuración visual y preferencias para un tipo de notificación
@@ -88,6 +91,36 @@ class NotificationService {
       importancia: Importance.max,
       prioridad: Priority.high,
     ),
+    HabitikNotificationType.ecoCuriosidad: const NotificationVisualPreferences(
+      canalId: 'canal_eco_curiosidades',
+      canalNombre: 'Eco-Curiosidades y Tips',
+      canalDescripcion: 'Datos asombrosos y tips ecológicos de Gemini',
+      prefijoEmoji: '💡',
+      color: Color(0xFF00C853), // Verde Esmeralda
+      icono: 'ic_notification_leaf',
+      importancia: Importance.high,
+      prioridad: Priority.high,
+    ),
+    HabitikNotificationType.alertaRacha: const NotificationVisualPreferences(
+      canalId: 'canal_alertas_racha',
+      canalNombre: 'Alertas de Racha Diaria',
+      canalDescripcion: 'Avisos para mantener tu racha activa antes de las 22:00',
+      prefijoEmoji: '🔥',
+      color: Color(0xFFFF6D00), // Naranja Fuego
+      icono: 'ic_notification_leaf',
+      importancia: Importance.max,
+      prioridad: Priority.high,
+    ),
+    HabitikNotificationType.tipOnboarding: const NotificationVisualPreferences(
+      canalId: 'canal_tips_onboarding',
+      canalNombre: 'Tips de Hábitos del Hogar',
+      canalDescripcion: 'Consejos prácticos según las características de tu hogar',
+      prefijoEmoji: '🏡',
+      color: Color(0xFF0091EA), // Azul Agua
+      icono: 'ic_notification_leaf',
+      importancia: Importance.high,
+      prioridad: Priority.high,
+    ),
     HabitikNotificationType.conexionFamiliar: const NotificationVisualPreferences(
       canalId: 'canal_servicio_segundo_plano',
       canalNombre: 'Red Familiar en Vivo',
@@ -120,7 +153,13 @@ class NotificationService {
     }
 
     final tipoStr = tipo?.toString().toUpperCase() ?? '';
-    if (tipoStr.contains('DUCHA')) {
+    if (tipoStr.contains('CURIOSIDAD') || tipoStr.contains('ECO_CURIOSIDAD')) {
+      return _preferenciasPorTipo[HabitikNotificationType.ecoCuriosidad]!;
+    } else if (tipoStr.contains('RACHA')) {
+      return _preferenciasPorTipo[HabitikNotificationType.alertaRacha]!;
+    } else if (tipoStr.contains('ONBOARDING')) {
+      return _preferenciasPorTipo[HabitikNotificationType.tipOnboarding]!;
+    } else if (tipoStr.contains('DUCHA')) {
       return _preferenciasPorTipo[HabitikNotificationType.duchaSpeedrun]!;
     } else if (tipoStr.contains('RETO') || tipoStr.contains('EVIDENCIA')) {
       return _preferenciasPorTipo[HabitikNotificationType.retoCompletado]!;
