@@ -101,10 +101,14 @@ void onStart(ServiceInstance service) async {
         final String titulo = '${parsedData['titulo'] ?? parsedData['title'] ?? 'Alerta Familiar'}';
         final String cuerpo = '${parsedData['mensaje'] ?? parsedData['desc_text'] ?? 'Nueva notificación'}';
 
+        final String notifTitle = (sender.isNotEmpty && sender != 'Habitik AI' && sender != 'Familiar')
+            ? '$sender: $titulo'
+            : titulo;
+
         // 1. Mostrar notificación nativa emergente en el sistema con diseño parametrizado
         await NotificationService.mostrarNotificacionSistema(
           id: notifId,
-          titulo: '$sender: $titulo',
+          titulo: notifTitle,
           cuerpo: cuerpo,
           tipo: parsedData['tipo'],
           deduplicationKey: notifKey,
