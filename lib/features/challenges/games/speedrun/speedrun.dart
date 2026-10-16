@@ -82,7 +82,7 @@ class _SpeedrunScreenState extends State<SpeedrunScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F2B48),
+        backgroundColor: const Color(0xFFE0F2FE),
         body: GameWidget<SpeedrunGame>(
           game: _game,
           overlayBuilderMap: {

@@ -99,7 +99,8 @@ class EcoWordleController extends ChangeNotifier {
         }
 
         if (status.estado == 'ganado') {
-          _gameState = EcoWordleState.success;
+          // El usuario ya ganó anteriormente: no mostrar recompensas ni botón de reclamar
+          _gameState = EcoWordleState.alreadyWon;
           if (_evaluationMatrix.isNotEmpty) {
             _evaluationMatrix.last = List.filled(_evaluationMatrix.last.length, 'verde');
           }
@@ -229,7 +230,7 @@ class EcoWordleController extends ChangeNotifier {
           }
           if (context.mounted) {
             CelebrationConfetti.show(context);
-            onChallengeCompleted?.call();
+            // La compleción del desafío se invoca exclusivamente al pulsar el botón de reclamar recompensa en el overlay de victoria
           }
         } else if (result.estado == 'perdido') {
           _gameState = EcoWordleState.failure;

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -180,27 +181,38 @@ void onStart(ServiceInstance service) async {
 
 @pragma('vm:entry-point')
 class BackgroundServiceManager {
+  static bool get isSupportedPlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
   /// Inicializa la configuración del servicio en segundo plano
   static Future<void> initializeService() async {
-    final service = FlutterBackgroundService();
+    if (!isSupportedPlatform) return;
 
-    await service.configure(
-      androidConfiguration: AndroidConfiguration(
-        onStart: onStart,
-        autoStart: false,
-        isForegroundMode: false,
-        autoStartOnBoot: false,
-        notificationChannelId: 'canal_servicio_segundo_plano',
-        initialNotificationTitle: '🌿 Habitik',
-        initialNotificationContent: 'Conectado a la red familiar en tiempo real',
-        foregroundServiceNotificationId: 888,
-      ),
-      iosConfiguration: IosConfiguration(
-        autoStart: false,
-        onForeground: onStart,
-        onBackground: onIosBackground,
-      ),
-    );
+    try {
+      final service = FlutterBackgroundService();
+
+      await service.configure(
+        androidConfiguration: AndroidConfiguration(
+          onStart: onStart,
+          autoStart: false,
+          isForegroundMode: false,
+          autoStartOnBoot: false,
+          notificationChannelId: 'canal_servicio_segundo_plano',
+          initialNotificationTitle: '🌿 Habitik',
+          initialNotificationContent: 'Conectado a la red familiar en tiempo real',
+          foregroundServiceNotificationId: 888,
+        ),
+        iosConfiguration: IosConfiguration(
+          autoStart: false,
+          onForeground: onStart,
+          onBackground: onIosBackground,
+        ),
+      );
+    } catch (e) {
+      debugPrint('⚠️ [BackgroundServiceManager] No se pudo configurar: $e');
+    }
   }
 
   /// Vincula la sesión familiar al servicio en segundo plano
@@ -209,24 +221,36 @@ class BackgroundServiceManager {
     String? userId,
     String? backendUrl,
   }) async {
-    final service = FlutterBackgroundService();
-    final isRunning = await service.isRunning();
-    if (!isRunning) {
-      await service.startService();
+    if (!isSupportedPlatform) return;
+
+    try {
+      final service = FlutterBackgroundService();
+      final isRunning = await service.isRunning();
+      if (!isRunning) {
+        await service.startService();
+      }
+      service.invoke('conectar_familia', {
+        'familyId': familyId,
+        ...?userId != null ? {'userId': userId} : null,
+        'backendUrl': backendUrl ?? ApiClient.baseUrl,
+      });
+    } catch (e) {
+      debugPrint('⚠️ [BackgroundServiceManager] Error al conectar familia: $e');
     }
-    service.invoke('conectar_familia', {
-      'familyId': familyId,
-      ...?userId != null ? {'userId': userId} : null,
-      'backendUrl': backendUrl ?? ApiClient.baseUrl,
-    });
   }
 
   /// Detiene el servicio en segundo plano al cerrar sesión
   static Future<void> detenerServicio() async {
-    final service = FlutterBackgroundService();
-    final isRunning = await service.isRunning();
-    if (isRunning) {
-      service.invoke('stopService');
+    if (!isSupportedPlatform) return;
+
+    try {
+      final service = FlutterBackgroundService();
+      final isRunning = await service.isRunning();
+      if (isRunning) {
+        service.invoke('stopService');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BackgroundServiceManager] Error al detener servicio: $e');
     }
   }
 }

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
+import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import '../game/speedrun_game.dart';
 import '../game/models/speedrun_state.dart';
 
@@ -30,7 +33,6 @@ class _HudOverlayState extends State<HudOverlay> {
   String _warningMessage = "";
   Timer? _warningTimer;
 
-  // Alertas flotantes interactivas en coordenadas de toque
   final List<FloatingMessage> _floatingMessages = [];
 
   bool get isSolved => widget.game.elapsedShowerSeconds >= 180.0;
@@ -40,7 +42,7 @@ class _HudOverlayState extends State<HudOverlay> {
     super.initState();
     widget.game.onWarning = _showWarning;
     widget.game.gameStateNotifier.addListener(_onGameStateChanged);
-    // Reconstruir la interfaz para actualizar el temporizador
+
     _rebuildTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -101,7 +103,7 @@ class _HudOverlayState extends State<HudOverlay> {
       _floatingMessages.add(
         FloatingMessage(
           position: localPosition,
-          text: "⚠️ ¡Acción inválida! Concéntrate en la ducha",
+          text: "💧 ¡Concéntrate en la ducha!",
           createdAt: DateTime.now(),
         ),
       );
@@ -117,121 +119,225 @@ class _HudOverlayState extends State<HudOverlay> {
     });
   }
 
+  void _showExitConfirmationDialog() async {
+    final confirm = await HabitikConfirmDialog.show(
+      context,
+      title: '¿SALIR DE LA DUCHA?',
+      description:
+          'Si sales ahora perderás el registro de este speedrun y las recompensas de agua.',
+      confirmLabel: 'SALIR DEL RETO',
+      cancelLabel: 'SEGUIR EN LA DUCHA',
+      icon: Icons.shower_rounded,
+      isDestructive: true,
+    );
+
+    if (confirm && mounted) {
+      widget.game.closeGame();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final game = widget.game;
     final state = game.gameState;
 
-    // Si ya no estamos en preparación ni jugando (ej. victoria/derrota), ocultar de inmediato
     if (state != SpeedrunState.preparing && state != SpeedrunState.playing) {
       return const SizedBox.shrink();
     }
 
-    // 1. MODO PREPARACIÓN (Cuenta regresiva de 30 segundos)
+    // ─────────────────────────────────────────────────────────────
+    // 1. MODO PREPARACIÓN (30 segundos) - Tarjeta limpia Habitik 3D
+    // ─────────────────────────────────────────────────────────────
     if (state == SpeedrunState.preparing) {
       final prepSeconds = game.prepRemainingSeconds.ceil();
-      return Container(
-        color: const Color(0xFF0F2B48).withValues(alpha: 0.85),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "ENTRA A LA DUCHA",
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF00E5FF),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "¡Ponte cómodo y prepárate! El tiempo empezará a correr en:",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 40),
+      final progress = (game.prepRemainingSeconds / 30.0).clamp(0.0, 1.0);
 
-                // Círculo gigante con el tiempo
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 160,
-                      height: 160,
-                      child: CircularProgressIndicator(
-                        value: game.prepRemainingSeconds / 30.0,
-                        strokeWidth: 10,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00E5FF)),
-                        backgroundColor: Colors.white12,
-                      ),
+      return Container(
+        color: Colors.black.withValues(alpha: 0.45),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+                    width: 2.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.18),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
                     ),
-                    Text(
-                      "$prepSeconds",
-                      style: GoogleFonts.shareTechMono(
-                        color: Colors.white,
-                        fontSize: 64,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                        .animate(key: ValueKey<int>(prepSeconds))
-                        .scale(begin: const Offset(0.8, 0.8), duration: 250.ms, curve: Curves.easeOutBack),
+                    const BoxShadow(
+                      color: Color(0xFFBAE6FD),
+                      blurRadius: 0,
+                      offset: Offset(0, 5), // Relieve 3D inferior
+                    ),
                   ],
                 ),
-                const SizedBox(height: 48),
-
-                // Botón omitir preparación
-                GestureDetector(
-                  onTap: () {
-                    game.gameState = SpeedrunState.playing;
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white24, width: 1.0),
-                    ),
-                    child: Text(
-                      "Omitir y empezar ya ⚡",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Badge circular
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE0F2FE),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const GameChallengeIcon(
+                        challengeId: 'ducha',
+                        size: 34,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+
+                    Text(
+                      "ENTRA A LA DUCHA",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        color: HabitikColors.textDark,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "¡Ponte cómodo y abre la llave! El cronómetro empezará en:",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        color: HabitikColors.textMid,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Círculo grande con cuenta regresiva
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 140,
+                          height: 140,
+                          child: CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 9,
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0EA5E9)),
+                            backgroundColor: const Color(0xFFE0F2FE),
+                            strokeCap: StrokeCap.round,
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "$prepSeconds",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF0284C7),
+                                fontSize: 50,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            )
+                                .animate(key: ValueKey<int>(prepSeconds))
+                                .scale(begin: const Offset(0.85, 0.85), duration: 250.ms, curve: Curves.easeOutBack),
+                            Text(
+                              "segundos",
+                              style: GoogleFonts.outfit(
+                                color: HabitikColors.textLight,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 26),
+
+                    // Botón Chunky para Omitir y Empezar Ya
+                    GestureDetector(
+                      onTap: () {
+                        game.gameState = SpeedrunState.playing;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F9FF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0xFFBAE6FD),
+                              offset: Offset(0, 3), // Relieve 3D inferior
+                              blurRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text("⚡", style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Omitir y empezar ya",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF0284C7),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       );
     }
 
-    // 2. MODO JUEGO ACTIVO (Temporizador en curso)
+    // ─────────────────────────────────────────────────────────────
+    // 2. MODO JUEGO ACTIVO (Cronómetro en marcha)
+    // ─────────────────────────────────────────────────────────────
     final minutes = (game.elapsedShowerSeconds / 60).floor();
     final seconds = (game.elapsedShowerSeconds % 60).floor();
     final timeStr = "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
 
-    // Color del temporizador y Eco-Gauge (base 600s = 10 min)
-    Color timerColor = const Color(0xFF00E5FF);
-    if (game.elapsedShowerSeconds > 600.0) {
-      timerColor = Colors.redAccent;
-    } else if (game.elapsedShowerSeconds > 480.0) {
-      timerColor = Colors.amberAccent;
-    } else if (game.elapsedShowerSeconds > 300.0) {
-      timerColor = const Color(0xFF69F0AE);
-    } else if (game.elapsedShowerSeconds >= 180.0) {
-      timerColor = Colors.greenAccent;
-    }
+    // Colores semánticos según el tiempo transcurrido
+    final isOver10 = game.elapsedShowerSeconds > 600.0;
+    final isWarning = game.elapsedShowerSeconds > 480.0 && !isOver10;
+    final isOptimal = isSolved && game.elapsedShowerSeconds <= 300.0;
+    final isIntermediate = isSolved && game.elapsedShowerSeconds > 300.0 && game.elapsedShowerSeconds <= 480.0;
+
+    final timerBgColor = isOver10
+        ? const Color(0xFFFEF2F2)
+        : (isWarning
+            ? const Color(0xFFFFFBEB)
+            : (isSolved ? const Color(0xFFF0FDF4) : const Color(0xFFF0F9FF)));
+
+    final timerBorderColor = isOver10
+        ? const Color(0xFFFCA5A5)
+        : (isWarning
+            ? const Color(0xFFFDE68A)
+            : (isSolved ? const Color(0xFFA7F3D0) : const Color(0xFFBAE6FD)));
+
+    final timerTextColor = isOver10
+        ? const Color(0xFFDC2626)
+        : (isWarning
+            ? const Color(0xFFD97706)
+            : (isSolved ? const Color(0xFF16A34A) : const Color(0xFF0284C7)));
 
     final gaugeProgress = (game.elapsedShowerSeconds / 600.0).clamp(0.0, 1.0);
 
@@ -242,171 +348,319 @@ class _HudOverlayState extends State<HudOverlay> {
           _addFloatingMessage(details.localPosition);
         }
       },
-      onPanDown: (details) {
-        if (state == SpeedrunState.playing) {
-          _addFloatingMessage(details.localPosition);
-        }
-      },
       child: Stack(
         children: [
-          // Banner flotante de alerta superior
+          // ── Barra Superior HUD Unificada Flotante (Estilo EcoPuzzle) ──
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(
+                            color: isOver10
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.6)
+                                : const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+                            width: 2.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isOver10
+                                  ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                                  : const Color(0xFF0284C7).withValues(alpha: 0.15),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                            const BoxShadow(
+                              color: Color(0xFFBAE6FD),
+                              blurRadius: 0,
+                              offset: Offset(0, 3), // Relieve 3D inferior
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // ⏱️ Píldora del Cronómetro
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: timerBgColor,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: timerBorderColor, width: 1.2),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.timer_rounded,
+                                    color: timerTextColor,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    timeStr,
+                                    style: GoogleFonts.outfit(
+                                      color: timerTextColor,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 💧 Píldora de Estado / Tier
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    !isSolved
+                                        ? "🔒 Esperando 3 min"
+                                        : (isOptimal
+                                            ? "🏆 Óptimo"
+                                            : (isIntermediate
+                                                ? "🥈 Buen tiempo"
+                                                : (isOver10 ? "⚠️ Límite superado" : "🥉 Extendido"))),
+                                    style: GoogleFonts.outfit(
+                                      color: HabitikColors.textDark,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // Botón Circular de Salir / Pausar
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+                          width: 2.0,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0xFFBAE6FD),
+                            blurRadius: 0,
+                            offset: Offset(0, 3), // Relieve 3D
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.close_rounded, color: Color(0xFF0284C7), size: 24),
+                        onPressed: _showExitConfirmationDialog,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Banner de Alerta Flotante (si presiona antes de tiempo) ──
           if (_warningMessage.isNotEmpty)
             Positioned(
-              top: 16,
-              left: 16,
-              right: 16,
+              top: 76,
+              left: 20,
+              right: 20,
               child: SafeArea(
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: const [
-                        BoxShadow(color: Colors.black38, blurRadius: 8),
+                        BoxShadow(
+                          color: Color(0x33EF4444),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
                       ],
                     ),
-                    child: Text(
-                      _warningMessage,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _warningMessage,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ).animate().shake(duration: 300.ms),
                 ),
               ),
             ),
 
-          // 3. PANTALLA CENTRAL: Tarjeta con Eco-Gauge y Cronómetro Integrado
-          if (state == SpeedrunState.playing)
-            Center(
-              child: Container(
-                width: (game.size.x - 48.0).clamp(280.0, 340.0),
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: const Color(0xDD0D1B2A),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: timerColor.withValues(alpha: 0.5), width: 2.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: timerColor.withValues(alpha: 0.2),
-                      blurRadius: 25,
-                      spreadRadius: 2,
-                    )
-                  ],
+          // ── Tarjeta Central: Eco-Gauge y Medidor Táctil ──
+          Center(
+            child: Container(
+              width: (game.size.x - 48.0).clamp(280.0, 330.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: timerBorderColor,
+                  width: 2.5,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Anillo Eco-Gauge animado rodeando el ícono
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 110,
-                          height: 110,
-                          child: CircularProgressIndicator(
-                            value: gaugeProgress,
-                            strokeWidth: 7,
-                            valueColor: AlwaysStoppedAnimation<Color>(timerColor),
-                            backgroundColor: Colors.white12,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.14),
+                    blurRadius: 28,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: timerBorderColor,
+                    blurRadius: 0,
+                    offset: const Offset(0, 5), // Relieve 3D inferior dinámico
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Anillo Eco-Gauge con gota animada
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: CircularProgressIndicator(
+                          value: gaugeProgress,
+                          strokeWidth: 9,
+                          valueColor: AlwaysStoppedAnimation<Color>(timerTextColor),
+                          backgroundColor: timerBgColor,
+                          strokeCap: StrokeCap.round,
+                        ),
+                      ),
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: timerBgColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: GameChallengeIcon(
+                            challengeId: 'ducha',
+                            size: 48,
                           ),
                         ),
-                        const Text("🚿", style: TextStyle(fontSize: 54))
-                            .animate(onPlay: (c) => c.repeat(reverse: true))
-                            .scale(begin: const Offset(0.92, 0.92), end: const Offset(1.08, 1.08), duration: 1200.ms)
-                            .shake(hz: 2, curve: Curves.easeInOut),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Cronómetro digital gigante integrado en la tarjeta
-                    Text(
-                      timeStr,
-                      style: GoogleFonts.shareTechMono(
-                        color: timerColor,
-                        fontSize: 54,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2.0,
-                        shadows: [
-                          Shadow(
-                            color: timerColor,
-                            blurRadius: 12.0,
+                      )
+                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .scale(
+                            begin: const Offset(0.94, 0.94),
+                            end: const Offset(1.06, 1.06),
+                            duration: 1000.ms,
+                            curve: Curves.easeInOut,
                           ),
-                        ],
-                      ),
-                    ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
 
-                    const SizedBox(height: 12),
-
-                    Text(
-                      "DUCHA EN CURSO",
-                      style: GoogleFonts.outfit(
-                        color: const Color(0xFF00E5FF),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        shadows: [
-                          Shadow(color: const Color(0xFF00E5FF).withValues(alpha: 0.5), blurRadius: 8),
-                        ],
-                      ),
+                  // Cronómetro grande y limpio en Outfit
+                  Text(
+                    timeStr,
+                    style: GoogleFonts.outfit(
+                      color: timerTextColor,
+                      fontSize: 46,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      game.elapsedShowerSeconds > 600.0
-                          ? "⚠️ Has superado los 10 minutos. ¡Apaga la ducha para cuidar el agua!"
-                          : game.elapsedShowerSeconds > 480.0
-                              ? "⏳ Tiempo extendido (+8 min). Te recomendamos terminar pronto."
-                              : isSolved
-                                  ? "✨ ¡Meta mínima alcanzada! Puedes apagar la ducha cuando estés listo."
-                                  : "¡Báñate rápido! El botón se desbloqueará después de 4 minutos de ducha.",
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Pill con el estado del tiempo
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: timerBgColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      !isSolved
+                          ? "🔒 Esperando 3 minutos mínimos"
+                          : (isOptimal
+                              ? "🏆 ¡Récord Óptimo! (+200 XP · +2 🪙)"
+                              : (isIntermediate
+                                  ? "🥈 Tiempo Intermedio (+100 XP · +1 🪙)"
+                                  : (isOver10
+                                      ? "⚠️ Superó 10 min · ¡Cierra la llave!"
+                                      : "🥉 Tiempo Extendido (+50 XP)"))),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
-                        color: Colors.white70,
-                        fontSize: 12.5,
-                        height: 1.45,
-                        fontWeight: FontWeight.w500,
+                        color: timerTextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 18),
+                  ),
 
-                    // Estado visual de bloqueo y tier actual en tiempo real
-                    AnimatedSwitcher(
-                      duration: 300.ms,
-                      child: Text(
-                        !isSolved
-                            ? "🔒 Esperando 4 minutos..."
-                            : (game.elapsedShowerSeconds <= 300.0
-                                ? "🏆 ¡Récord Óptimo! (200 XP · 2 🪙)"
-                                : (game.elapsedShowerSeconds <= 480.0
-                                    ? "🥈 Tiempo Intermedio (100 XP · 1 🪙)"
-                                    : "🥉 Tiempo Extendido (50 XP)")),
-                        key: ValueKey<String>(
-                          !isSolved
-                              ? "locked"
-                              : (game.elapsedShowerSeconds <= 300.0
-                                  ? "optimo"
-                                  : (game.elapsedShowerSeconds <= 480.0
-                                      ? "intermedio"
-                                      : "extendido")),
-                        ),
-                        style: GoogleFonts.outfit(
-                          color: isSolved ? timerColor : Colors.orangeAccent,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                  const SizedBox(height: 12),
+
+                  // Consejo ecológico en vivo
+                  Text(
+                    isOver10
+                        ? "Has superado los 10 minutos recomendados. Cierra la llave para evitar derroches."
+                        : (isWarning
+                            ? "Te estás acercando al límite de los 10 minutos. Es hora de terminar."
+                            : (isSolved
+                                ? "¡Meta de ahorro cumplida! Puedes apagar la ducha cuando gustes."
+                                : "Ahorra agua enjabonándote con rapidez. El botón se habilitará en breve.")),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: HabitikColors.textMid,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      height: 1.35,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)),
+            ),
+          ).animate().fadeIn(duration: 350.ms).scale(begin: const Offset(0.96, 0.96)),
 
-          // 4. HUD Inferior: Controles de Apagado y Modo Programador
+          // ── Botón Inferior Chunky 3D para Finalizar Ducha ──
           Positioned(
             bottom: 24,
             left: 24,
@@ -415,13 +669,12 @@ class _HudOverlayState extends State<HudOverlay> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Botón apagar ducha
                   GestureDetector(
                     onTap: () {
                       if (isSolved) {
                         game.completeShower();
                       } else {
-                        _showWarning("⚠️ ¡Aún no han pasado 4 minutos!");
+                        _showWarning("¡Aún no pasan los 3 minutos mínimos!");
                       }
                     },
                     child: Container(
@@ -431,39 +684,40 @@ class _HudOverlayState extends State<HudOverlay> {
                       decoration: BoxDecoration(
                         gradient: isSolved
                             ? const LinearGradient(
-                                colors: [Colors.green, Colors.greenAccent],
+                                colors: [Color(0xFF10B981), Color(0xFF059669)],
                               )
-                            : LinearGradient(
-                                colors: [Colors.grey.shade400, Colors.grey.shade500],
+                            : const LinearGradient(
+                                colors: [Color(0xFFCBD5E1), Color(0xFF94A3B8)],
                               ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSolved ? Colors.white : Colors.transparent,
-                          width: 1.5,
-                        ),
                         boxShadow: [
                           BoxShadow(
                             color: isSolved
-                                ? Colors.green.withValues(alpha: 0.4)
-                                : Colors.black.withValues(alpha: 0.1),
-                            blurRadius: isSolved ? 16 : 8,
+                                ? const Color(0xFF047857) // Relieve 3D verde
+                                : const Color(0xFF64748B), // Relieve 3D gris
                             offset: const Offset(0, 4),
-                          )
+                            blurRadius: 0,
+                          ),
+                          BoxShadow(
+                            color: isSolved
+                                ? const Color(0x3310B981)
+                                : Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
                         ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            isSolved
-                                ? Icons.check_circle_outline_rounded
-                                : Icons.lock_outline_rounded,
+                            isSolved ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
                             color: Colors.white,
                             size: 22,
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Text(
-                            isSolved ? "APAGAR DUCHA" : "🔒 DUCHA EN PROGRESO",
+                            isSolved ? "¡LISTO, CERRÉ LA LLAVE!" : "DUCHA EN PROGRESO",
                             style: GoogleFonts.outfit(
                               color: Colors.white,
                               fontSize: 16,
@@ -476,36 +730,28 @@ class _HudOverlayState extends State<HudOverlay> {
                     ),
                   )
                       .animate(target: _shakeButton ? 1.0 : 0.0)
-                      .shake(duration: 400.ms)
-                      .scale(
-                        begin: const Offset(1.0, 1.0),
-                        end: const Offset(0.97, 0.97),
-                        duration: 100.ms,
-                        curve: Curves.easeIn,
-                      ),
+                      .shake(duration: 400.ms),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-                  // Botón "Salir (Modo Programador)"
+                  // Botón discreto de prueba
                   GestureDetector(
                     onTap: () {
-                      game.elapsedShowerSeconds = 180.0;
                       game.completeShower();
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white24),
+                        color: Colors.white.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFCBD5E1), width: 1.0),
                       ),
                       child: Text(
-                        "Salir (Modo Programador)",
+                        "Finalizar ahora (Modo Prueba)",
                         style: GoogleFonts.outfit(
-                          color: Colors.white70,
+                          color: HabitikColors.textMid,
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -515,7 +761,7 @@ class _HudOverlayState extends State<HudOverlay> {
             ),
           ),
 
-          // 5. ALERTAS FLOTANTES DINÁMICAS
+          // ── Alertas flotantes al tocar la pantalla ──
           ..._floatingMessages.map((msg) {
             return Positioned(
               left: msg.position.dx - 100,
@@ -527,18 +773,18 @@ class _HudOverlayState extends State<HudOverlay> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: const [
-                          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                          BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
                         ],
                       ),
                       child: Text(
                         msg.text,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: GoogleFonts.outfit(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

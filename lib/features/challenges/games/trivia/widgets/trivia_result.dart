@@ -173,23 +173,27 @@ class TriviaResultView extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Botón salir a desafíos
+                  // Botón reclamar recompensa / salir
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: onClose,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8E24AA),
+                        backgroundColor: (result.correctCount > 0 || result.xpEarned > 0)
+                            ? const Color(0xFF8E24AA)
+                            : const Color(0xFF757575),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'VOLVER A DESAFÍOS',
-                        style: TextStyle(
+                      child: Text(
+                        (result.correctCount > 0 || result.xpEarned > 0)
+                            ? '¡RECLAMAR RECOMPENSA! ✨'
+                            : 'VOLVER A DESAFÍOS',
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,

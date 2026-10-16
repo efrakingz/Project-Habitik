@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/stats/stats.dart';
-import 'package:habitik/shared/widgets/buttons/buttons.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 
 class ProfileFamilyList extends StatelessWidget {
   final bool loading;
@@ -11,6 +11,10 @@ class ProfileFamilyList extends StatelessWidget {
   final VoidCallback onRetry;
   final bool isDark;
 
+  final String title;
+  final String emoji;
+  final String? emptyMessage;
+
   const ProfileFamilyList({
     super.key,
     required this.loading,
@@ -18,6 +22,9 @@ class ProfileFamilyList extends StatelessWidget {
     required this.familyMembers,
     required this.onRetry,
     required this.isDark,
+    this.title = 'Miembros del Hogar',
+    this.emoji = '👥',
+    this.emptyMessage,
   });
 
   @override
@@ -28,10 +35,10 @@ class ProfileFamilyList extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 16),
           child: Row(
             children: [
-              const Text('👥', style: TextStyle(fontSize: 22)),
+              Text(emoji, style: const TextStyle(fontSize: 22)),
               const SizedBox(width: 10),
               Text(
-                'Miembros del Hogar',
+                title,
                 style: TextStyle(
                   color: isDark ? Colors.white : HabitikColors.textDark,
                   fontSize: 18,
@@ -51,33 +58,9 @@ class ProfileFamilyList extends StatelessWidget {
             ),
           )
         else if (errorMessage != null)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C1E1E) : Colors.red.shade50,
-              borderRadius: HabitikRadius.md_,
-              border: Border.all(
-                color: isDark ? Colors.redAccent.withAlpha(50) : Colors.red.shade200,
-              ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Error al cargar miembros: $errorMessage',
-                  style: TextStyle(
-                    color: isDark ? Colors.redAccent : Colors.red.shade800,
-                    fontSize: 13,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                SecondaryButton(
-                  label: 'Reintentar',
-                  onTap: onRetry,
-                  color: Colors.redAccent,
-                ),
-              ],
-            ),
+          HabitikErrorView.compact(
+            message: 'Error al cargar miembros: $errorMessage',
+            onRetry: onRetry,
           )
         else if (familyMembers.isEmpty)
           Container(
@@ -90,9 +73,9 @@ class ProfileFamilyList extends StatelessWidget {
                 color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
               ),
             ),
-            child: const Text(
-              'No hay otros miembros en la familia todavía.',
-              style: TextStyle(color: HabitikColors.textLight, fontSize: 13),
+            child: Text(
+              emptyMessage ?? 'No hay otros miembros en la familia todavía.',
+              style: const TextStyle(color: HabitikColors.textLight, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           )

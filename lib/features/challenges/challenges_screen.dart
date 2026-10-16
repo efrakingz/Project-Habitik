@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
@@ -18,9 +19,8 @@ import 'package:habitik/features/challenges/games/speedrun/speedrun.dart';
 import 'package:habitik/features/challenges/games/eco_puzzle/eco_puzzle.dart';
 import 'package:habitik/features/challenges/games/eco_wordle/eco_wordle.dart';
 import 'package:habitik/features/challenges/games/trivia/trivia.dart';
-
-const _kAnimFast = Duration(milliseconds: 200);
-const _kAnimMedium = Duration(milliseconds: 300);
+import 'widgets/weekly_streak_card.dart';
+import 'widgets/daily_bonus_card.dart';
 
 class ChallengesScreen extends StatefulWidget {
   final void Function(bool)? onGameModeChanged;
@@ -71,6 +71,18 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
     _entranceCtrl.forward();
     _cargarRachaSemanal();
+    _loadCompletedChallenges();
+  }
+
+  Future<void> _loadCompletedChallenges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateStr = DateTime.now().toIso8601String().substring(0, 10);
+    final user = SessionService().currentUser;
+    final key = 'completed_challenges_${user?.id}_$dateStr';
+    final completed = prefs.getStringList(key) ?? [];
+    if (completed.isNotEmpty && mounted) {
+      _completedNotifier.value = completed.toSet();
+    }
   }
 
   Future<void> _cargarRachaSemanal() async {
@@ -154,6 +166,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
       case 'wordle':
         gameWidget = EcoWordleScreen(
           onChallengeCompleted: () => _completeGame(id),
+          onChallengeAlreadyCompleted: () => _completeGame(id, showConfetti: false),
         );
         break;
       case 'trivia':
@@ -182,21 +195,35 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     });
   }
 
-  void _completeGame(String id) {
-    _completedNotifier.value = {..._completedNotifier.value, id};
+  void _completeGame(String id, {bool showConfetti = true}) async {
+    final newCompleted = {..._completedNotifier.value, id};
+    _completedNotifier.value = newCompleted;
     if (mounted) {
-      CelebrationConfetti.show(context);
-      LevelService.checkAndShowLevelUp(context);
+      if (showConfetti) {
+        CelebrationConfetti.show(context);
+        LevelService.checkAndShowLevelUp(context);
+      }
       _cargarRachaSemanal();
     }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dateStr = DateTime.now().toIso8601String().substring(0, 10);
+      final user = SessionService().currentUser;
+      final key = 'completed_challenges_${user?.id}_$dateStr';
+      await prefs.setStringList(key, newCompleted.toList());
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    final streak = SessionService().currentUser?.rachaDias ?? 3;
+    final streak = SessionService().currentUser?.rachaDias ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      decoration: const BoxDecoration(gradient: HabitikColors.heroGreen),
+      decoration: BoxDecoration(
+        gradient: isDark ? HabitikColors.heroGreenDark : HabitikColors.heroGreen,
+      ),
       child: SafeArea(
         bottom: false,
         child: ScreenShell(
@@ -245,7 +272,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                 left: 16,
                                 right: 16,
                                 top: 16,
-                                child: _WeeklyStreak(days: _streakDays),
+                                child: WeeklyStreakCard(days: _streakDays),
                               ),
 
                               // Bono del día
@@ -256,7 +283,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                 child: ValueListenableBuilder<Set<String>>(
                                   valueListenable: _completedNotifier,
                                   builder: (context, completed, _) {
-                                    return _DailyBonus(
+                                    return DailyBonusCard(
                                       claimed: completed.length >= 3,
                                     );
                                   },
@@ -631,158 +658,3 @@ class _StreakBadge extends StatelessWidget {
   }
 }
 
-class _WeeklyStreak extends StatelessWidget {
-  final List<bool> days;
-  const _WeeklyStreak({required this.days});
-
-  @override
-  Widget build(BuildContext context) {
-    final labels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: HabitikColors.fireStreak,
-        borderRadius: HabitikRadius.lg_,
-        border: Border.all(color: Colors.white, width: 3.0),
-        boxShadow: HabitikShadows.colored(HabitikColors.orange400),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              GameFireIcon(size: 16),
-              SizedBox(width: 6),
-              Text(
-                'Racha Semanal',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: days.asMap().entries.map((e) {
-              final done = e.value;
-              return Column(
-                children: [
-                  AnimatedContainer(
-                    duration: _kAnimFast,
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: done ? Colors.white : Colors.white.withAlpha(40),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      labels[e.key],
-                      style: TextStyle(
-                        color: done ? HabitikColors.orange400 : Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    labels[e.key],
-                    style: const TextStyle(color: Colors.white70, fontSize: 10),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DailyBonus extends StatelessWidget {
-  final bool claimed;
-  const _DailyBonus({required this.claimed});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return AnimatedContainer(
-      duration: _kAnimMedium,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: claimed ? null : HabitikColors.xpGold,
-        color: claimed
-            ? (isDark ? const Color(0xFF1E2E22) : const Color(0xFFEBF7EC))
-            : null,
-        borderRadius: HabitikRadius.lg_,
-        border: Border.all(color: Colors.white, width: isDark ? 4.0 : 3.0),
-        boxShadow: claimed
-            ? []
-            : HabitikShadows.colored(HabitikColors.amber400),
-      ),
-      child: Row(
-        children: [
-          claimed
-              ? const Icon(
-                  Icons.check_circle_rounded,
-                  color: HabitikColors.green500,
-                  size: 28,
-                )
-              : const Icon(
-                  Icons.card_giftcard_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  claimed ? 'Bonus reclamado' : 'Bonus del Día',
-                  style: TextStyle(
-                    color: claimed
-                        ? (isDark ? Colors.white70 : HabitikColors.green600)
-                        : Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      claimed
-                          ? '¡Completaste 3 retos hoy!'
-                          : 'Completa 3 retos hoy → +50 ',
-                      style: TextStyle(
-                        color: claimed
-                            ? (isDark
-                                  ? Colors.white54
-                                  : HabitikColors.textLight)
-                            : Colors.white.withAlpha(200),
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (!claimed) const GameCoinIcon(size: 11),
-                    if (!claimed)
-                      Text(
-                        ' extra',
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(200),
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

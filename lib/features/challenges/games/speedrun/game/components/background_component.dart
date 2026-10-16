@@ -59,11 +59,11 @@ class BackgroundComponent extends PositionComponent with HasGameReference<Speedr
 
     final rect = Rect.fromLTWH(0, 0, size.x, size.y);
 
-    // Interpolación de colores del gradiente térmico reactivo al tiempo de ducha
-    final topColor = Color.lerp(const Color(0xFFE0F7FA), const Color(0xFFFFF3E0), heatFactor)!;
-    final midColor1 = Color.lerp(const Color(0xFF80DEEA), const Color(0xFFFFCC80), heatFactor)!;
-    final midColor2 = Color.lerp(const Color(0xFF26C6DA), const Color(0xFFFFA726), heatFactor)!;
-    final botColor = Color.lerp(const Color(0xFF00ACC1), const Color(0xFFE65100), heatFactor)!;
+    // Interpolación de colores del gradiente reactivo al tiempo de ducha
+    final topColor = Color.lerp(const Color(0xFFF0F9FF), const Color(0xFFFFFBEB), heatFactor)!;
+    final midColor1 = Color.lerp(const Color(0xFFBAE6FD), const Color(0xFFFDE68A), heatFactor)!;
+    final midColor2 = Color.lerp(const Color(0xFF38BDF8), const Color(0xFFF59E0B), heatFactor)!;
+    final botColor = Color.lerp(const Color(0xFF0284C7), const Color(0xFFDC2626), heatFactor)!;
 
     _bgPaint.shader = LinearGradient(
       begin: Alignment.topCenter,

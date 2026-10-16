@@ -3,5 +3,6 @@ enum EcoWordleState {
   start,
   playing,
   success,
+  alreadyWon,
   failure,
 }
