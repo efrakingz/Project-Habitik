@@ -2,25 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/reward.dart';
+import 'coin_value_guide.dart';
+
+enum RewardDialogMode { admin, memberProposal }
 
 Future<void> showCreateRewardDialog(
   BuildContext context, {
   required Function(RewardItem) onCreate,
+  RewardDialogMode mode = RewardDialogMode.admin,
 }) {
   return showDialog(
     context: context,
     barrierColor: Colors.black54,
     builder: (_) => Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 40),
-      child: CreateRewardDialog(onCreate: onCreate),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 30),
+      child: CreateRewardDialog(
+        onCreate: onCreate,
+        mode: mode,
+      ),
     ),
   );
 }
 
 class CreateRewardDialog extends StatefulWidget {
   final Function(RewardItem) onCreate;
-  const CreateRewardDialog({super.key, required this.onCreate});
+  final RewardDialogMode mode;
+
+  const CreateRewardDialog({
+    super.key,
+    required this.onCreate,
+    this.mode = RewardDialogMode.admin,
+  });
 
   @override
   State<CreateRewardDialog> createState() => _CreateRewardDialogState();
@@ -32,7 +45,7 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
   final _descCtrl = TextEditingController();
 
   int _costo = 10;
-  bool _esFamiliar = true;
+  bool _esFamiliar = false; // Por defecto personal
   String _frecuencia = 'semanal';
   String _emoji = '🎁';
 
@@ -46,11 +59,21 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
   static const _emojis = [
     '🎁', '🛒', '🎥', '🍕', '🍔', '🍜', '🥩',
     '🏆', '⭐', '💫', '💰', '🪙',
-    '🏠', '🌴', '🤺', '🎮', '📱', '💻',
-    '🎤', '🎵', '🐟', '🐶', '🦄',
-    '🌸', '🌿', '☕', '🛋️', '😴',
-    '📚', '🎨', '⚽', '🏄', '🚴', '🌟',
+    '🏠', '🌴', '🎮', '📱', '💻',
+    '🎤', '🎵', '🐶', '🦄', '🌸', '🌿',
+    '☕', '🛋️', '😴', '📚', '🎨', '⚽', '🚴', '🌟',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Si es modo admin, permitir familiar por defecto si se desea
+    if (widget.mode == RewardDialogMode.admin) {
+      _esFamiliar = true;
+    } else {
+      _esFamiliar = false;
+    }
+  }
 
   bool get _isValid => _tituloCtrl.text.trim().isNotEmpty;
 
@@ -60,9 +83,10 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
         id: DateTime.now().millisecondsSinceEpoch,
         titulo: _tituloCtrl.text.trim(),
         descripcion: _descCtrl.text.trim(),
-        costo: _costo,
+        costo: widget.mode == RewardDialogMode.admin ? _costo : 0,
         emoji: _emoji,
-        esFamiliar: _esFamiliar,
+        esFamiliar: widget.mode == RewardDialogMode.admin ? _esFamiliar : false,
+        estado: widget.mode == RewardDialogMode.admin ? 'activo' : 'propuesto',
         metadata: _esFamiliar ? {'frecuencia': _frecuencia} : {},
       ));
       Navigator.pop(context);
@@ -138,9 +162,244 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
     );
   }
 
-  Widget _buildEmojiRow() {
+  @override
+  void dispose() {
+    _tituloCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isAdmin = widget.mode == RewardDialogMode.admin;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1C3D28), Color(0xFF172F1F)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 40,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Form(
+          key: _formKey,
+          onChanged: () => setState(() {}),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DialogHeader(isAdmin: isAdmin),
+                const SizedBox(height: 14),
+                _EmojiRow(
+                  emoji: _emoji,
+                  onTap: _mostrarEmojiPicker,
+                ),
+                const SizedBox(height: 14),
+                if (isAdmin) ...[
+                  const _SectionLabel('Tipo de premio'),
+                  const SizedBox(height: 8),
+                  _TypePills(
+                    esFamiliar: _esFamiliar,
+                    onSelect: (val) => setState(() => _esFamiliar = val),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                const _SectionLabel('Nombre del premio'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _tituloCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'El nombre es requerido' : null,
+                  decoration: InputDecoration(
+                    hintText: isAdmin 
+                        ? (_esFamiliar ? 'ej: Pizza Familiar, Noche de Cine…' : 'ej: 1 hora de videojuegos, Elegir postre…')
+                        : 'ej: Salir a andar en bicicleta, 1 hora de TV…',
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
+                    prefixIcon: const Icon(Icons.edit_outlined, color: Colors.white38, size: 18),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.07),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(color: HabitikColors.green400, width: 1.5)),
+                    errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: const BorderSide(color: Colors.redAccent)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const _SectionLabel('Descripción (opcional)'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descCtrl,
+                  maxLines: 2,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Agrega un detalle o regla del premio…',
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(top: 0),
+                      child: Icon(Icons.notes_outlined, color: Colors.white38, size: 18),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.07),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(color: HabitikColors.green400, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (isAdmin) ...[
+                  _CostSlider(
+                    costo: _costo,
+                    onChanged: (newCosto) => setState(() => _costo = newCosto),
+                  ),
+                  const SizedBox(height: 12),
+                  const CoinValueGuide(),
+                  if (_esFamiliar) ...[
+                    const SizedBox(height: 14),
+                    const _SectionLabel('Frecuencia disponible'),
+                    const SizedBox(height: 8),
+                    _FrequencyChips(
+                      frecuencias: _frecuencias,
+                      frecuenciaSeleccionada: _frecuencia,
+                      onSelect: (val) => setState(() => _frecuencia = val),
+                    ),
+                  ],
+                ] else ...[
+                  // Explicación para el miembro
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('💡', style: TextStyle(fontSize: 18)),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Esta propuesta le llegará directamente al Jefe de Hogar. Él le asignará el valor en monedas y la aprobará para que esté disponible en tu tienda.',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                _DialogActionButtons(
+                  isValid: _isValid,
+                  isAdmin: isAdmin,
+                  onSubmit: _submit,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-widgets independientes (Clean Code Habitik)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DialogHeader extends StatelessWidget {
+  final bool isAdmin;
+  const _DialogHeader({required this.isAdmin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [HabitikColors.green500, HabitikColors.green600],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(13),
+            boxShadow: [
+              BoxShadow(
+                color: HabitikColors.green500.withValues(alpha: 0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(isAdmin ? Icons.card_giftcard : Icons.lightbulb_outline_rounded, color: Colors.white, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isAdmin ? 'Crear Premio' : 'Proponer Premio',
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              isAdmin ? 'Define el costo y tipo de recompensa' : 'Propón un premio personal para tu hogar',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
+            ),
+          ],
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.close, color: Colors.white.withValues(alpha: 0.5), size: 18),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmojiRow extends StatelessWidget {
+  final String emoji;
+  final VoidCallback onTap;
+
+  const _EmojiRow({required this.emoji, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _mostrarEmojiPicker,
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -150,7 +409,7 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
         ),
         child: Row(
           children: [
-            Text(_emoji, style: const TextStyle(fontSize: 26)),
+            Text(emoji, style: const TextStyle(fontSize: 26)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -185,119 +444,16 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
       ),
     );
   }
+}
 
-  @override
-  void dispose() {
-    _tituloCtrl.dispose();
-    _descCtrl.dispose();
-    super.dispose();
-  }
+class _TypePills extends StatelessWidget {
+  final bool esFamiliar;
+  final ValueChanged<bool> onSelect;
+
+  const _TypePills({required this.esFamiliar, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1C3D28), Color(0xFF172F1F)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40, offset: const Offset(0, 10)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Form(
-          key: _formKey,
-          onChanged: () => setState(() {}),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 14),
-                // ── Selector de emoji minimalista ──
-                _buildEmojiRow(),
-                const SizedBox(height: 14),
-                _SectionLabel('Tipo de premio'),
-                const SizedBox(height: 8),
-                _buildTypePills(),
-                const SizedBox(height: 14),
-                _SectionLabel('Nombre del premio'),
-                const SizedBox(height: 8),
-                _buildTitleField(),
-                const SizedBox(height: 12),
-                _SectionLabel('Descripción (opcional)'),
-                const SizedBox(height: 8),
-                _buildDescField(),
-                const SizedBox(height: 14),
-                _buildCostRow(),
-                if (_esFamiliar) ...[
-                  const SizedBox(height: 14),
-                  _SectionLabel('Límite de canje'),
-                  const SizedBox(height: 8),
-                  _buildFrequencyChips(),
-                ],
-                const SizedBox(height: 20),
-                _buildActions(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  // ── Sub-builders ──────────────────────────────────────────────────────────
-
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [HabitikColors.green500, HabitikColors.green600],
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(13),
-            boxShadow: [BoxShadow(color: HabitikColors.green500.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 3))],
-          ),
-          child: const Icon(Icons.card_giftcard, color: Colors.white, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Crear Premio',
-                style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
-            Text('Define el costo y tipo de recompensa',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
-          ],
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.close, color: Colors.white.withValues(alpha: 0.5), size: 18),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTypePills() {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -309,225 +465,21 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
           _TypeOption(
             emoji: '👨‍👩‍👧',
             label: 'Familiar',
-            subtitle: 'Compartido',
-            selected: _esFamiliar,
-            onTap: () => setState(() => _esFamiliar = true),
+            subtitle: 'Colaborativo',
+            selected: esFamiliar,
+            onTap: () => onSelect(true),
           ),
           _TypeOption(
             emoji: '👤',
             label: 'Personal',
-            subtitle: 'Solo para mí',
-            selected: !_esFamiliar,
-            onTap: () => setState(() => _esFamiliar = false),
+            subtitle: 'Individual',
+            selected: !esFamiliar,
+            onTap: () => onSelect(false),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildTitleField() {
-    return TextFormField(
-      controller: _tituloCtrl,
-      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-      validator: (v) => v == null || v.trim().isEmpty ? 'El nombre es requerido' : null,
-      decoration: InputDecoration(
-        hintText: 'ej: Pizza Familiar, Noche de Cine…',
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
-        prefixIcon: const Icon(Icons.edit_outlined, color: Colors.white38, size: 18),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.07),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: BorderSide(color: HabitikColors.green400, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: const BorderSide(color: Colors.redAccent)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildDescField() {
-    return TextFormField(
-      controller: _descCtrl,
-      maxLines: 2,
-      style: const TextStyle(color: Colors.white, fontSize: 13),
-      decoration: InputDecoration(
-        hintText: 'Agrega un detalle del premio…',
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
-        prefixIcon: const Padding(
-          padding: EdgeInsets.only(top: 0),
-          child: Icon(Icons.notes_outlined, color: Colors.white38, size: 18),
-        ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.07),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13),
-            borderSide: BorderSide(color: HabitikColors.green400, width: 1.5)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildCostRow() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Costo en monedas',
-                  style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: HabitikColors.green500.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: HabitikColors.green400.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🪙', style: TextStyle(fontSize: 14)),
-                    const SizedBox(width: 5),
-                    Text('$_costo',
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-                    const SizedBox(width: 3),
-                    const Text('monedas', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: HabitikColors.green400,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-              thumbColor: Colors.white,
-              overlayColor: HabitikColors.green500.withValues(alpha: 0.15),
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
-            ),
-            child: Slider(
-              value: _costo.toDouble(),
-              min: 5, max: 200, divisions: 39,
-              onChanged: (v) {
-                HapticFeedback.selectionClick();
-                setState(() => _costo = v.round());
-              },
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('5 🪙', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
-              Text('200 🪙', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFrequencyChips() {
-    return Wrap(
-      spacing: 7, runSpacing: 7,
-      children: _frecuencias.entries.map((e) {
-        final sel = _frecuencia == e.key;
-        return GestureDetector(
-          onTap: () => setState(() => _frecuencia = e.key),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: sel ? HabitikColors.green500 : Colors.white.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: sel ? Colors.white.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.15)),
-              boxShadow: sel ? [BoxShadow(color: HabitikColors.green500.withValues(alpha: 0.35), blurRadius: 8)] : [],
-            ),
-            child: Text(e.value,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
-                  fontSize: 12,
-                )),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildActions() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white70,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(vertical: 13),
-            ),
-            child: const Text('Cancelar', style: TextStyle(fontSize: 13)),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 2,
-          child: AnimatedOpacity(
-            opacity: _isValid ? 1.0 : 0.5,
-            duration: const Duration(milliseconds: 200),
-            child: ElevatedButton(
-              onPressed: _isValid ? _submit : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: HabitikColors.green500,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: HabitikColors.green500.withValues(alpha: 0.3),
-                disabledForegroundColor: Colors.white38,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                elevation: _isValid ? 4 : 0,
-                shadowColor: HabitikColors.green500.withValues(alpha: 0.5),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_circle, size: 16),
-                  SizedBox(width: 6),
-                  Text('Crear Premio', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Widgets auxiliares
-// ─────────────────────────────────────────────────────────────────────────────
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) => Text(text,
-      style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.4));
 }
 
 class _TypeOption extends StatelessWidget {
@@ -589,4 +541,199 @@ class _TypeOption extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CostSlider extends StatelessWidget {
+  final int costo;
+  final ValueChanged<int> onChanged;
+
+  const _CostSlider({required this.costo, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Costo en monedas',
+                  style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: HabitikColors.green500.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: HabitikColors.green400.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🪙', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 5),
+                    Text('$costo',
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                    const SizedBox(width: 3),
+                    const Text('monedas', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: HabitikColors.green400,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+              thumbColor: Colors.white,
+              overlayColor: HabitikColors.green500.withValues(alpha: 0.15),
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
+            ),
+            child: Slider(
+              value: costo.toDouble(),
+              min: 5, max: 200, divisions: 39,
+              onChanged: (v) {
+                HapticFeedback.selectionClick();
+                onChanged(v.round());
+              },
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('5 🪙', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
+              Text('200 🪙', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FrequencyChips extends StatelessWidget {
+  final Map<String, String> frecuencias;
+  final String frecuenciaSeleccionada;
+  final ValueChanged<String> onSelect;
+
+  const _FrequencyChips({
+    required this.frecuencias,
+    required this.frecuenciaSeleccionada,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 7, runSpacing: 7,
+      children: frecuencias.entries.map((e) {
+        final sel = frecuenciaSeleccionada == e.key;
+        return GestureDetector(
+          onTap: () => onSelect(e.key),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: sel ? HabitikColors.green500 : Colors.white.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: sel ? Colors.white.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.15)),
+              boxShadow: sel ? [BoxShadow(color: HabitikColors.green500.withValues(alpha: 0.35), blurRadius: 8)] : [],
+            ),
+            child: Text(e.value,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                  fontSize: 12,
+                )),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _DialogActionButtons extends StatelessWidget {
+  final bool isValid;
+  final bool isAdmin;
+  final VoidCallback onSubmit;
+
+  const _DialogActionButtons({
+    required this.isValid,
+    required this.isAdmin,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white70,
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+            ),
+            child: const Text('Cancelar', style: TextStyle(fontSize: 13)),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 2,
+          child: AnimatedOpacity(
+            opacity: isValid ? 1.0 : 0.5,
+            duration: const Duration(milliseconds: 200),
+            child: ElevatedButton(
+              onPressed: isValid ? onSubmit : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: HabitikColors.green500,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: HabitikColors.green500.withValues(alpha: 0.3),
+                disabledForegroundColor: Colors.white38,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                elevation: isValid ? 4 : 0,
+                shadowColor: HabitikColors.green500.withValues(alpha: 0.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(isAdmin ? Icons.add_circle : Icons.send_rounded, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    isAdmin ? 'Crear Premio' : 'Enviar Propuesta',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: const TextStyle(
+      color: Colors.white60,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.4,
+    ),
+  );
 }

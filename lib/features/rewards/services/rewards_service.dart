@@ -2,27 +2,73 @@ import 'dart:convert';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/data/models/models.dart';
 
+class RewardsCatalogResponse {
+  final List<RewardItem> rewards;
+  final RewardItem? propuestaHoy;
+  final List<FamilyColecta> colectasActivas;
+
+  const RewardsCatalogResponse({
+    required this.rewards,
+    this.propuestaHoy,
+    this.colectasActivas = const [],
+  });
+}
+
 class RewardsService {
   final ApiClient _apiClient = ApiClient();
 
-  /// Obtiene el catálogo completo de recompensas de la familia
-  Future<List<RewardItem>> getRewards() async {
+  /// Obtiene el catálogo completo de recompensas, propuesta diaria y colectas activas
+  Future<RewardsCatalogResponse> getCatalog() async {
     try {
       final response = await _apiClient.get('/rewards');
       final data = jsonDecode(response.body);
 
-      if (data['success'] == true && data['data'] is List) {
-        return (data['data'] as List)
-            .map((e) => RewardItem.fromJson(e))
-            .toList();
+      if (data['success'] == true) {
+        final List<RewardItem> rewards = [];
+        final rawRewards = data['rewards'] ?? data['data'];
+        if (rawRewards is List) {
+          for (final item in rawRewards) {
+            if (item is Map<String, dynamic>) {
+              rewards.add(RewardItem.fromJson(item));
+            } else if (item is Map) {
+              rewards.add(RewardItem.fromJson(Map<String, dynamic>.from(item)));
+            }
+          }
+        }
+
+        RewardItem? propuestaHoy;
+        if (data['propuesta_hoy'] != null && data['propuesta_hoy'] is Map) {
+          propuestaHoy = RewardItem.fromJson(Map<String, dynamic>.from(data['propuesta_hoy']));
+        }
+
+        final List<FamilyColecta> colectas = [];
+        if (data['colectas_activas'] is List) {
+          for (final c in data['colectas_activas']) {
+            if (c is Map) {
+              colectas.add(FamilyColecta.fromJson(Map<String, dynamic>.from(c)));
+            }
+          }
+        }
+
+        return RewardsCatalogResponse(
+          rewards: rewards,
+          propuestaHoy: propuestaHoy,
+          colectasActivas: colectas,
+        );
       }
-      return [];
+      return const RewardsCatalogResponse(rewards: []);
     } catch (e) {
       throw Exception('Error al cargar recompensas: $e');
     }
   }
 
-  /// Permite al Jefe crear una nueva recompensa
+  /// Wrapper de compatibilidad para obtener solo la lista de recompensas
+  Future<List<RewardItem>> getRewards() async {
+    final catalog = await getCatalog();
+    return catalog.rewards;
+  }
+
+  /// Permite al Jefe crear una nueva recompensa directamente
   Future<RewardItem> createReward(Map<String, dynamic> rewardPayload) async {
     try {
       final response = await _apiClient.post('/rewards/crear', rewardPayload);
@@ -32,10 +78,9 @@ class RewardsService {
         throw Exception(data['message'] ?? 'Error desconocido');
       }
 
-      // El backend retorna 201 Created con los datos del premio creado
       if (response.statusCode == 201 || data['success'] == true) {
         final parsed = data['data'] ?? data;
-        return RewardItem.fromJson(parsed as Map<String, dynamic>);
+        return RewardItem.fromJson(Map<String, dynamic>.from(parsed as Map));
       } else {
         throw Exception(data['message'] ?? 'No se pudo crear el premio.');
       }
@@ -44,7 +89,100 @@ class RewardsService {
     }
   }
 
-  /// Permite a cualquier miembro canjear una recompensa
+  /// Permite a cualquier miembro proponer un premio personal (máx 1 al día)
+  Future<RewardItem> proposeReward({
+    required String titulo,
+    String? descripcion,
+    String? emoji,
+  }) async {
+    try {
+      final response = await _apiClient.post('/rewards/proponer', {
+        'titulo': titulo,
+        'descripcion': descripcion,
+        'emoji': emoji ?? '🎁',
+      });
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true && data['data'] != null) {
+        return RewardItem.fromJson(Map<String, dynamic>.from(data['data'] as Map));
+      } else {
+        throw Exception(data['message'] ?? 'No se pudo enviar la propuesta.');
+      }
+    } catch (e) {
+      throw Exception('Error al enviar propuesta: $e');
+    }
+  }
+
+  /// Permite al Jefe obtener las propuestas de premios pendientes
+  Future<List<RewardProposal>> getPendingProposals() async {
+    try {
+      final response = await _apiClient.get('/rewards/propuestas/pendientes');
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true && data['data'] is List) {
+        return (data['data'] as List)
+            .map((e) => RewardProposal.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Error al cargar propuestas pendientes: $e');
+    }
+  }
+
+  /// Permite al Jefe aprobar una propuesta y asignarle su costo en monedas
+  Future<void> approveProposal(int proposalId, int costo) async {
+    try {
+      final response = await _apiClient.patch(
+        '/rewards/propuestas/$proposalId/aprobar',
+        {'costo': costo},
+      );
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        throw Exception(data['message'] ?? 'Error al aprobar propuesta.');
+      }
+    } catch (e) {
+      throw Exception('Error al aprobar propuesta: $e');
+    }
+  }
+
+  /// Permite al Jefe rechazar una propuesta de premio
+  Future<void> rejectProposal(int proposalId, {String? motivo}) async {
+    try {
+      final response = await _apiClient.patch(
+        '/rewards/propuestas/$proposalId/rechazar',
+        {'motivo': motivo},
+      );
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        throw Exception(data['message'] ?? 'Error al rechazar propuesta.');
+      }
+    } catch (e) {
+      throw Exception('Error al rechazar propuesta: $e');
+    }
+  }
+
+  /// Inicia o aporta a una colecta familiar colaborativa
+  Future<Map<String, dynamic>> contributeColecta(int rewardId) async {
+    try {
+      final response = await _apiClient.post('/rewards/colecta/aportar', {
+        'rewardId': rewardId,
+      });
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        return data as Map<String, dynamic>;
+      } else {
+        throw Exception(data['message'] ?? 'Error al aportar a la colecta.');
+      }
+    } catch (e) {
+      throw Exception('Error de aporte colectivo: $e');
+    }
+  }
+
+  /// Permite a cualquier miembro canjear una recompensa personal
   Future<Map<String, dynamic>> redeemReward(int rewardId) async {
     try {
       final response = await _apiClient.post('/rewards/canjear', {
@@ -100,11 +238,11 @@ class RewardsService {
   }
 
   /// Permite al Jefe rechazar una solicitud de canje
-  Future<void> rejectCanje(String canjeId) async {
+  Future<void> rejectCanje(String canjeId, {String? motivo}) async {
     try {
       final response = await _apiClient.patch(
         '/rewards/canjes/$canjeId/rechazar',
-        {},
+        {'motivo': motivo},
       );
       final data = jsonDecode(response.body);
 

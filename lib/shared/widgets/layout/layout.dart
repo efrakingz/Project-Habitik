@@ -5,6 +5,7 @@ import 'package:habitik/shared/widgets/interactive_backgrounds/light_clear_backg
 
 export 'package:habitik/core/constants/nav_items.dart';
 export 'package:habitik/core/constants/screen_headers.dart';
+export 'loading_overlay.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ScreenShell – shell base de todas las pantallas (header verde + body curvado)

@@ -129,43 +129,68 @@ class _RewardsScreenState extends State<RewardsScreen> {
           subtitulo: null,
           useDefaultBackground: true,
           headerActions: [
-            if (isJefe) ...[
-              GestureDetector(
-                onTap: () => showCreateRewardDialog(
-                  context,
-                  onCreate: (reward) => _controller.createReward(reward, context),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : Colors.white.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      width: 1.2,
+            GestureDetector(
+              onTap: () {
+                if (isJefe) {
+                  showCreateRewardDialog(
+                    context,
+                    mode: RewardDialogMode.admin,
+                    onCreate: (reward) => _controller.createReward(reward, context),
+                  );
+                } else {
+                  if (_controller.yaPropusoHoy) {
+                    HabitikFeedback.showInfo(
+                      context,
+                      'Ya has enviado tu propuesta de premio hoy. El Jefe la revisará pronto.',
+                    );
+                    return;
+                  }
+                  showCreateRewardDialog(
+                    context,
+                    mode: RewardDialogMode.memberProposal,
+                    onCreate: (propuesta) => _controller.proposeReward(
+                      titulo: propuesta.titulo,
+                      descripcion: propuesta.descripcion,
+                      emoji: propuesta.emoji,
+                      context: context,
                     ),
+                  );
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    width: 1.2,
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 16),
-                      SizedBox(width: 5),
-                      Text(
-                        'Crear',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12.5,
-                        ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isJefe ? Icons.add_circle_outline_rounded : Icons.lightbulb_outline_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isJefe ? 'Crear' : 'Proponer',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12.5,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-            ],
+            ),
+            const SizedBox(width: 8),
             _buildCoinsCard(context, currentUser.monedas, isDark),
           ],
           body: _buildBody(),
@@ -314,11 +339,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
   Widget _buildBody() {
     if (_controller.state == RewardsState.loading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      );
+      return const LoadingOverlay(isLoading: true, message: 'Cargando tienda...');
     }
     if (_controller.state == RewardsState.error) {
       return HabitikErrorView(
