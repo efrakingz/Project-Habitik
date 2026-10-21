@@ -8,7 +8,8 @@ import 'widgets/rewards_hud_overlay.dart';
 import 'widgets/create_reward_dialog.dart';
 
 class RewardsScreen extends StatefulWidget {
-  const RewardsScreen({super.key});
+  final bool isActive;
+  const RewardsScreen({super.key, this.isActive = true});
 
   @override
   State<RewardsScreen> createState() => _RewardsScreenState();
@@ -28,6 +29,15 @@ class _RewardsScreenState extends State<RewardsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.loadRewards();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RewardsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      // Se activó la pestaña de Canjes: actualizar en segundo plano automáticamente
+      _controller.loadRewards(showLoading: false);
+    }
   }
 
   void _mostrarDialogoCanjeResuelto(String titulo, String mensaje, bool esExito) {

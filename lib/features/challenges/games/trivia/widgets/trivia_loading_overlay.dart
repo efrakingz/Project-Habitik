@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 
 /// Overlay de pantalla de carga previa para la Trivia Ecológica.
@@ -97,20 +98,27 @@ class _TriviaLoadingOverlayState extends State<TriviaLoadingOverlay> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const SizedBox(width: 48),
-                              Text(
-                                "🌱 HABITIK RETOS",
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 15,
-                                  letterSpacing: 1.5,
-                                  shadows: [
-                                    const Shadow(
-                                      color: Colors.black54,
-                                      blurRadius: 8,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const HabitikLogo(size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "HABITIK RETOS",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 15,
+                                      letterSpacing: 1.5,
+                                      shadows: [
+                                        const Shadow(
+                                          color: Colors.black54,
+                                          blurRadius: 8,
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                               IconButton(
                                 icon: const Icon(

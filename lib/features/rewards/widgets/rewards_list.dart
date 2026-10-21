@@ -5,6 +5,7 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/modals/confirm_dialog.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'reward_icon_helper.dart';
 
 class RewardsList extends StatelessWidget {
@@ -753,53 +754,71 @@ class _FamilyColectaProgressSection extends StatelessWidget {
                 ),
               )
             else
-              GestureDetector(
-                onTap: () async {
+              Builder(
+                builder: (context) {
                   final cuota = miAporte?.montoAsignado ?? 0;
-                  final confirmed = await HabitikConfirmDialog.show(
-                    context,
-                    title: 'Aportar a la Colecta',
-                    description:
-                        '¿Deseas aportar tu cuota de $cuota 🪙 para "${reward.titulo}"?',
-                    confirmLabel: 'Aportar $cuota 🪙',
-                    cancelLabel: 'Cancelar',
+                  final userCoins = SessionService().currentUser?.monedas ?? 0;
+                  final tieneSuficiente = userCoins >= cuota;
+
+                  return GestureDetector(
+                    onTap: () async {
+                      if (!tieneSuficiente) {
+                        HabitikFeedback.showError(
+                          context,
+                          'Necesitas $cuota 🪙 para tu cuota familiar (tienes $userCoins 🪙). ¡Completa más retos para acumular monedas!',
+                        );
+                        return;
+                      }
+                      final confirmed = await HabitikConfirmDialog.show(
+                        context,
+                        title: 'Aportar a la Colecta',
+                        description:
+                            '¿Deseas aportar tu cuota de $cuota 🪙 para "${reward.titulo}"? (Te quedarán ${userCoins - cuota} 🪙)',
+                        confirmLabel: 'Aportar $cuota 🪙',
+                        cancelLabel: 'Cancelar',
+                      );
+                      if (confirmed == true && onContribute != null) {
+                        onContribute!();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: tieneSuficiente
+                            ? HabitikColors.green600
+                            : (isDark ? Colors.grey.shade800 : Colors.grey.shade500),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (tieneSuficiente
+                                    ? HabitikColors.green600
+                                    : Colors.black)
+                                .withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Aportar cuota ($cuota 🪙)',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_rounded,
+                              size: 13, color: Colors.white),
+                        ],
+                      ),
+                    ),
                   );
-                  if (confirmed == true && onContribute != null) {
-                    onContribute!();
-                  }
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 13, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: HabitikColors.green600,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            HabitikColors.green600.withValues(alpha: 0.30),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Aportar (${miAporte?.montoAsignado ?? 0} 🪙)',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded,
-                          size: 13, color: Colors.white),
-                    ],
-                  ),
-                ),
               ),
           ],
         ),

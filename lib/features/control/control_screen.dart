@@ -1,33 +1,27 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:habitik/core/services/api_client.dart';
-import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/services/socket_service.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/features/rewards/services/rewards_service.dart';
 import 'package:habitik/features/rewards/widgets/coin_value_guide.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
+import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
-import 'package:habitik/shared/widgets/cards/cards.dart';
 import 'package:habitik/features/rewards/widgets/reward_icon_helper.dart';
 
 class ControlScreen extends StatefulWidget {
-  const ControlScreen({super.key});
+  final bool isActive;
+  const ControlScreen({super.key, this.isActive = true});
 
   @override
   State<ControlScreen> createState() => _ControlScreenState();
 }
 
 class _ControlScreenState extends State<ControlScreen> {
-  late final UserProfile _user;
   final RewardsService _rewardsService = RewardsService();
-
-  List<FamilyMember> _members = [];
-  bool _loadingMembers = true;
 
   List<RewardProposal> _proposals = [];
   bool _loadingProposals = true;
@@ -43,9 +37,16 @@ class _ControlScreenState extends State<ControlScreen> {
   @override
   void initState() {
     super.initState();
-    _user = SessionService().currentUser ?? UserProfile.empty;
     _refreshAll();
     _unsubscribeSocket = SocketService.subscribe(_onSocketEvent);
+  }
+
+  @override
+  void didUpdateWidget(covariant ControlScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _refreshAll();
+    }
   }
 
   void _onSocketEvent(Map<String, dynamic> data) {
@@ -69,30 +70,10 @@ class _ControlScreenState extends State<ControlScreen> {
 
   Future<void> _refreshAll() async {
     await Future.wait([
-      _loadMembers(),
       _loadProposals(),
       _loadPendingCanjes(),
       _loadColectas(),
     ]);
-  }
-
-  Future<void> _loadMembers() async {
-    try {
-      final response = await ApiClient().get('/familia/miembros');
-      if (!mounted) return;
-      final List<dynamic> data = jsonDecode(response.body);
-      setState(() {
-        _members = data
-            .map((e) => FamilyMember.fromJson(e as Map<String, dynamic>))
-            .where((m) => m.id != _user.id)
-            .toList();
-        _loadingMembers = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loadingMembers = false);
-      debugPrint('⚠️ [ControlScreen] Error cargando miembros: $e');
-    }
   }
 
   Future<void> _loadProposals() async {
@@ -214,17 +195,28 @@ class _ControlScreenState extends State<ControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+
     return ScreenShell(
       titulo: 'Panel de Control',
       subtitulo: 'ADMINISTRACIÓN',
       headerActions: [
-        IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 22),
-          onPressed: _refreshAll,
-          tooltip: 'Refrescar datos',
+        IconActionButton(
+          icon: Icons.info_outline_rounded,
+          onTap: () => CoinValueInfoModal.show(context, isDark: isDark),
+          bgColor: Colors.white.withAlpha(50),
+          iconColor: Colors.white,
         ),
+        const SizedBox(width: 8),
+        IconActionButton(
+          icon: Icons.refresh_rounded,
+          onTap: _refreshAll,
+          bgColor: Colors.white.withAlpha(50),
+          iconColor: Colors.white,
+        ),
+        const SizedBox(width: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(20),
@@ -260,22 +252,6 @@ class _ControlScreenState extends State<ControlScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              HeroBannerCard(
-                icon: Icons.admin_panel_settings_outlined,
-                title: 'Administrar Familia',
-                subtitle: 'MODERACIÓN DE RECOMPENSAS',
-                description: _loadingMembers
-                    ? 'Gestiona las propuestas de premios de tus familiares, asigna monedas justas y modera los canjes del hogar.'
-                    : 'Hogar con ${_members.length + 1} integrantes. Gestiona las propuestas de premios, asigna monedas justas y modera los canjes del hogar.',
-                actionLabel: 'Actualizar',
-                onAction: _refreshAll,
-              ),
-              const SizedBox(height: 20),
-
-              // ── Guía de valor de monedas ─────────────────────────────────
-              const CoinValueGuide(initialExpanded: false),
-              const SizedBox(height: 28),
-
               // ── Sección 1: Propuestas de Premios Pendientes (Ámbar) ───────
               _AdminSectionGroupCard(
                 title: 'Propuestas de Premios',

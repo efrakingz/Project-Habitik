@@ -37,6 +37,11 @@ class RewardsController extends ChangeNotifier {
 
   RewardsController() {
     _unsubscribeSocket = SocketService.subscribe(_onSocketEvent);
+    SessionService().currentUserNotifier.addListener(_onUserSessionChanged);
+  }
+
+  void _onUserSessionChanged() {
+    notifyListeners();
   }
 
   /// Escucha eventos del socket relacionados con canjes, propuestas y colectas
@@ -107,6 +112,7 @@ class RewardsController extends ChangeNotifier {
 
   @override
   void dispose() {
+    SessionService().currentUserNotifier.removeListener(_onUserSessionChanged);
     _unsubscribeSocket();
     super.dispose();
   }
@@ -115,13 +121,19 @@ class RewardsController extends ChangeNotifier {
     await loadRewards();
   }
 
-  Future<void> loadRewards() async {
-    _state = RewardsState.loading;
-    _errorMessage = null;
-    notifyListeners();
+  Future<void> loadRewards({bool showLoading = true}) async {
+    if (showLoading && _rewards.isEmpty) {
+      _state = RewardsState.loading;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
-      final catalog = await _rewardsService.getCatalog();
+      final results = await Future.wait([
+        _rewardsService.getCatalog(),
+        SessionService().refreshUserProfile(),
+      ]);
+      final catalog = results[0] as RewardsCatalogResponse;
       _rewards = catalog.rewards;
       _propuestaHoy = catalog.propuestaHoy;
       _colectasActivas = catalog.colectasActivas;

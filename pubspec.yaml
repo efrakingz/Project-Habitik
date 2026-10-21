@@ -27,6 +27,7 @@ dependencies:
   permission_handler: ^11.3.1
   mobile_scanner: ^5.1.1
   qr_flutter: ^4.1.0
+  flutter_svg: ^2.0.17
   share_plus: ^13.1.0
   socket_io_client: ^3.0.2
   flutter_local_notifications: ^17.2.4

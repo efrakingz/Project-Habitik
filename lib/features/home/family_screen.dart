@@ -6,6 +6,7 @@ import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/cards/cards.dart';
+import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
 
 class FamilyScreen extends StatefulWidget {
   const FamilyScreen({super.key});
@@ -88,17 +89,24 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     compact: true,
                     trailing: _members.isNotEmpty
                         ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? HabitikColors.green900.withValues(alpha: 0.45)
+                                  ? HabitikColors.green900.withValues(
+                                      alpha: 0.45,
+                                    )
                                   : HabitikColors.green100,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               '${_members.length} miembros',
                               style: TextStyle(
-                                color: isDark ? HabitikColors.green200 : HabitikColors.green800,
+                                color: isDark
+                                    ? HabitikColors.green200
+                                    : HabitikColors.green800,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -110,7 +118,26 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   if (_loading)
                     const Padding(
                       padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(color: HabitikColors.green500),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            HabitikLogo(
+                              size: 52,
+                              pulseEffect: true,
+                            ),
+                            SizedBox(height: 16),
+                            SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: HabitikColors.green500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     )
                   else if (_members.isEmpty)
                     Container(
@@ -120,7 +147,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
                         color: isDark ? const Color(0xFF1E2E22) : Colors.white,
                         borderRadius: HabitikRadius.lg_,
                         border: Border.all(
-                          color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
+                          color: isDark
+                              ? const Color(0x30FFFFFF)
+                              : Colors.grey.shade200,
                           width: 2,
                         ),
                       ),
@@ -131,7 +160,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
                           Text(
                             'No hay miembros registrados aún',
                             style: TextStyle(
-                              color: isDark ? Colors.white : HabitikColors.textDark,
+                              color: isDark
+                                  ? Colors.white
+                                  : HabitikColors.textDark,
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                             ),
@@ -140,7 +171,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
                           const Text(
                             'Invita a tu familia desde tu perfil para ver su progreso aquí.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: HabitikColors.textLight, fontSize: 12),
+                            style: TextStyle(
+                              color: HabitikColors.textLight,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),

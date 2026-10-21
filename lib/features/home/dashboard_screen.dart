@@ -19,7 +19,8 @@ import 'package:habitik/core/services/level_service.dart';
 /// - CA-4.1-2: Ranking Familiar con avatares, nivel, rachas y filtros semanal/mensual.
 /// - CA-4.1-3: Feed de actividad con emisión de retos y reacciones rápidas (👏, 🔥, 💧, ❤️).
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool isActive;
+  const DashboardScreen({super.key, this.isActive = true});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -41,6 +42,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         LevelService.checkAndShowLevelUp(context);
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _wallService.loadWallData(notify: false);
+    }
   }
 
   @override

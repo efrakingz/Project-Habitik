@@ -238,4 +238,29 @@ class SessionService {
       await _prefs?.setString('ob_role_$userId', role.toLowerCase());
     }
   }
+
+  /// Consulta el perfil más reciente desde el backend y actualiza la sesión reactiva
+  Future<UserProfile?> refreshUserProfile() async {
+    final current = currentUser;
+    if (current == null) return null;
+    try {
+      final response = await ApiClient().get('/auth/perfil/${current.id}');
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        if (jsonResponse['ok'] == true && jsonResponse['data'] != null) {
+          final updatedUser = UserProfile.fromJson(jsonResponse['data']);
+          await updateRewardsAndXp(
+            xp: updatedUser.xp,
+            monedas: updatedUser.monedas,
+            nivel: updatedUser.nivel,
+            rachaDias: updatedUser.rachaDias,
+          );
+          return currentUserNotifier.value;
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [SessionService] Error al refrescar perfil: $e');
+    }
+    return current;
+  }
 }
