@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/services/socket_service.dart';
@@ -12,6 +13,7 @@ import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/cards/cards.dart';
+import 'package:habitik/features/rewards/widgets/reward_icon_helper.dart';
 
 class ControlScreen extends StatefulWidget {
   const ControlScreen({super.key});
@@ -214,7 +216,7 @@ class _ControlScreenState extends State<ControlScreen> {
   Widget build(BuildContext context) {
     return ScreenShell(
       titulo: 'Panel de Control',
-      subtitulo: '👑 Jefe de Familia',
+      subtitulo: 'ADMINISTRACIÓN',
       headerActions: [
         IconButton(
           icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 22),
@@ -224,16 +226,28 @@ class _ControlScreenState extends State<ControlScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: HabitikColors.amber400,
-            borderRadius: HabitikRadius.xxl_,
-          ),
-          child: const Text(
-            'ADMIN',
-            style: TextStyle(
-              color: Color(0xFF5D4037),
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.35),
+              width: 1.2,
             ),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.shield_outlined, size: 12, color: Colors.white),
+              SizedBox(width: 4),
+              Text(
+                'JEFE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -242,16 +256,17 @@ class _ControlScreenState extends State<ControlScreen> {
         color: HabitikColors.green500,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               HeroBannerCard(
-                emoji: '👑',
+                icon: Icons.admin_panel_settings_outlined,
                 title: 'Administrar Familia',
+                subtitle: 'MODERACIÓN DE RECOMPENSAS',
                 description: _loadingMembers
                     ? 'Gestiona las propuestas de premios de tus familiares, asigna monedas justas y modera los canjes del hogar.'
-                    : 'Familia con ${_members.length + 1} integrantes. Gestiona las propuestas de premios, asigna monedas justas y modera los canjes del hogar.',
+                    : 'Hogar con ${_members.length + 1} integrantes. Gestiona las propuestas de premios, asigna monedas justas y modera los canjes del hogar.',
                 actionLabel: 'Actualizar',
                 onAction: _refreshAll,
               ),
@@ -259,79 +274,121 @@ class _ControlScreenState extends State<ControlScreen> {
 
               // ── Guía de valor de monedas ─────────────────────────────────
               const CoinValueGuide(initialExpanded: false),
-              const SizedBox(height: 24),
-
-              // ── Sección: Propuestas de Premios Pendientes ────────────────
-              _SectionHeader(
-                title: '💡 Propuestas de Premios',
-                subtitle: 'Asigna el valor en monedas y aprueba los premios que proponen tus familiares',
-              ),
-              const SizedBox(height: 12),
-              if (_loadingProposals)
-                const Center(child: CircularProgressIndicator())
-              else if (_proposals.isEmpty)
-                const _EmptySectionCard(
-                  emoji: '🙌',
-                  mensaje: 'No hay propuestas de premios pendientes.',
-                  detalle: 'Cuando un familiar proponga un premio, aparecerá aquí para que le fijes el costo.',
-                )
-              else
-                ..._proposals.map((prop) => _ProposalModerationCard(
-                      proposal: prop,
-                      onApprove: (costo, {required bool esFamiliar, String? titulo, String? descripcion, String? icono}) {
-                        _aprobarPropuesta(
-                          prop, 
-                          costo,
-                          esFamiliar: esFamiliar,
-                          titulo: titulo,
-                          descripcion: descripcion,
-                          icono: icono,
-                        );
-                      },
-                      onReject: () => _rechazarPropuesta(prop),
-                    )),
-              
               const SizedBox(height: 28),
 
-              // ── Sección: Solicitudes de Canje Personal ───────────────────
-              _SectionHeader(
-                title: '🎁 Solicitudes de Canje Personal',
-                subtitle: 'Revisa y confirma cuando un integrante reclame un premio en la tienda',
+              // ── Sección 1: Propuestas de Premios Pendientes (Ámbar) ───────
+              _AdminSectionGroupCard(
+                title: 'Propuestas de Premios',
+                subtitle: 'Asigna el valor en monedas y aprueba propuestas',
+                icon: Icons.lightbulb_rounded,
+                count: _proposals.length,
+                badgeLabel: 'pendientes',
+                accentColor: const Color(0xFFD97706),
+                child: _loadingProposals
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : _proposals.isEmpty
+                        ? const _EmptySectionCard(
+                            icon: Icons.inbox_outlined,
+                            mensaje: 'No hay propuestas de premios pendientes.',
+                            detalle: 'Cuando un familiar proponga un premio, aparecerá aquí para que le fijes el costo.',
+                            accentColor: Color(0xFFD97706),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (int i = 0; i < _proposals.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 12),
+                                _ProposalModerationCard(
+                                  proposal: _proposals[i],
+                                  onApprove: (costo, {required bool esFamiliar, String? titulo, String? descripcion, String? icono}) {
+                                    _aprobarPropuesta(
+                                      _proposals[i], 
+                                      costo,
+                                      esFamiliar: esFamiliar,
+                                      titulo: titulo,
+                                      descripcion: descripcion,
+                                      icono: icono,
+                                    );
+                                  },
+                                  onReject: () => _rechazarPropuesta(_proposals[i]),
+                                ),
+                              ],
+                            ],
+                          ),
               ),
-              const SizedBox(height: 12),
-              if (_loadingCanjes)
-                const Center(child: CircularProgressIndicator())
-              else if (_pendingCanjes.isEmpty)
-                const _EmptySectionCard(
-                  emoji: '✨',
-                  mensaje: 'No hay solicitudes de canje pendientes.',
-                  detalle: 'Todos los canjes personales solicitados han sido procesados.',
-                )
-              else
-                ..._pendingCanjes.map((canje) => _PendingCanjeCard(
-                      canje: canje,
-                      onApprove: () => _aprobarCanje(canje.id),
-                      onReject: () => _rechazarCanje(canje.id),
-                    )),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
 
-              // ── Sección: Colectas Familiares Activas ─────────────────────
-              _SectionHeader(
-                title: '👨‍👩‍👧 Colectas Familiares en Curso',
-                subtitle: 'Premios colaborativos que se auto-canjean al alcanzar el 100% de aportes',
+              // ── Sección 2: Solicitudes de Canje Personal (Azul) ───────────
+              _AdminSectionGroupCard(
+                title: 'Solicitudes de Canje Personal',
+                subtitle: 'Revisa y confirma cuando un integrante reclame un premio',
+                icon: Icons.redeem_rounded,
+                count: _pendingCanjes.length,
+                badgeLabel: 'por revisar',
+                accentColor: const Color(0xFF2563EB),
+                child: _loadingCanjes
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : _pendingCanjes.isEmpty
+                        ? const _EmptySectionCard(
+                            icon: Icons.check_circle_outline_rounded,
+                            mensaje: 'No hay solicitudes de canje pendientes.',
+                            detalle: 'Todos los canjes personales solicitados han sido procesados.',
+                            accentColor: Color(0xFF2563EB),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (int i = 0; i < _pendingCanjes.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 12),
+                                _PendingCanjeCard(
+                                  canje: _pendingCanjes[i],
+                                  onApprove: () => _aprobarCanje(_pendingCanjes[i].id),
+                                  onReject: () => _rechazarCanje(_pendingCanjes[i].id),
+                                ),
+                              ],
+                            ],
+                          ),
               ),
-              const SizedBox(height: 12),
-              if (_loadingColectas)
-                const Center(child: CircularProgressIndicator())
-              else if (_colectas.isEmpty)
-                const _EmptySectionCard(
-                  emoji: '🤝',
-                  mensaje: 'No hay colectas familiares activas.',
-                  detalle: 'Crea un premio familiar desde la tienda de canjes para iniciar una meta compartida.',
-                )
-              else
-                ..._colectas.map((col) => _ColectaStatusCard(colecta: col)),
+
+              const SizedBox(height: 32),
+
+              // ── Sección 3: Colectas Familiares Activas (Esmeralda) ─────────
+              _AdminSectionGroupCard(
+                title: 'Colectas Familiares en Curso',
+                subtitle: 'Metas colaborativas que se canjean al 100% de aportes',
+                icon: Icons.diversity_3_rounded,
+                count: _colectas.length,
+                badgeLabel: 'activas',
+                accentColor: const Color(0xFF059669),
+                child: _loadingColectas
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : _colectas.isEmpty
+                        ? const _EmptySectionCard(
+                            icon: Icons.groups_outlined,
+                            mensaje: 'No hay colectas familiares activas.',
+                            detalle: 'Crea un premio familiar desde la tienda de canjes para iniciar una meta compartida.',
+                            accentColor: Color(0xFF059669),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (int i = 0; i < _colectas.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 12),
+                                _ColectaStatusCard(colecta: _colectas[i]),
+                              ],
+                            ],
+                          ),
+              ),
             ],
           ),
         ),
@@ -344,79 +401,281 @@ class _ControlScreenState extends State<ControlScreen> {
 // Sub-widgets independientes (Clean Code Habitik)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
+class _AdminSectionGroupCard extends StatelessWidget {
+  const _AdminSectionGroupCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.count,
+    this.badgeLabel = 'activas',
+    this.accentColor = HabitikColors.green600,
+    required this.child,
+  });
+
   final String title;
   final String subtitle;
+  final IconData icon;
+  final int? count;
+  final String badgeLabel;
+  final Color accentColor;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : HabitikColors.textDark,
+    final hasItems = count != null && count! > 0;
+    final isAmber = accentColor == const Color(0xFFD97706);
+    final isBlue = accentColor == const Color(0xFF2563EB);
+
+    final groupBg = isDark
+        ? (isAmber
+            ? const Color(0xFF241C12)
+            : isBlue
+                ? const Color(0xFF132230)
+                : const Color(0xFF15261B))
+        : (isAmber
+            ? const Color(0xFFFDF5E8)
+            : isBlue
+                ? const Color(0xFFE8F2FC)
+                : const Color(0xFFE3F3E8));
+
+    final groupBorder = isDark
+        ? Colors.white.withValues(alpha: 0.09)
+        : (isAmber
+            ? const Color(0xFFF3CE85)
+            : isBlue
+                ? const Color(0xFFA0C9F4)
+                : const Color(0xFF96D7AE));
+
+    final iconBg = isDark
+        ? accentColor.withValues(alpha: 0.18)
+        : (isAmber
+            ? const Color(0xFFFDE8C0)
+            : isBlue
+                ? const Color(0xFFD5E7FA)
+                : const Color(0xFFD0EEDB));
+
+    final iconBorder = isDark
+        ? accentColor.withValues(alpha: 0.35)
+        : (isAmber
+            ? const Color(0xFFF5BE58)
+            : isBlue
+                ? const Color(0xFF7CB8F3)
+                : const Color(0xFF6DC491));
+
+    final titleColor = isDark
+        ? Colors.white
+        : (isAmber
+            ? const Color(0xFF563503)
+            : isBlue
+                ? const Color(0xFF0C3056)
+                : const Color(0xFF0A361D));
+
+    final subtitleColor = isDark
+        ? HabitikColors.green200
+        : (isAmber
+            ? const Color(0xFF865306)
+            : isBlue
+                ? const Color(0xFF1E5B94)
+                : const Color(0xFF1E673B));
+
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : (isAmber
+            ? const Color(0xFFF5D698)
+            : isBlue
+                ? const Color(0xFFBFDAF8)
+                : const Color(0xFFB5E2C4));
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: groupBg,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: HabitikShadows.card,
+        border: Border.all(
+          color: groupBorder,
+          width: 1.4,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Cabecera de la sección ──
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: iconBorder,
+                    width: 1,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, color: accentColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
+                        color: titleColor,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: subtitleColor,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (count != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: hasItems
+                        ? accentColor
+                        : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: hasItems
+                        ? [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    hasItems ? '$count $badgeLabel' : 'Al día',
+                    style: GoogleFonts.outfit(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      color: hasItems
+                          ? Colors.white
+                          : (isDark ? Colors.white54 : HabitikColors.textMid),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          style: TextStyle(fontSize: 12.5, color: HabitikColors.textMid),
-        ),
-      ],
+          const SizedBox(height: 12),
+          // ── Separador sutil de cabecera ──
+          Container(
+            height: 1,
+            color: dividerColor,
+          ),
+          const SizedBox(height: 14),
+          // ── Contenido de la sección ──
+          child,
+        ],
+      ),
     );
   }
 }
 
 class _EmptySectionCard extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String mensaje;
   final String detalle;
+  final Color accentColor;
 
   const _EmptySectionCard({
-    required this.emoji,
+    required this.icon,
     required this.mensaje,
     required this.detalle,
+    this.accentColor = HabitikColors.green600,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+    final isAmber = accentColor == const Color(0xFFD97706);
+    final isBlue = accentColor == const Color(0xFF2563EB);
+
+    final bgColor = isDark
+        ? HabitikColors.darkCardBg
+        : (isAmber
+            ? const Color(0xFFFFF9ED)
+            : isBlue
+                ? const Color(0xFFF2F8FE)
+                : const Color(0xFFF0F9F3));
+
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : (isAmber
+            ? const Color(0xFFF6CE7B)
+            : isBlue
+                ? const Color(0xFFA8CEF6)
+                : const Color(0xFF9BD9B5));
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF16251B) : Colors.white,
-        borderRadius: HabitikRadius.lg_,
-        border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: borderColor,
+          width: 1.2,
+        ),
         boxShadow: HabitikShadows.card,
       ),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 28)),
-          const SizedBox(width: 14),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: accentColor.withValues(alpha: 0.35),
+                width: 1,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 20, color: accentColor),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   mensaje,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: isDark ? Colors.white : HabitikColors.textDark,
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: isDark ? Colors.white : const Color(0xFF0F291E),
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   detalle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white60 : HabitikColors.textMid,
+                  style: GoogleFonts.outfit(
+                    fontSize: 11.5,
+                    color: isDark ? Colors.white70 : const Color(0xFF455A64),
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -509,17 +768,40 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
     final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
     final prop = widget.proposal;
 
+    final cardBg = isDark
+        ? const Color(0xFF1B271E)
+        : (_esFamiliar ? const Color(0xFFF7FBF8) : const Color(0xFFFFFDF8));
+
+    final cardBorder = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : (_esFamiliar ? const Color(0xFFBCE0C8) : const Color(0xFFF6D38B));
+
+    final iconBg = isDark
+        ? HabitikColors.green900.withValues(alpha: 0.5)
+        : (_esFamiliar ? const Color(0xFFD6EEDF) : const Color(0xFFFCEBCA));
+
+    final iconBorder = isDark
+        ? HabitikColors.green700.withValues(alpha: 0.5)
+        : (_esFamiliar ? const Color(0xFFA5DCB6) : const Color(0xFFF7CF76));
+
+    final iconColor = isDark
+        ? HabitikColors.green300
+        : (_esFamiliar ? const Color(0xFF16522B) : const Color(0xFF8C5300));
+
+    final sliderBg = isDark
+        ? Colors.black.withValues(alpha: 0.25)
+        : (_esFamiliar ? const Color(0xFFE2F4E7) : const Color(0xFFFFF2D6));
+
+    final sliderBorder = _esFamiliar ? const Color(0xFFA5DCB6) : const Color(0xFFF7CE76);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B271E) : Colors.white,
-        borderRadius: HabitikRadius.lg_,
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: HabitikShadows.card,
         border: Border.all(
-          color: _esFamiliar 
-              ? HabitikColors.green500.withValues(alpha: 0.5) 
-              : HabitikColors.amber400.withValues(alpha: 0.4),
+          color: cardBorder,
           width: 1.4,
         ),
       ),
@@ -532,17 +814,22 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
               GestureDetector(
                 onTap: _abrirDialogoEdicion,
                 child: Container(
-                  width: 50,
-                  height: 50,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2E381C) : const Color(0xFFFFF8E1),
-                    shape: BoxShape.circle,
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: HabitikColors.amber400.withValues(alpha: 0.3),
+                      color: iconBorder,
+                      width: 1.2,
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(_emoji, style: const TextStyle(fontSize: 26)),
+                  child: Icon(
+                    getRewardCategoryIcon(_emoji, _titulo),
+                    size: 22,
+                    color: iconColor,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -563,10 +850,10 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                             const SizedBox(width: 6),
                             Text(
                               'Propuesto por: ${prop.usuarioNombre}',
-                              style: const TextStyle(
+                              style: GoogleFonts.outfit(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: HabitikColors.green500,
+                                color: HabitikColors.green600,
                               ),
                             ),
                           ],
@@ -580,11 +867,11 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                             decoration: BoxDecoration(
                               color: isDark 
                                   ? Colors.white.withValues(alpha: 0.08)
-                                  : HabitikColors.amber400.withValues(alpha: 0.15),
+                                  : HabitikColors.amber400.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: HabitikColors.amber400.withValues(alpha: 0.5),
-                                width: 0.8,
+                                color: HabitikColors.amber400.withValues(alpha: 0.6),
+                                width: 0.9,
                               ),
                             ),
                             child: Row(
@@ -594,10 +881,10 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                                 const SizedBox(width: 4),
                                 Text(
                                   'Editar',
-                                  style: TextStyle(
+                                  style: GoogleFonts.outfit(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.amber[200] : const Color(0xFF8D6E63),
+                                    color: isDark ? Colors.amber[200] : const Color(0xFF8D5300),
                                   ),
                                 ),
                               ],
@@ -609,19 +896,19 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                     const SizedBox(height: 4),
                     Text(
                       _titulo,
-                      style: TextStyle(
+                      style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : HabitikColors.textDark,
+                        color: isDark ? Colors.white : const Color(0xFF0F291E),
                       ),
                     ),
                     if (_descripcion.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         _descripcion,
-                        style: TextStyle(
+                        style: GoogleFonts.outfit(
                           fontSize: 12.5,
-                          color: isDark ? Colors.white70 : HabitikColors.textMid,
+                          color: isDark ? Colors.white70 : const Color(0xFF37474F),
                         ),
                       ),
                     ],
@@ -636,7 +923,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFFF1F5F2),
+              color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFFE5ECE7),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -652,24 +939,33 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: !_esFamiliar
-                            ? (isDark ? const Color(0xFF2C3E50) : Colors.white)
+                            ? (isDark ? const Color(0xFF2C3E50) : const Color(0xFFFFF6E5))
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
+                        border: !_esFamiliar && !isDark
+                            ? Border.all(color: const Color(0xFFF7D186), width: 1)
+                            : null,
                         boxShadow: !_esFamiliar ? HabitikShadows.card : null,
                       ),
                       alignment: Alignment.center,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('👤', style: TextStyle(fontSize: 13)),
+                          Icon(
+                            Icons.person_outline_rounded,
+                            size: 14,
+                            color: !_esFamiliar
+                                ? (isDark ? Colors.white : const Color(0xFF5D3800))
+                                : HabitikColors.textMid,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             'Personal',
-                            style: TextStyle(
+                            style: GoogleFonts.outfit(
                               fontSize: 12,
                               fontWeight: !_esFamiliar ? FontWeight.w800 : FontWeight.w600,
                               color: !_esFamiliar
-                                  ? (isDark ? Colors.white : HabitikColors.textDark)
+                                  ? (isDark ? Colors.white : const Color(0xFF5D3800))
                                   : HabitikColors.textMid,
                             ),
                           ),
@@ -695,7 +991,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: _esFamiliar
-                            ? (isDark ? const Color(0xFF2E7D32) : HabitikColors.green500)
+                            ? (isDark ? const Color(0xFF2E7D32) : HabitikColors.green600)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
                         boxShadow: _esFamiliar ? HabitikShadows.card : null,
@@ -704,11 +1000,15 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('👨‍👩‍👧‍👦', style: TextStyle(fontSize: 13)),
+                          Icon(
+                            Icons.groups_outlined,
+                            size: 15,
+                            color: _esFamiliar ? Colors.white : HabitikColors.textMid,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             'Familiar Colaborativo',
-                            style: TextStyle(
+                            style: GoogleFonts.outfit(
                               fontSize: 12,
                               fontWeight: _esFamiliar ? FontWeight.w800 : FontWeight.w600,
                               color: _esFamiliar ? Colors.white : HabitikColors.textMid,
@@ -729,20 +1029,20 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: HabitikColors.green500.withValues(alpha: 0.12),
+                color: isDark ? HabitikColors.green900.withValues(alpha: 0.3) : const Color(0xFFDDF3E5),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: HabitikColors.green500.withValues(alpha: 0.3)),
+                border: Border.all(color: isDark ? HabitikColors.green700.withValues(alpha: 0.5) : const Color(0xFF8ED6A5)),
               ),
               child: Row(
                 children: [
-                  const Text('🤝', style: TextStyle(fontSize: 16)),
+                  const Icon(Icons.handshake_outlined, size: 16, color: HabitikColors.green600),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Colecta Colaborativa: Las $_costoAsignado 🪙 se distribuirán entre todos los integrantes y el premio se canjeará para la familia al completarse.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? Colors.white70 : const Color(0xFF2E7D32),
+                      style: GoogleFonts.outfit(
+                        fontSize: 11.5,
+                        color: isDark ? Colors.white70 : const Color(0xFF144D25),
                         height: 1.3,
                         fontWeight: FontWeight.w600,
                       ),
@@ -755,20 +1055,22 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFFFF3DE),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFF7D186)),
               ),
               child: Row(
                 children: [
-                  const Text('👤', style: TextStyle(fontSize: 15)),
+                  Icon(Icons.person_outline_rounded, size: 15, color: isDark ? Colors.white60 : const Color(0xFF7A4A03)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Premio Individual: Estará disponible en la tienda para que el integrante lo canjee individualmente por $_costoAsignado 🪙.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? Colors.white60 : HabitikColors.textMid,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11.5,
+                        color: isDark ? Colors.white60 : const Color(0xFF6D4002),
                         height: 1.3,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -782,9 +1084,9 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.black.withValues(alpha: 0.25) : const Color(0xFFF9FBE7),
+              color: sliderBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: HabitikColors.amber400.withValues(alpha: 0.3)),
+              border: Border.all(color: sliderBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,9 +1094,9 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Asignar costo en monedas:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.outfit(fontSize: 12.5, fontWeight: FontWeight.w700),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -804,10 +1106,10 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                       ),
                       child: Text(
                         '$_costoAsignado 🪙',
-                        style: const TextStyle(
-                          color: Color(0xFFFFB300),
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFFFFB300),
                           fontWeight: FontWeight.w900,
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -818,7 +1120,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                   min: 5,
                   max: 200,
                   divisions: 39,
-                  activeColor: _esFamiliar ? HabitikColors.green500 : HabitikColors.green500,
+                  activeColor: _esFamiliar ? HabitikColors.green600 : HabitikColors.amber500,
                   inactiveColor: isDark ? Colors.white12 : Colors.black12,
                   onChanged: (v) {
                     HapticFeedback.selectionClick();
@@ -828,8 +1130,8 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('5 🪙 (1-2 días)', style: TextStyle(fontSize: 10, color: HabitikColors.textLight)),
-                    Text('200 🪙 (meta grande)', style: TextStyle(fontSize: 10, color: HabitikColors.textLight)),
+                    Text('5 🪙 (1-2 días)', style: GoogleFonts.outfit(fontSize: 10.5, color: HabitikColors.textLight)),
+                    Text('200 🪙 (meta grande)', style: GoogleFonts.outfit(fontSize: 10.5, color: HabitikColors.textLight)),
                   ],
                 ),
               ],
@@ -847,7 +1149,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: const Text('Rechazar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: Text('Rechazar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -864,7 +1166,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: HabitikColors.green500,
+                    backgroundColor: HabitikColors.green600,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 11),
@@ -883,7 +1185,7 @@ class _ProposalModerationCardState extends State<_ProposalModerationCard> {
                           _esFamiliar
                               ? 'Aprobar Familiar ($_costoAsignado 🪙)'
                               : 'Aprobar Personal ($_costoAsignado 🪙)',
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 12.5),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1194,16 +1496,21 @@ class _PendingCanjeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+    final cardBg = isDark ? const Color(0xFF1A222C) : const Color(0xFFF8FBFE);
+    final cardBorder = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFB8D8F4);
+    final iconBg = isDark ? const Color(0xFF2C3E50) : const Color(0xFFD6E8FA);
+    final iconBorder = isDark ? Colors.white12 : const Color(0xFFA1CDF7);
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF114C87);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A222C) : Colors.white,
-        borderRadius: HabitikRadius.lg_,
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: HabitikShadows.card,
         border: Border.all(
-          color: HabitikColors.blue500.withValues(alpha: 0.2),
-          width: 1,
+          color: cardBorder,
+          width: 1.2,
         ),
       ),
       child: Column(
@@ -1214,11 +1521,18 @@ class _PendingCanjeCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2C3E50) : HabitikColors.bgLight,
-                  shape: BoxShape.circle,
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: iconBorder,
+                  ),
                 ),
                 alignment: Alignment.center,
-                child: Text(canje.rewardEmoji, style: const TextStyle(fontSize: 22)),
+                child: Icon(
+                  getRewardCategoryIcon(canje.rewardEmoji, canje.rewardTitulo),
+                  size: 22,
+                  color: iconColor,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1235,7 +1549,7 @@ class _PendingCanjeCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           'Canjeado por: ${canje.usuarioNombre}',
-                          style: TextStyle(
+                          style: GoogleFonts.outfit(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: HabitikColors.blue500,
@@ -1246,19 +1560,19 @@ class _PendingCanjeCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       canje.rewardTitulo,
-                      style: TextStyle(
-                        fontSize: 15,
+                      style: GoogleFonts.outfit(
+                        fontSize: 15.5,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : HabitikColors.textDark,
+                        color: isDark ? Colors.white : const Color(0xFF0C2B4B),
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${canje.costoPagado} 🪙 pagadas · ${_formatDate(canje.createdAt)}',
-                      style: TextStyle(
+                      '${canje.costoPagado} 🪙 aportadas · ${_formatDate(canje.createdAt)}',
+                      style: GoogleFonts.outfit(
                         fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: HabitikColors.amber400,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFFFB300),
                       ),
                     ),
                   ],
@@ -1270,15 +1584,15 @@ class _PendingCanjeCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
+                child: OutlinedButton(
                   onPressed: onReject,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent.withValues(alpha: 0.15),
+                  style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: HabitikRadius.md_),
+                    side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: const Text('Rechazar', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Rechazar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1286,12 +1600,13 @@ class _PendingCanjeCard extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onApprove,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: HabitikColors.green500,
+                    backgroundColor: HabitikColors.green600,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: HabitikRadius.md_),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: const Text('Aprobar Canje', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Aprobar Canje', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ),
             ],
@@ -1318,14 +1633,16 @@ class _ColectaStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+    final cardBg = isDark ? const Color(0xFF1E2F23) : const Color(0xFFF7FBF8);
+    final cardBorder = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFB4E4C5);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2F23) : const Color(0xFFF1F8E9),
-        borderRadius: HabitikRadius.lg_,
-        border: Border.all(color: HabitikColors.green500.withValues(alpha: 0.3)),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder, width: 1.2),
+        boxShadow: HabitikShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1333,20 +1650,27 @@ class _ColectaStatusCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '🤝 Colecta Activa',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: HabitikColors.green500,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.groups_outlined, size: 16, color: HabitikColors.green600),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Colecta Activa',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? HabitikColors.green300 : const Color(0xFF0F4E26),
+                    ),
+                  ),
+                ],
               ),
               Text(
                 '${colecta.totalRecaudado} de ${colecta.totalRequerido} 🪙',
-                style: const TextStyle(
+                style: GoogleFonts.outfit(
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
-                  color: Color(0xFFFFA000),
+                  color: const Color(0xFFFFA000),
                 ),
               ),
             ],
@@ -1358,16 +1682,16 @@ class _ColectaStatusCard extends StatelessWidget {
               value: colecta.progreso,
               minHeight: 8,
               backgroundColor: isDark ? Colors.white12 : Colors.black12,
-              valueColor: const AlwaysStoppedAnimation<Color>(HabitikColors.green500),
+              valueColor: const AlwaysStoppedAnimation<Color>(HabitikColors.green600),
             ),
           ),
           const SizedBox(height: 10),
           Text(
             'Aportes de la familia:',
-            style: TextStyle(
-              fontSize: 11,
+            style: GoogleFonts.outfit(
+              fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white60 : HabitikColors.textMid,
+              color: isDark ? Colors.white60 : const Color(0xFF2C4A36),
             ),
           ),
           const SizedBox(height: 6),
@@ -1389,15 +1713,15 @@ class _ColectaStatusCard extends StatelessWidget {
                     Icon(
                       a.pagado ? Icons.check_circle : Icons.schedule,
                       size: 13,
-                      color: a.pagado ? HabitikColors.green500 : Colors.grey,
+                      color: a.pagado ? HabitikColors.green600 : Colors.grey,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${a.nombre}: ${a.pagado ? "${a.montoPagado} 🪙 (Listo)" : "${a.montoAsignado} 🪙 (Pendiente)"}',
-                      style: TextStyle(
+                      style: GoogleFonts.outfit(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: a.pagado ? HabitikColors.green400 : (isDark ? Colors.white60 : Colors.black54),
+                        color: a.pagado ? const Color(0xFF1B5E20) : (isDark ? Colors.white60 : Colors.black54),
                       ),
                     ),
                   ],

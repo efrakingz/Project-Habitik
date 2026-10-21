@@ -298,7 +298,7 @@ class _CreateRewardDialogState extends State<CreateRewardDialog> {
                     child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('💡', style: TextStyle(fontSize: 18)),
+                        Icon(Icons.lightbulb_rounded, size: 20, color: HabitikColors.amber400),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(

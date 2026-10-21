@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
@@ -1064,7 +1065,8 @@ class ValidationCard extends StatelessWidget {
 // HeroBannerCard – tarjeta destacada de encabezado de sección
 // ─────────────────────────────────────────────────────────────────────────────
 class HeroBannerCard extends StatelessWidget {
-  final String emoji;
+  final String? emoji;
+  final IconData? icon;
   final String title;
   final String? subtitle;
   final String? description;
@@ -1075,7 +1077,8 @@ class HeroBannerCard extends StatelessWidget {
 
   const HeroBannerCard({
     super.key,
-    required this.emoji,
+    this.emoji,
+    this.icon,
     required this.title,
     this.subtitle,
     this.description,
@@ -1094,10 +1097,10 @@ class HeroBannerCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF16221A) : Colors.white,
+          color: isDark ? const Color(0xFF16221A) : const Color(0xFFEBF6EE),
           borderRadius: HabitikRadius.lg_,
           border: Border.all(
-            color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green200.withValues(alpha: 0.6),
+            color: isDark ? const Color(0x30FFFFFF) : const Color(0xFFA6DEBA),
             width: 1.5,
           ),
           boxShadow: [
@@ -1116,20 +1119,22 @@ class HeroBannerCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark
                     ? HabitikColors.green900.withValues(alpha: 0.35)
-                    : HabitikColors.green50,
+                    : const Color(0xFFD6EFE0),
                 borderRadius: HabitikRadius.md_,
                 border: Border.all(
                   color: isDark
                       ? HabitikColors.green700.withValues(alpha: 0.4)
-                      : HabitikColors.green200,
+                      : const Color(0xFFA5DCB6),
                   width: 1,
                 ),
               ),
               alignment: Alignment.center,
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 22),
-              ),
+              child: icon != null
+                  ? Icon(icon, size: 22, color: isDark ? HabitikColors.green300 : const Color(0xFF16522B))
+                  : Text(
+                      emoji ?? '🌿',
+                      style: const TextStyle(fontSize: 22),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1140,8 +1145,8 @@ class HeroBannerCard extends StatelessWidget {
                   if (subtitle != null) ...[
                     Text(
                       subtitle!,
-                      style: TextStyle(
-                        color: isDark ? HabitikColors.green300 : HabitikColors.green700,
+                      style: GoogleFonts.outfit(
+                        color: isDark ? HabitikColors.green300 : const Color(0xFF1B5E20),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.4,
@@ -1151,8 +1156,8 @@ class HeroBannerCard extends StatelessWidget {
                   ],
                   Text(
                     title,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : HabitikColors.textDark,
+                    style: GoogleFonts.outfit(
+                      color: isDark ? Colors.white : const Color(0xFF0F291E),
                       fontSize: 15.5,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.2,
@@ -1163,8 +1168,8 @@ class HeroBannerCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       description!,
-                      style: TextStyle(
-                        color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
+                      style: GoogleFonts.outfit(
+                        color: isDark ? HabitikColors.green200 : const Color(0xFF2C4A36),
                         fontSize: 11.5,
                         height: 1.25,
                       ),
@@ -1186,27 +1191,47 @@ class HeroBannerCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2E22) : Colors.white,
+        color: isDark ? const Color(0xFF1E2E22) : const Color(0xFFEDF7F0),
         borderRadius: HabitikRadius.lg_,
         border: Border.all(
-          color: isDark ? const Color(0x30FFFFFF) : Colors.grey.shade200,
-          width: 2,
+          color: isDark ? const Color(0x30FFFFFF) : const Color(0xFFA6DEBA),
+          width: 1.5,
         ),
         boxShadow: HabitikShadows.card,
       ),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 48)).animate().scale(
-            begin: const Offset(0.8, 0.8),
-            duration: 500.ms,
-            curve: Curves.elasticOut,
-          ),
+          if (icon != null)
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: isDark ? HabitikColors.green900.withValues(alpha: 0.45) : const Color(0xFFD6EFE0),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark ? HabitikColors.green700.withValues(alpha: 0.5) : const Color(0xFFA5DCB6),
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 28, color: isDark ? HabitikColors.green300 : const Color(0xFF16522B)),
+            ).animate().scale(
+              begin: const Offset(0.8, 0.8),
+              duration: 500.ms,
+              curve: Curves.elasticOut,
+            )
+          else
+            Text(emoji ?? '🌿', style: const TextStyle(fontSize: 48)).animate().scale(
+              begin: const Offset(0.8, 0.8),
+              duration: 500.ms,
+              curve: Curves.elasticOut,
+            ),
           const SizedBox(height: 10),
           if (subtitle != null) ...[
             Text(
               subtitle!,
-              style: TextStyle(
-                color: isDark ? HabitikColors.green300 : HabitikColors.green700,
+              style: GoogleFonts.outfit(
+                color: isDark ? HabitikColors.green300 : const Color(0xFF1B5E20),
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.4,
@@ -1216,9 +1241,9 @@ class HeroBannerCard extends StatelessWidget {
           ],
           Text(
             title,
-            style: TextStyle(
-              color: isDark ? Colors.white : HabitikColors.textDark,
-              fontSize: 18,
+            style: GoogleFonts.outfit(
+              color: isDark ? Colors.white : const Color(0xFF0F291E),
+              fontSize: 18.5,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -1226,9 +1251,9 @@ class HeroBannerCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               description!,
-              style: TextStyle(
-                color: isDark ? HabitikColors.green200 : HabitikColors.textLight,
-                fontSize: 12,
+              style: GoogleFonts.outfit(
+                color: isDark ? HabitikColors.green200 : const Color(0xFF2C4A36),
+                fontSize: 12.5,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -1250,7 +1275,7 @@ class HeroBannerCard extends StatelessWidget {
                 ),
                 child: Text(
                   actionLabel!,
-                  style: const TextStyle(
+                  style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
