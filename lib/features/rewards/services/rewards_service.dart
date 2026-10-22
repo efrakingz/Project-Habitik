@@ -130,12 +130,26 @@ class RewardsService {
     }
   }
 
-  /// Permite al Jefe aprobar una propuesta y asignarle su costo en monedas
-  Future<void> approveProposal(int proposalId, int costo) async {
+  /// Permite al Jefe aprobar una propuesta, fijar monedas y opcionalmente convertirla en premio familiar colaborativo
+  Future<void> approveProposal(
+    int proposalId, 
+    int costo, {
+    bool? esFamiliar,
+    String? titulo,
+    String? descripcion,
+    String? icono,
+  }) async {
     try {
+      final body = <String, dynamic>{
+        'costo': costo,
+        'es_familiar': ?esFamiliar,
+        if (titulo != null && titulo.isNotEmpty) 'titulo': titulo,
+        'descripcion': ?descripcion,
+        if (icono != null && icono.isNotEmpty) 'icono': icono,
+      };
       final response = await _apiClient.patch(
         '/rewards/propuestas/$proposalId/aprobar',
-        {'costo': costo},
+        body,
       );
       final data = jsonDecode(response.body);
 

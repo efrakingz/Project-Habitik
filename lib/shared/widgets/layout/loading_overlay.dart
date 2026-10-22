@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
 
-/// Overlay de carga reutilizable con estética y colores de Habitik.
+/// Overlay de carga reutilizable con estética y logo oficial de Habitik.
 class LoadingOverlay extends StatelessWidget {
   final bool isLoading;
   final String message;
@@ -25,7 +26,7 @@ class LoadingOverlay extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.55),
         child: Center(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 26),
             margin: const EdgeInsets.symmetric(horizontal: 40),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF16251B) : Colors.white,
@@ -41,22 +42,29 @@ class LoadingOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const HabitikLogo(
+                  size: 60,
+                  pulseEffect: true,
+                ),
+                const SizedBox(height: 18),
                 SizedBox(
-                  width: 48,
-                  height: 48,
+                  width: 26,
+                  height: 26,
                   child: CircularProgressIndicator(
-                    strokeWidth: 4.5,
+                    strokeWidth: 3.2,
                     strokeCap: StrokeCap.round,
                     valueColor: const AlwaysStoppedAnimation<Color>(HabitikColors.green500),
-                    backgroundColor: HabitikColors.green100.withValues(alpha: 0.5),
+                    backgroundColor: isDark
+                        ? Colors.white12
+                        : HabitikColors.green100.withValues(alpha: 0.5),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
                 Text(
                   message,
                   style: GoogleFonts.outfit(
                     color: isDark ? Colors.white : HabitikColors.textDark,
-                    fontSize: 15,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w800,
                   ),
                   textAlign: TextAlign.center,

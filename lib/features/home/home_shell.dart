@@ -30,23 +30,25 @@ class _HomeShellState extends State<HomeShell> {
     _tab = widget.initialTab ?? (isJefe ? 0 : 1);
   }
 
-  List<Widget> _buildScreens(bool isJefe) {
+  List<Widget> _buildScreens(bool isJefe, int currentTab) {
     return isJefe
         ? [
-            const DashboardScreen(),
+            DashboardScreen(isActive: currentTab == 0),
             ChallengesScreen(
+              isActive: currentTab == 1,
               onGameModeChanged: (hide) => setState(() => _hideNavbar = hide),
             ),
             const ScanScreen(),
-            const RewardsScreen(),
-            const ControlScreen(),
+            RewardsScreen(isActive: currentTab == 3),
+            ControlScreen(isActive: currentTab == 4),
           ]
         : [
-            const DashboardScreen(),
+            DashboardScreen(isActive: currentTab == 0),
             ChallengesScreen(
+              isActive: currentTab == 1,
               onGameModeChanged: (hide) => setState(() => _hideNavbar = hide),
             ),
-            const RewardsScreen(),
+            RewardsScreen(isActive: currentTab == 2),
           ];
   }
 
@@ -56,8 +58,8 @@ class _HomeShellState extends State<HomeShell> {
       valueListenable: _sessionService.currentUserNotifier,
       builder: (context, user, _) {
         final isJefe = user?.isJefe ?? false;
-        final screens = _buildScreens(isJefe);
-        final currentTab = _tab >= screens.length ? 0 : _tab;
+        final currentTab = _tab >= (isJefe ? 5 : 3) ? 0 : _tab;
+        final screens = _buildScreens(isJefe, currentTab);
 
         return ValueListenableBuilder<bool>(
           valueListenable: isDarkModeNotifier,

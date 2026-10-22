@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
@@ -7,7 +8,8 @@ import 'widgets/rewards_hud_overlay.dart';
 import 'widgets/create_reward_dialog.dart';
 
 class RewardsScreen extends StatefulWidget {
-  const RewardsScreen({super.key});
+  final bool isActive;
+  const RewardsScreen({super.key, this.isActive = true});
 
   @override
   State<RewardsScreen> createState() => _RewardsScreenState();
@@ -27,6 +29,15 @@ class _RewardsScreenState extends State<RewardsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.loadRewards();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RewardsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      // Se activó la pestaña de Canjes: actualizar en segundo plano automáticamente
+      _controller.loadRewards(showLoading: false);
+    }
   }
 
   void _mostrarDialogoCanjeResuelto(String titulo, String mensaje, bool esExito) {
@@ -126,22 +137,24 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
         return ScreenShell(
           titulo: 'Canjes',
-          subtitulo: null,
+          subtitulo: 'RECOMPENSAS',
           useDefaultBackground: true,
           headerActions: [
+            // ── Botón Crear / Proponer (verde sólido) ───────────────
             GestureDetector(
               onTap: () {
                 if (isJefe) {
                   showCreateRewardDialog(
                     context,
                     mode: RewardDialogMode.admin,
-                    onCreate: (reward) => _controller.createReward(reward, context),
+                    onCreate: (reward) =>
+                        _controller.createReward(reward, context),
                   );
                 } else {
                   if (_controller.yaPropusoHoy) {
                     HabitikFeedback.showInfo(
                       context,
-                      'Ya has enviado tu propuesta de premio hoy. El Jefe la revisará pronto.',
+                      'Ya has enviado tu propuesta de hoy. El Jefe la revisará pronto.',
                     );
                     return;
                   }
@@ -158,32 +171,31 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    width: 1.2,
-                  ),
+                  color: HabitikColors.green700,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.20),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      isJefe ? Icons.add_circle_outline_rounded : Icons.lightbulb_outline_rounded,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 5),
+                    const Icon(Icons.add_rounded,
+                        size: 16, color: Colors.white),
+                    const SizedBox(width: 4),
                     Text(
-                      isJefe ? 'Crear' : 'Proponer',
+                      isJefe ? 'Nueva meta' : 'Proponer',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        fontSize: 12.5,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -191,6 +203,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
               ),
             ),
             const SizedBox(width: 8),
+            // ── Tarjeta de Monedas Original ──────────────────────────
             _buildCoinsCard(context, currentUser.monedas, isDark),
           ],
           body: _buildBody(),
@@ -203,7 +216,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
     return GestureDetector(
       onTap: () => _mostrarDetalleMonedas(context, monedas, isDark),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
         decoration: BoxDecoration(
           color: isDark
               ? const Color(0xFF1E2F23).withValues(alpha: 0.85)
@@ -227,8 +240,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 30,
-              height: 30,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF382D12) : const Color(0xFFFFF8E1),
                 shape: BoxShape.circle,
@@ -241,9 +254,9 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 ],
               ),
               alignment: Alignment.center,
-              child: const Text('🪙', style: TextStyle(fontSize: 17)),
+              child: const Text('🪙', style: TextStyle(fontSize: 16)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 7),
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +266,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16,
+                    fontSize: 15,
                     height: 1.1,
                     letterSpacing: 0.3,
                   ),
@@ -265,7 +278,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                         ? HabitikColors.green200
                         : Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w700,
-                    fontSize: 10,
+                    fontSize: 9.5,
                     height: 1.0,
                     letterSpacing: 0.2,
                   ),
@@ -286,8 +299,12 @@ class _RewardsScreenState extends State<RewardsScreen> {
         return Container(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           decoration: BoxDecoration(
-            color: isDark ? HabitikColors.darkCardBg : Colors.white,
+            color: isDark ? HabitikColors.darkCardBg : const Color(0xFFEDF7F1),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(
+              color: isDark ? Colors.white12 : const Color(0xFFBCE0C7),
+              width: 1.2,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -297,7 +314,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: isDark ? Colors.white24 : const Color(0xFFA5DCB6),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -314,8 +331,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
               const SizedBox(height: 14),
               Text(
                 '$monedas Monedas Disponibles',
-                style: TextStyle(
-                  color: isDark ? Colors.white : HabitikColors.textDark,
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : const Color(0xFF0F291E),
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                 ),
@@ -324,8 +341,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
               Text(
                 'Gana monedas completando tus retos y hábitos ecológicos diarios. Puedes usarlas para canjear cualquiera de los premios de la tienda.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isDark ? Colors.white70 : HabitikColors.textMid,
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white70 : const Color(0xFF2C4A36),
                   fontSize: 13.5,
                   height: 1.4,
                 ),

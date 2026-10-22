@@ -8,6 +8,7 @@ import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/services/level_service.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
+import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/cards/cards.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import 'package:habitik/shared/widgets/effects/effects.dart';
@@ -23,8 +24,13 @@ import 'widgets/weekly_streak_card.dart';
 import 'widgets/daily_bonus_card.dart';
 
 class ChallengesScreen extends StatefulWidget {
+  final bool isActive;
   final void Function(bool)? onGameModeChanged;
-  const ChallengesScreen({super.key, this.onGameModeChanged});
+  const ChallengesScreen({
+    super.key,
+    this.isActive = true,
+    this.onGameModeChanged,
+  });
 
   @override
   State<ChallengesScreen> createState() => _ChallengesScreenState();
@@ -74,6 +80,16 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     _loadCompletedChallenges();
   }
 
+  @override
+  void didUpdateWidget(covariant ChallengesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      // Al volver a la pestaña de Retos, sincronizar el estado y racha automáticamente
+      _loadCompletedChallenges();
+      _cargarRachaSemanal();
+    }
+  }
+
   Future<void> _loadCompletedChallenges() async {
     final prefs = await SharedPreferences.getInstance();
     final dateStr = DateTime.now().toIso8601String().substring(0, 10);
@@ -83,6 +99,24 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     if (completed.isNotEmpty && mounted) {
       _completedNotifier.value = completed.toSet();
     }
+
+    // Sincronizar con el backend si el Wordle de hoy ya fue completado o finalizado
+    try {
+      final res = await ApiClient().get('/wordle/hoy');
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        if (decoded['success'] == true && decoded['data'] != null) {
+          final estado = decoded['data']['estado'];
+          if (estado == 'ganado' || estado == 'perdido') {
+            final updated = {..._completedNotifier.value, 'wordle'};
+            if (mounted) {
+              _completedNotifier.value = updated;
+            }
+            await prefs.setStringList(key, updated.toList());
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _cargarRachaSemanal() async {
@@ -321,11 +355,15 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                     child: ValueListenableBuilder<String?>(
                       valueListenable: _selectedChallengeIdNotifier,
                       builder: (context, selectedId, _) {
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) => SlideTransition(
-                            position:
-                                Tween<Offset>(
+                        return ValueListenableBuilder<Set<String>>(
+                          valueListenable: _completedNotifier,
+                          builder: (context, completed, _) {
+                            final isCompleted =
+                                selectedId != null && completed.contains(selectedId);
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
+                              transitionBuilder: (child, anim) => SlideTransition(
+                                position: Tween<Offset>(
                                   begin: const Offset(0, 0.3),
                                   end: Offset.zero,
                                 ).animate(
@@ -334,11 +372,13 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                     curve: Curves.easeOutQuad,
                                   ),
                                 ),
-                            child: FadeTransition(opacity: anim, child: child),
-                          ),
-                          child: selectedId == null
-                              ? const SizedBox.shrink()
-                              : _buildBottomDetailPanel(selectedId),
+                                child: FadeTransition(opacity: anim, child: child),
+                              ),
+                              child: selectedId == null
+                                  ? const SizedBox.shrink()
+                                  : _buildBottomDetailPanel(selectedId, isCompleted),
+                            );
+                          },
                         );
                       },
                     ),
@@ -352,13 +392,14 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
   }
 
-  Widget _buildBottomDetailPanel(String selectedId) {
+  Widget _buildBottomDetailPanel(String selectedId, bool isCompleted) {
     final challenge = _challenges.firstWhere((c) => c.id == selectedId);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAvailable = challenge.isAvailable;
+    final isWordleCompleted = challenge.id == 'wordle' && isCompleted;
 
     return Container(
-      key: ValueKey(selectedId),
+      key: ValueKey('$selectedId-$isCompleted'),
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -398,7 +439,39 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (!isAvailable) ...[
+                        if (isWordleCompleted) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: HabitikColors.green500.withAlpha(35),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: HabitikColors.green500.withAlpha(120),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 11,
+                                  color: HabitikColors.green500,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'COMPLETADO HOY',
+                                  style: TextStyle(
+                                    color: isDark ? HabitikColors.green300 : HabitikColors.green700,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else if (!isAvailable) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -510,59 +583,111 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () {
-                  AudioService.playSFX('click.mp3');
-                  if (isAvailable) {
-                    final id = _selectedChallengeIdNotifier.value!;
-                    _onSelectChallenge(null);
-                    _playGame(id);
-                  } else {
-                    ComingSoonModal.show(
+              if (isWordleCompleted)
+                GestureDetector(
+                  onTap: () {
+                    AudioService.playSFX('click.mp3');
+                    HabitikFeedback.showInfo(
                       context,
-                      title: challenge.titulo,
-                      emoji: challenge.emoji,
-                      description:
-                          'El desafío "${challenge.titulo}" está actualmente en desarrollo y estará disponible en una próxima actualización. ¡Sigue cuidando el planeta con los demás retos!',
+                      '¡Ya completaste el reto de hoy! Vuelve mañana para una nueva palabra ecológica.',
                     );
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 22,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isAvailable ? _btnColor : (isDark ? Colors.grey.shade800 : Colors.grey.shade400),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isAvailable ? _btnShadow : (isDark ? Colors.black45 : Colors.grey.shade600),
-                        offset: const Offset(0, 4),
-                        blurRadius: 0,
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E3825) : const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF388E3C) : const Color(0xFF81C784),
+                        width: 1.5,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!isAvailable) ...[
-                        const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 15),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(
-                        isAvailable ? '¡JUGAR!' : 'PRÓXIMAMENTE',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          letterSpacing: 1.1,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(25),
+                          offset: const Offset(0, 2),
+                          blurRadius: 4,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '¡COMPLETADO!',
+                          style: TextStyle(
+                            color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: () {
+                    AudioService.playSFX('click.mp3');
+                    if (isAvailable) {
+                      final id = _selectedChallengeIdNotifier.value!;
+                      _onSelectChallenge(null);
+                      _playGame(id);
+                    } else {
+                      ComingSoonModal.show(
+                        context,
+                        title: challenge.titulo,
+                        emoji: challenge.emoji,
+                        description:
+                            'El desafío "${challenge.titulo}" está actualmente en desarrollo y estará disponible en una próxima actualización. ¡Sigue cuidando el planeta con los demás retos!',
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isAvailable ? _btnColor : (isDark ? Colors.grey.shade800 : Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isAvailable ? _btnShadow : (isDark ? Colors.black45 : Colors.grey.shade600),
+                          offset: const Offset(0, 4),
+                          blurRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isAvailable) ...[
+                          const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 15),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          isAvailable ? '¡JUGAR!' : 'PRÓXIMAMENTE',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ],

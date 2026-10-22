@@ -220,8 +220,8 @@ void main() {
         ),
       );
 
-      // Verificaciones de contenido y estética adaptada
-      expect(find.text('🌱 HABITIK RETOS'), findsOneWidget);
+      // Verificaciones de contenido y estética adaptada con logo oficial
+      expect(find.text('HABITIK RETOS'), findsOneWidget);
       expect(find.text('Eco-Trivia'), findsOneWidget);
       expect(find.text('Preparando el desafío de preguntas...'), findsOneWidget);
       expect(find.text('ECO-DATO FAMILIAR'), findsOneWidget);

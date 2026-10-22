@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import '../game/eco_puzzle_game.dart';
 
@@ -67,20 +68,27 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const SizedBox(width: 48),
-                            Text(
-                              "🌱 HABITIK RETOS",
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15,
-                                letterSpacing: 1.5,
-                                shadows: [
-                                  const Shadow(
-                                    color: Colors.black45,
-                                    blurRadius: 6,
-                                  )
-                                ],
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const HabitikLogo(size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "HABITIK RETOS",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 15,
+                                    letterSpacing: 1.5,
+                                    shadows: [
+                                      const Shadow(
+                                        color: Colors.black45,
+                                        blurRadius: 6,
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                             IconButton(
                               icon: const Icon(Icons.close_rounded, color: Colors.white, size: 30),

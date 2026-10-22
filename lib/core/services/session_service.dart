@@ -161,27 +161,8 @@ class SessionService {
             userId: p.id,
             backendUrl: ApiClient.baseUrl,
           );
-          SocketService.initSocket(p.familyId!, (data) async {
-            debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
-            try {
-              final String notifKey = '${data['id'] ?? data['titulo']}_${data['tipo'] ?? 'ALERTA'}';
-              final int notifId = notifKey.hashCode.abs() % 100000;
-              final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
-              final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
-              final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
-
-              await NotificationService.mostrarNotificacionSistema(
-                id: notifId,
-                titulo: '$sender: $titulo',
-                cuerpo: cuerpo,
-                tipo: data['tipo'],
-                deduplicationKey: notifKey,
-                payload: jsonEncode(data),
-              );
-            } catch (e) {
-              debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
-            }
-          });
+          // Conectar socket en primer plano para eventos reactivos de la UI
+          SocketService.initSocket(p.familyId!);
         }
       } catch (e) {
         final refreshed = await silentRelogin();
@@ -256,5 +237,30 @@ class SessionService {
     if (userId != null) {
       await _prefs?.setString('ob_role_$userId', role.toLowerCase());
     }
+  }
+
+  /// Consulta el perfil más reciente desde el backend y actualiza la sesión reactiva
+  Future<UserProfile?> refreshUserProfile() async {
+    final current = currentUser;
+    if (current == null) return null;
+    try {
+      final response = await ApiClient().get('/auth/perfil/${current.id}');
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        if (jsonResponse['ok'] == true && jsonResponse['data'] != null) {
+          final updatedUser = UserProfile.fromJson(jsonResponse['data']);
+          await updateRewardsAndXp(
+            xp: updatedUser.xp,
+            monedas: updatedUser.monedas,
+            nivel: updatedUser.nivel,
+            rachaDias: updatedUser.rachaDias,
+          );
+          return currentUserNotifier.value;
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [SessionService] Error al refrescar perfil: $e');
+    }
+    return current;
   }
 }
