@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/services/session_service.dart';
@@ -261,34 +262,61 @@ class EcoWordleHudOverlay extends StatelessWidget {
             ),
           ),
 
-          // ── Tablero Central con Marco Amigable ──
+          // ── Tablero Central Responsivo y Dinámico (5 a 7 letras) ──
           Expanded(
             child: Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF143521).withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cols = controller.largoPalabra;
+                    final rows = controller.maxIntentos;
+
+                    // Margen entre celdas adaptativo para 5, 6 o 7 columnas
+                    final double cellMargin = cols >= 7 ? 2.2 : (cols == 6 ? 2.8 : 3.5);
+                    const double cardPaddingH = 10.0;
+                    const double cardPaddingV = 10.0;
+
+                    // Espacio disponible neto dentro de las restricciones de la pantalla
+                    final double availW = (constraints.maxWidth - (cardPaddingH * 2)).clamp(150.0, 600.0);
+                    final double availH = (constraints.maxHeight - (cardPaddingV * 2)).clamp(150.0, 800.0);
+
+                    // Tamaño ideal de celda que cabe tanto horizontal como verticalmente
+                    final double maxCellW = (availW - (cols * (cellMargin * 2))) / cols;
+                    final double maxCellH = (availH - (rows * (cellMargin * 2))) / rows;
+
+                    final double cellSize = math.min(maxCellW, maxCellH).clamp(32.0, 52.0);
+                    final double fontSize = (cellSize * 0.48).clamp(16.0, 24.0);
+                    final double borderRadius = (cellSize * 0.22).clamp(6.0, 12.0);
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: cardPaddingH, vertical: cardPaddingV),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF143521).withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.09), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.14),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: EcoWordleBoard(
-                    rows: controller.maxIntentos,
-                    cols: controller.largoPalabra,
-                    attempts: controller.attempts,
-                    currentAttempt: controller.currentAttempt,
-                    evaluationMatrix: controller.evaluationMatrix,
-                    currentRow: controller.attempts.length,
-                  ),
+                      child: EcoWordleBoard(
+                        rows: rows,
+                        cols: cols,
+                        attempts: controller.attempts,
+                        currentAttempt: controller.currentAttempt,
+                        evaluationMatrix: controller.evaluationMatrix,
+                        currentRow: controller.attempts.length,
+                        cellSize: cellSize,
+                        cellMargin: cellMargin,
+                        fontSize: fontSize,
+                        borderRadius: borderRadius,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

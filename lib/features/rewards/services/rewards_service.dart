@@ -145,7 +145,10 @@ class RewardsService {
         'es_familiar': ?esFamiliar,
         if (titulo != null && titulo.isNotEmpty) 'titulo': titulo,
         'descripcion': ?descripcion,
-        if (icono != null && icono.isNotEmpty) 'icono': icono,
+        if (icono != null && icono.isNotEmpty) ...{
+          'icono': icono,
+          'emoji': icono,
+        },
       };
       final response = await _apiClient.patch(
         '/rewards/propuestas/$proposalId/aprobar',

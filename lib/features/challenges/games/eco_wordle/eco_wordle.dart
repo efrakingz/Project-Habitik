@@ -119,6 +119,7 @@ class _EcoWordleScreenState extends State<EcoWordleScreen> {
                     child: WordleFailureOverlay(
                       intentosUsados: _controller.attempts.length,
                       maxIntentos: _controller.maxIntentos,
+                      largoPalabra: _controller.largoPalabra,
                       pistaEducativa: _controller.pistaEducativa,
                       palabraCorrecta: _controller.palabraCorrecta,
                       onClose: _closeGame,

@@ -40,20 +40,8 @@ class EcoWordleController extends ChangeNotifier {
   Map<String, dynamic>? get recompensas => _recompensas;
   bool get isProcessing => _isProcessing;
 
-  /// Retorna la palabra correcta, ya sea provista por el backend o inferida por la pista.
-  String? get palabraCorrecta {
-    if (_palabraCorrecta != null && _palabraCorrecta!.isNotEmpty) {
-      return _palabraCorrecta;
-    }
-    // Fallback inteligente por pista ecológica conocida
-    if (_pistaEducativa != null) {
-      final p = _pistaEducativa!.toLowerCase();
-      if (p.contains('comunidad ecológica') || p.contains('región')) {
-        return 'BIOMA';
-      }
-    }
-    return null;
-  }
+  /// Retorna la palabra correcta provista por el backend (null si el backend no la ha revelado).
+  String? get palabraCorrecta => _palabraCorrecta;
 
   /// Carga el estado diario del EcoWordle desde el backend y restaura las evaluaciones locales.
   Future<void> init(BuildContext context) async {

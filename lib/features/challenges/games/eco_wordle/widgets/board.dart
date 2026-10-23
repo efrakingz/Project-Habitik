@@ -11,6 +11,10 @@ class EcoWordleBoard extends StatelessWidget {
   final String currentAttempt;
   final List<List<String>> evaluationMatrix;
   final int currentRow;
+  final double? cellSize;
+  final double? cellMargin;
+  final double? fontSize;
+  final double? borderRadius;
 
   const EcoWordleBoard({
     super.key,
@@ -20,45 +24,60 @@ class EcoWordleBoard extends StatelessWidget {
     required this.currentAttempt,
     required this.evaluationMatrix,
     required this.currentRow,
+    this.cellSize,
+    this.cellMargin,
+    this.fontSize,
+    this.borderRadius,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          children: List.generate(rows, (r) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(cols, (c) {
-                String letter = '';
-                String state = 'vacio';
+    // Valores calculados responsivos para 5, 6, 7 o más columnas
+    final resolvedMargin = cellMargin ?? (cols >= 7 ? 2.2 : (cols == 6 ? 2.8 : 3.5));
+    final resolvedSize = cellSize ?? (cols >= 7 ? 40.0 : (cols == 6 ? 46.0 : 50.0));
+    final resolvedFontSize = fontSize ?? (resolvedSize * 0.48).clamp(16.0, 24.0);
+    final resolvedRadius = borderRadius ?? (resolvedSize * 0.22).clamp(6.0, 12.0);
 
-                if (r < attempts.length) {
-                  if (c < attempts[r].length) {
-                    letter = attempts[r][c];
-                  }
-                  if (r < evaluationMatrix.length && c < evaluationMatrix[r].length) {
-                    state = evaluationMatrix[r][c];
-                  }
-                } else if (r == currentRow) {
-                  if (c < currentAttempt.length) {
-                    letter = currentAttempt[c];
-                    state = 'typing';
-                  }
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(rows, (r) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(cols, (c) {
+              String letter = '';
+              String state = 'vacio';
+
+              if (r < attempts.length) {
+                if (c < attempts[r].length) {
+                  letter = attempts[r][c];
                 }
+                if (r < evaluationMatrix.length && c < evaluationMatrix[r].length) {
+                  state = evaluationMatrix[r][c];
+                }
+              } else if (r == currentRow) {
+                if (c < currentAttempt.length) {
+                  letter = currentAttempt[c];
+                  state = 'typing';
+                }
+              }
 
-                return WordleCell(
-                  key: ValueKey('cell_${r}_$c'),
-                  letter: letter,
-                  state: state,
-                );
-              }),
-            );
-          }),
-        ),
+              return WordleCell(
+                key: ValueKey('cell_${r}_$c'),
+                letter: letter,
+                state: state,
+                size: resolvedSize,
+                margin: resolvedMargin,
+                fontSize: resolvedFontSize,
+                borderRadius: resolvedRadius,
+              );
+            }),
+          );
+        }),
       ),
     );
   }
@@ -68,11 +87,19 @@ class EcoWordleBoard extends StatelessWidget {
 class WordleCell extends StatefulWidget {
   final String letter;
   final String state;
+  final double size;
+  final double margin;
+  final double fontSize;
+  final double borderRadius;
 
   const WordleCell({
     super.key,
     required this.letter,
     required this.state,
+    this.size = 50.0,
+    this.margin = 3.5,
+    this.fontSize = 24.0,
+    this.borderRadius = 12.0,
   });
 
   @override
@@ -165,17 +192,19 @@ class _WordleCellState extends State<WordleCell> with SingleTickerProviderStateM
             ..scaleByDouble(scale, scale, 1.0, 1.0),
           alignment: Alignment.center,
           child: Container(
-            width: 50,
-            height: 50,
-            margin: const EdgeInsets.all(3.5),
+            width: widget.size,
+            height: widget.size,
+            margin: EdgeInsets.all(widget.margin),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: bgColor,
               border: Border.all(
                 color: borderColor,
-                width: (curState == 'typing' || widget.letter.isNotEmpty) ? 2.2 : 1.8,
+                width: (curState == 'typing' || widget.letter.isNotEmpty)
+                    ? (widget.size < 42 ? 1.8 : 2.2)
+                    : (widget.size < 42 ? 1.4 : 1.8),
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(widget.borderRadius),
               boxShadow: [
                 BoxShadow(
                   color: isEvaluated
@@ -189,7 +218,7 @@ class _WordleCellState extends State<WordleCell> with SingleTickerProviderStateM
             child: Text(
               widget.letter,
               style: GoogleFonts.outfit(
-                fontSize: 24,
+                fontSize: widget.fontSize,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
