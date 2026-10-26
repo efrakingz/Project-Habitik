@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'api_client.dart';
 import 'notification_service.dart';
+import 'notification_sync_service.dart';
 
 @pragma('vm:entry-point')
 Future<bool> onIosBackground(ServiceInstance service) async {
@@ -173,6 +174,35 @@ void onStart(ServiceInstance service) async {
     }
   });
 
+  // 3. Revisión periódica cada 3 horas entre 09:00 y 22:00
+  Timer.periodic(const Duration(hours: 3), (_) async {
+    final prefs = await SharedPreferences.getInstance();
+    final familyId = prefs.getString('bg_family_id');
+    if (familyId != null && familyId.isNotEmpty) {
+      await NotificationSyncService.ejecutarRevisionDeFondo(familyId: familyId);
+    }
+  });
+
+  // Comprobación inicial ligera tras arranque (si es horario activo)
+  Future.delayed(const Duration(seconds: 15), () async {
+    final prefs = await SharedPreferences.getInstance();
+    final familyId = prefs.getString('bg_family_id');
+    if (familyId != null && familyId.isNotEmpty) {
+      await NotificationSyncService.ejecutarRevisionDeFondo(familyId: familyId);
+    }
+  });
+
+  service.on('forzar_revision').listen((_) async {
+    final prefs = await SharedPreferences.getInstance();
+    final familyId = prefs.getString('bg_family_id');
+    if (familyId != null && familyId.isNotEmpty) {
+      await NotificationSyncService.ejecutarRevisionDeFondo(
+        familyId: familyId,
+        forzarHorario: true,
+      );
+    }
+  });
+
   service.on('stopService').listen((event) {
     debugPrint('🛑 [BackgroundService] Deteniendo servicio en segundo plano');
     try {
@@ -202,7 +232,7 @@ class BackgroundServiceManager {
           onStart: onStart,
           autoStart: false,
           isForegroundMode: false,
-          autoStartOnBoot: false,
+          autoStartOnBoot: true,
           notificationChannelId: 'canal_servicio_segundo_plano',
           initialNotificationTitle: '🌿 Habitik',
           initialNotificationContent: 'Conectado a la red familiar en tiempo real',

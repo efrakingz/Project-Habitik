@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/core/services/background_service.dart';
+import 'package:habitik/core/services/notification_service.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/services/network_service.dart';
 import 'package:habitik/features/auth/splash_screen.dart';
 import 'package:habitik/features/auth/login_screen.dart';
 import 'package:habitik/features/onboarding/onboarding_screen.dart';
 import 'package:habitik/features/home/home_shell.dart';
+import 'package:habitik/features/notifications/notifications_screen.dart';
+import 'package:habitik/shared/widgets/layout/layout.dart';
 
 enum AppState { splash, login, onboarding, home }
 
@@ -15,6 +19,7 @@ class RootRouter extends StatefulWidget {
 
   static void logout(BuildContext context) {
     Navigator.of(context).popUntil((route) => route.isFirst);
+    BackgroundServiceManager.detenerServicio();
     SessionService().clearSession();
   }
 
@@ -32,13 +37,27 @@ class _RootRouterState extends State<RootRouter> {
   void initState() {
     super.initState();
     NetworkService().isConnectedNotifier.addListener(_onNetworkChanged);
+    NotificationService.onNotificationPayload.addListener(_onNotificationTapped);
     _initSession();
   }
 
   @override
   void dispose() {
     NetworkService().isConnectedNotifier.removeListener(_onNetworkChanged);
+    NotificationService.onNotificationPayload.removeListener(_onNotificationTapped);
     super.dispose();
+  }
+
+  void _onNotificationTapped() {
+    final payload = NotificationService.onNotificationPayload.value;
+    if (payload != null && mounted) {
+      NotificationService.onNotificationPayload.value = null;
+      if (_state == AppState.home) {
+        Navigator.of(context).push(
+          FadePageRoute(child: const NotificationsScreen()),
+        );
+      }
+    }
   }
 
   void _onNetworkChanged() {
@@ -80,6 +99,11 @@ class _RootRouterState extends State<RootRouter> {
     if (_sessionService.hasSession) {
       if (_sessionService.isOnboardingCompleted) {
         setState(() => _state = AppState.home);
+        if (NotificationService.onNotificationPayload.value != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _onNotificationTapped();
+          });
+        }
       } else {
         // El onboarding requiere conexión para configurar el hogar
         if (!NetworkService().isConnected) return;

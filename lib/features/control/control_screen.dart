@@ -208,13 +208,6 @@ class _ControlScreenState extends State<ControlScreen> {
           iconColor: Colors.white,
         ),
         const SizedBox(width: 8),
-        IconActionButton(
-          icon: Icons.refresh_rounded,
-          onTap: _refreshAll,
-          bgColor: Colors.white.withAlpha(50),
-          iconColor: Colors.white,
-        ),
-        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(

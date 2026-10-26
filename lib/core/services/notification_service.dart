@@ -49,6 +49,16 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _timezonesInitialized = false;
 
+  /// Notificador reactivo cuando el usuario hace tap en una notificación nativa
+  static final ValueNotifier<String?> onNotificationPayload = ValueNotifier<String?>(null);
+  static String? initialPayload;
+
+  @pragma('vm:entry-point')
+  static void onNotificationTapped(NotificationResponse response) {
+    debugPrint('🔔 [NotificationService] Click en notificación nativa: ${response.payload}');
+    onNotificationPayload.value = response.payload ?? 'abrir_notificaciones';
+  }
+
   /// Diccionario centralizado de preferencias visuales por tipo de notificación
   static final Map<HabitikNotificationType, NotificationVisualPreferences>
       _preferenciasPorTipo = {
@@ -189,7 +199,20 @@ class NotificationService {
 
     await _notificationsPlugin.initialize(
       initializationSettings,
+      onDidReceiveNotificationResponse: onNotificationTapped,
     );
+
+    try {
+      final launchDetails =
+          await _notificationsPlugin.getNotificationAppLaunchDetails();
+      if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+        initialPayload = launchDetails.notificationResponse?.payload ??
+            'abrir_notificaciones';
+        onNotificationPayload.value = initialPayload;
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [NotificationService] Sin payload de arranque: $e');
+    }
 
     final androidImplementation =
         _notificationsPlugin.resolvePlatformSpecificImplementation<
@@ -315,6 +338,7 @@ class NotificationService {
     required DateTime fechaHora,
     dynamic tipo,
     String? payload,
+    DateTimeComponents? matchDateTimeComponents,
   }) async {
     if (!_timezonesInitialized) {
       tz.initializeTimeZones();
@@ -354,6 +378,7 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: matchDateTimeComponents,
       payload: payload,
     );
 

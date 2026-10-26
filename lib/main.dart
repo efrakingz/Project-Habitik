@@ -5,6 +5,7 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/navigation/app_router.dart';
 import 'package:habitik/core/services/network_service.dart';
 import 'package:habitik/core/services/notification_service.dart';
+import 'package:habitik/core/services/notification_sync_service.dart';
 import 'package:habitik/core/services/background_service.dart';
 import 'package:habitik/shared/widgets/modals/no_internet_modal.dart';
 
@@ -26,6 +27,7 @@ void main() async {
   // Inicializaciones en segundo plano concurrentes (no bloqueantes para la UI)
   NetworkService().init();
   NotificationService.initNotificationService();
+  NotificationSyncService.programarRecordatoriosDiarios();
   BackgroundServiceManager.initializeService();
 
   // Configurar flutter_animate
@@ -56,7 +58,6 @@ class _HabitikAppState extends State<HabitikApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    BackgroundServiceManager.detenerServicio();
     super.dispose();
   }
 
@@ -72,10 +73,6 @@ class _HabitikAppState extends State<HabitikApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ThemeService.checkOnResume();
-    }
-    // Si la app se cierra o se elimina de tareas recientes, detener el servicio de inmediato
-    if (state == AppLifecycleState.detached) {
-      BackgroundServiceManager.detenerServicio();
     }
   }
 

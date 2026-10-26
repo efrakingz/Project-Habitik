@@ -94,7 +94,7 @@ class RewardItem {
       titulo: json['titulo']?.toString() ?? '',
       costo: _parseInt(json['costo']),
       descripcion: json['descripcion']?.toString() ?? '',
-      emoji: json['emoji']?.toString() ?? '🎁',
+      emoji: json['emoji']?.toString() ?? json['icono']?.toString() ?? '🎁',
       disponible: json['disponible'] != false,
       esFamiliar: json['es_familiar'] == true,
       estado: json['estado']?.toString() ?? 'activo',

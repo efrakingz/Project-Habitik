@@ -10,6 +10,7 @@ class WordleFailureOverlay extends StatelessWidget {
   final int maxIntentos;
   final String? pistaEducativa;
   final String? palabraCorrecta;
+  final int largoPalabra;
   final VoidCallback onClose;
 
   const WordleFailureOverlay({
@@ -18,12 +19,25 @@ class WordleFailureOverlay extends StatelessWidget {
     required this.maxIntentos,
     this.pistaEducativa,
     this.palabraCorrecta,
+    this.largoPalabra = 5,
     required this.onClose,
   });
 
   @override
   Widget build(BuildContext context) {
     final progressRatio = (intentosUsados / maxIntentos).clamp(0.0, 1.0);
+    final bool agotoIntentos = intentosUsados >= maxIntentos;
+    final String mensajeSubtitulo = agotoIntentos
+        ? "Agotaste los $maxIntentos intentos sin adivinar la palabra. ¡Mañana hay una nueva oportunidad!"
+        : "Has completado $intentosUsados de $maxIntentos intentos. ¡Mañana hay una nueva oportunidad!";
+
+    final String palabraValida = (palabraCorrecta != null && palabraCorrecta!.trim().isNotEmpty)
+        ? palabraCorrecta!.trim().toUpperCase()
+        : ('?' * (largoPalabra > 0 ? largoPalabra : 5));
+    final int numLetras = palabraValida.length;
+    final double tileW = numLetras >= 7 ? 36 : (numLetras == 6 ? 38 : 40);
+    final double tileH = numLetras >= 7 ? 40 : (numLetras == 6 ? 42 : 44);
+    final double tileFontSize = numLetras >= 7 ? 19 : (numLetras == 6 ? 20 : 22);
 
     return Stack(
       alignment: Alignment.center,
@@ -107,7 +121,7 @@ class WordleFailureOverlay extends StatelessWidget {
                 const SizedBox(height: 6),
 
                 Text(
-                  "Agotaste los $maxIntentos intentos sin adivinar la palabra. ¡Mañana hay una nueva oportunidad!",
+                  mensajeSubtitulo,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
                     fontSize: 13.5,
@@ -156,38 +170,45 @@ class WordleFailureOverlay extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        alignment: WrapAlignment.center,
-                        children: (palabraCorrecta ?? 'BIOMA')
-                            .toUpperCase()
-                            .split('')
-                            .map((char) => Container(
-                                  width: 40,
-                                  height: 44,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: HabitikColors.green500,
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: HabitikColors.green500.withValues(alpha: 0.35),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: palabraValida
+                              .split('')
+                              .map((char) {
+                                final bool esIncognita = char == '?';
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                                  child: Container(
+                                    width: tileW,
+                                    height: tileH,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: esIncognita ? const Color(0xFFCBD5E1) : HabitikColors.green500,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (esIncognita ? const Color(0xFF94A3B8) : HabitikColors.green500)
+                                              .withValues(alpha: 0.35),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      char,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: tileFontSize,
+                                        fontWeight: FontWeight.w900,
+                                        color: esIncognita ? const Color(0xFF475569) : Colors.white,
                                       ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    char,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
                                     ),
                                   ),
-                                ))
-                            .toList(),
+                                );
+                              })
+                              .toList(),
+                        ),
                       ),
                     ],
                   ),
