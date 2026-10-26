@@ -4,9 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/services/history_service.dart';
 import 'package:habitik/core/services/socket_service.dart';
+import 'package:habitik/core/services/notification_sync_service.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/shared/widgets/modals/modals.dart';
@@ -46,9 +48,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final familyId = _sessionService.currentUser?.familyId;
     if (familyId != null && familyId.isNotEmpty) {
       final items = await HistoryService.cargarYSincronizar(familyId);
+      final simulados = await NotificationSyncService.obtenerEventosSimulados();
+
+      // Deduplicar eventos combinando remotos y locales simulados
+      final Map<String, Map<String, dynamic>> dedup = {};
+      for (final s in simulados) {
+        final id = s['id'] ?? s['titulo'];
+        dedup[id.toString()] = s;
+      }
+      for (final it in items) {
+        final id = it['id'] ?? it['titulo'];
+        dedup[id.toString()] = it;
+      }
+
       if (mounted) {
         setState(() {
-          _notificaciones = items;
+          _notificaciones = dedup.values.toList();
           _isLoading = false;
         });
       }
@@ -88,6 +103,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _probarNotificacionAppApagada() async {
+    await NotificationSyncService.simularRevisionAppApagada(segundos: 15);
+    if (mounted) {
+      HabitikFeedback.showSuccess(
+        context,
+        '🧪 Notificación en 15s. ¡Cierra la app completamente ahora para probar!',
+      );
+    }
+  }
+
   Future<void> _borrarHistorial() async {
     final familyId = _sessionService.currentUser?.familyId;
     if (familyId == null) return;
@@ -105,6 +130,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (confirmar == true) {
       await HistoryService.borrarHistorial(familyId);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(NotificationSyncService.keyEventosSimulados);
+      } catch (_) {}
+
       if (mounted) {
         setState(() => _notificaciones.clear());
         HabitikFeedback.showSuccess(
@@ -143,11 +173,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         subtitulo: _notificaciones.isEmpty ? 'Todo leído ✅' : '${_notificaciones.length} alertas familiares',
         showBackButton: true,
             headerActions: [
-              if (_notificaciones.isNotEmpty)
+              IconActionButton(
+                icon: Icons.science_outlined,
+                onTap: _probarNotificacionAppApagada,
+              ),
+              if (_notificaciones.isNotEmpty) ...[
+                const SizedBox(width: 8),
                 IconActionButton(
                   icon: Icons.delete_sweep_outlined,
                   onTap: _borrarHistorial,
                 ),
+              ],
             ],
             body: RefreshIndicator(
               onRefresh: _cargarNotificaciones,
