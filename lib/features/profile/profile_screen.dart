@@ -101,8 +101,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final List<dynamic> data = jsonDecode(response.body);
       final members = data.map((json) {
         final m = FamilyMember.fromJson(json);
-        // Si el miembro es el usuario actual, usamos sus métricas más recientes
-        return m.id == _user.id ? m.copyWith(xp: _user.xp, nivel: _user.nivel) : m;
+        final isMe = m.id == _user.id ||
+            m.nombre.toLowerCase().trim() == _user.nombre.toLowerCase().trim();
+        return isMe
+            ? m.copyWith(
+                xp: _user.xp,
+                nivel: _user.nivel,
+                badgeDestacado: SessionService().badgeDestacado ?? _user.badgeDestacado,
+              )
+            : m;
       }).toList()
         ..sort((a, b) => b.xp.compareTo(a.xp));
 

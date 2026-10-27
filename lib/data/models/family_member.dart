@@ -11,6 +11,7 @@ class FamilyMember {
   final String avatarLetra;
   final String avatarColor;
   final String? avatarUrl;
+  final String? badgeDestacado;
 
   const FamilyMember({
     this.id = '',
@@ -23,6 +24,7 @@ class FamilyMember {
     required this.avatarLetra,
     required this.avatarColor,
     this.avatarUrl,
+    this.badgeDestacado,
   });
 
   bool get isJefe {
@@ -41,6 +43,7 @@ class FamilyMember {
     String? avatarLetra,
     String? avatarColor,
     String? avatarUrl,
+    String? badgeDestacado,
   }) {
     return FamilyMember(
       id: id ?? this.id,
@@ -53,6 +56,7 @@ class FamilyMember {
       avatarLetra: avatarLetra ?? this.avatarLetra,
       avatarColor: avatarColor ?? this.avatarColor,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      badgeDestacado: badgeDestacado ?? this.badgeDestacado,
     );
   }
 
@@ -114,6 +118,10 @@ class FamilyMember {
       avatarLetra: letra,
       avatarColor: color,
       avatarUrl: url,
+      badgeDestacado: json['badge_destacado']?.toString() ??
+          json['badgeDestacado']?.toString() ??
+          json['insignia_destacada']?.toString() ??
+          json['medalla_destacada']?.toString(),
     );
   }
 }

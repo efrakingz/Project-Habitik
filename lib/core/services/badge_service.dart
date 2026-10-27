@@ -96,13 +96,25 @@ class BadgeService {
     }
 
     final String? badgeDestacadoActual = _sessionService.badgeDestacado;
+    final int rachaReal = _sessionService.currentUser?.rachaDias ?? 0;
 
     final logros = listaRaw.map((item) {
       if (item is Map<String, dynamic>) {
-        final achievement = AchievementItem.fromJson(item);
+        var achievement = AchievementItem.fromJson(item);
         if (badgeDestacadoActual != null &&
             (achievement.key == badgeDestacadoActual || achievement.emoji == badgeDestacadoActual)) {
-          return achievement.copyWith(destacado: true);
+          achievement = achievement.copyWith(destacado: true);
+        }
+        // Enriquecer progreso con datos de sesión backend si la API no envió progreso_actual
+        if (!achievement.desbloqueado &&
+            (achievement.key.contains('CONSTANCIA') || achievement.key.contains('RACHA')) &&
+            rachaReal > 0 &&
+            achievement.progresoActual == 0) {
+          final actual = rachaReal.clamp(0, achievement.progresoMeta);
+          achievement = achievement.copyWith(
+            progresoActual: actual,
+            progresoTexto: 'Racha $actual/${achievement.progresoMeta} dias',
+          );
         }
         return achievement;
       }
@@ -113,7 +125,7 @@ class BadgeService {
     await _cacheBadgesLocally(logros);
 
     debugPrint('✅ [BadgeService] Se cargaron ${logros.length} logros exitosamente. Nivel: $nivel');
-    return (nivelActual: nivel, logros: logros.isNotEmpty ? logros : AchievementItem.mockList);
+    return (nivelActual: nivel, logros: logros.isNotEmpty ? logros : AchievementItem.officialCatalog);
   }
 
   /// Reclama las monedas de una medalla desbloqueada (POST /logros/reclamar)
@@ -246,11 +258,20 @@ class BadgeService {
     } catch (_) {}
 
     final String? destacado = _sessionService.badgeDestacado;
-    final mock = AchievementItem.mockList.map((item) {
-      return item.copyWith(destacado: item.key == destacado || item.emoji == destacado);
+    final int rachaReal = _sessionService.currentUser?.rachaDias ?? 0;
+    final catalog = AchievementItem.officialCatalog.map((item) {
+      var it = item.copyWith(destacado: item.key == destacado || item.emoji == destacado);
+      if (!it.desbloqueado && (it.key.contains('CONSTANCIA') || it.key.contains('RACHA')) && rachaReal > 0) {
+        final actual = rachaReal.clamp(0, it.progresoMeta);
+        it = it.copyWith(
+          progresoActual: actual,
+          progresoTexto: 'Racha $actual/${it.progresoMeta} dias',
+        );
+      }
+      return it;
     }).toList();
 
-    return (nivelActual: _sessionService.currentUser?.nivel ?? 1, logros: mock);
+    return (nivelActual: _sessionService.currentUser?.nivel ?? 1, logros: catalog);
   }
 
   static int _parseInt(dynamic value) {

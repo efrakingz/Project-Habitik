@@ -3,10 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/achievement.dart';
+import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/data/models/user.dart';
+import 'package:habitik/features/profile/widgets/badge_svg_icons.dart';
 import 'package:habitik/features/profile/widgets/badge_tile.dart';
 import 'package:habitik/features/profile/widgets/profile_badges_card.dart';
+import 'package:habitik/features/profile/widgets/profile_identity_card.dart';
 import 'package:habitik/features/profile/trophy_showcase_screen.dart';
+import 'package:habitik/shared/widgets/cards/ranking_card.dart';
 import 'package:habitik/shared/widgets/modals/badge_unlocked_dialog.dart';
 
 void main() {
@@ -286,6 +290,95 @@ void main() {
       // Verifica que abre TrophyShowcaseScreen exitosamente
       expect(find.byType(TrophyShowcaseScreen), findsOneWidget);
       expect(find.text('Vitrina de Trofeos'), findsOneWidget);
+    });
+
+    testWidgets('ProfileIdentityCard: Módulo de usuario exhibe la medalla destacada junto al nombre y avatar', (WidgetTester tester) async {
+      final userWithFeaturedBadge = const UserProfile(
+        id: 'user-destacado',
+        nombre: 'Benja',
+        email: 'benja@habitik.com',
+        rol: 'jefe',
+        nivel: 6,
+        monedas: 59,
+        rachaDias: 1,
+        xp: 2680,
+        badgeDestacado: 'PRIMERA_DUCHA',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ProfileIdentityCard(
+                user: userWithFeaturedBadge,
+                isDark: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verificar que el nombre y rol aparecen
+      expect(find.text('Benja'), findsOneWidget);
+      expect(find.text('benja@habitik.com'), findsOneWidget);
+      expect(find.text('👑 Jefe'), findsOneWidget);
+
+      // Verificar que la insignia destacada está presente en el módulo
+      expect(find.text('Ducha Eficiente'), findsOneWidget);
+      expect(find.text('⭐'), findsWidgets);
+    });
+
+    test('Normalización de títulos de medallas: RECICLADOR_PERFECTO y snake_case a nombres originales', () {
+      expect(BadgeSvgIcons.getBadgeTitle('RECICLADOR_PERFECTO'), 'Reciclador Perfecto');
+      expect(BadgeSvgIcons.getBadgeTitle('RECICLADOR_IMPECABLE'), 'Reciclador Impecable');
+      expect(BadgeSvgIcons.getBadgeTitle('MAESTRO_ECO'), 'Maestro del Reciclaje');
+      expect(BadgeSvgIcons.getBadgeTitle('EXPERTO_RECICLAJE'), 'Experto del Reciclaje');
+      expect(BadgeSvgIcons.getBadgeTitle('PRIMERA_DUCHA'), 'Ducha Eficiente');
+      expect(BadgeSvgIcons.getBadgeTitle('DUCHA_BRONCE'), 'Ducha de Bronce');
+      expect(BadgeSvgIcons.getBadgeTitle('GUARDIAN_BOLETAS'), 'Guardián de Boletas');
+      expect(BadgeSvgIcons.getBadgeTitle('CEREBRO_VERDE'), 'Cerebro Verde');
+      expect(BadgeSvgIcons.getBadgeTitle('AHORRO_AGUA_SUPREMO'), 'Ahorro Agua Supremo');
+      expect(BadgeSvgIcons.getBadgeTitle('♻️'), 'Reciclador Perfecto');
+      expect(BadgeSvgIcons.getBadgeTitle('🚿'), 'Ducha Eficiente');
+    });
+
+    testWidgets('RankingCard: Miembros del Hogar exhibe la insignia destacada en avatar y fila', (WidgetTester tester) async {
+      const memberWithBadge = FamilyMember(
+        id: 'user-member-1',
+        nombre: 'Benja',
+        rol: 'jefe',
+        nivel: 6,
+        xp: 2680,
+        badgeDestacado: 'RECICLADOR_PERFECTO',
+        avatarLetra: 'B',
+        avatarColor: '#2E7D32',
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RankingCard(
+              position: 1,
+              member: memberWithBadge,
+              maxXp: 3000,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verificar nombre del miembro, rol y nivel
+      expect(find.text('Benja'), findsOneWidget);
+      expect(find.text('👑 Jefe'), findsOneWidget);
+      expect(find.text('Nivel 6'), findsOneWidget);
+
+      // Verificar que NO muestra 'RECICLADOR_PERFECTO' en crudo sino el nombre original
+      expect(find.text('RECICLADOR_PERFECTO'), findsNothing);
+      expect(find.text('Reciclador Perfecto'), findsOneWidget);
+
+      // Verificar que el indicador de estrella está presente
+      expect(find.text('⭐'), findsWidgets);
     });
   });
 }

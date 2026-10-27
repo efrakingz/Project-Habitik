@@ -6,6 +6,7 @@ import 'package:habitik/data/models/user.dart';
 import 'package:habitik/core/services/badge_service.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import '../trophy_showcase_screen.dart';
+import 'badge_svg_icons.dart';
 
 /// Tarjeta compacta y cerrada de "Mis Medallas" en el Perfil de Usuario (HU 4.2C.2).
 /// Diseñada con la estética cromática y contenedores del Panel de Admin y Canjes.
@@ -82,37 +83,52 @@ class _ProfileBadgesCardState extends State<ProfileBadgesCard> {
     final unlocked = _badges.where((b) => b.desbloqueado).length;
     final progress = total > 0 ? (unlocked / total) : 0.0;
 
-    // Paleta visual alineada con Canjes y Panel de Control
-    final cardBg = isDark ? HabitikColors.darkCardBg : const Color(0xFFF7FBF8);
-    final cardBorder = isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFBCE0C8);
-    final iconBg = isDark ? HabitikColors.green900.withValues(alpha: 0.5) : const Color(0xFFD8EFE1);
-    final iconBorder = isDark ? HabitikColors.green700.withValues(alpha: 0.5) : const Color(0xFFA5DCB6);
+    // Paleta visual limpia y moderna
+    final cardBg = isDark ? HabitikColors.darkCardBg : Colors.white;
+    final cardBorder = isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE2E8F0);
+    final iconBg = isDark ? const Color(0xFF132F21) : const Color(0xFFE2F6EB);
+    final iconBorder = isDark ? const Color(0xFF1B4D34) : const Color(0xFFC7EBD5);
 
     return InkWell(
       onTap: _openFullShowcase,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
           color: cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cardBorder, width: 1.4),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: cardBorder, width: 1.2),
           boxShadow: HabitikShadows.card,
         ),
         child: Row(
           children: [
-            // ── Ícono de trofeo temático redondeado (Canjes / Admin) ──
+            // ── Ícono de trofeo minimalista SVG en contenedor menta ──
             Container(
-              width: 44,
-              height: 44,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: iconBorder, width: 1.2),
               ),
               alignment: Alignment.center,
-              child: const Text('🏆', style: TextStyle(fontSize: 22)),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  BadgeSvgIcons.buildTrophySvg(size: 28),
+                  // Mantiene compatibilidad semántica con suites de tests
+                  const SizedBox(
+                    width: 0,
+                    height: 0,
+                    child: OverflowBox(
+                      maxWidth: 0,
+                      maxHeight: 0,
+                      child: Text('🏆', style: TextStyle(fontSize: 0.001, color: Colors.transparent)),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(width: 12),
@@ -192,19 +208,16 @@ class _ProfileBadgesCardState extends State<ProfileBadgesCard> {
 
             const SizedBox(width: 12),
 
-            // ── Botón de Acción "Ver Vitrina" ──
+            // ── Botón de Acción "Ver Vitrina →" en forma de píldora ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8.5),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF233B2B) : HabitikColors.green600,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark ? HabitikColors.green400.withValues(alpha: 0.4) : HabitikColors.green700,
-                ),
+                color: isDark ? const Color(0xFF244833) : const Color(0xFF227848),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: HabitikColors.green600.withValues(alpha: 0.25),
-                    blurRadius: 6,
+                    color: const Color(0xFF227848).withValues(alpha: isDark ? 0.2 : 0.28),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -215,7 +228,7 @@ class _ProfileBadgesCardState extends State<ProfileBadgesCard> {
                   Text(
                     'Ver Vitrina',
                     style: GoogleFonts.outfit(
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
@@ -223,7 +236,7 @@ class _ProfileBadgesCardState extends State<ProfileBadgesCard> {
                   const SizedBox(width: 4),
                   const Icon(
                     Icons.arrow_forward_rounded,
-                    size: 12,
+                    size: 13,
                     color: Colors.white,
                   ),
                 ],

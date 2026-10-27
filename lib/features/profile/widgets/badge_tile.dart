@@ -5,6 +5,7 @@ import 'package:habitik/data/models/achievement.dart';
 import 'package:habitik/core/services/badge_service.dart';
 import 'package:habitik/shared/widgets/badges/badges.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
+import 'badge_svg_icons.dart';
 
 const ColorFilter _grayscaleFilter = ColorFilter.matrix(<double>[
   0.2126, 0.7152, 0.0722, 0, 0,
@@ -13,11 +14,10 @@ const ColorFilter _grayscaleFilter = ColorFilter.matrix(<double>[
   0,      0,      0,      1, 0,
 ]);
 
-/// Tarjeta minimalista de medalla y logro (HU 4.2C.2).
-/// Diseñada con la estética limpia y humana de Canjes (_RewardCard) y Panel de Admin:
-/// - Tarjeta horizontal con borde orgánico de 1.2px y contenedor de ícono cuadrado redondeado (46x46).
-/// - Desbloqueada: 100% opacidad, a todo color y detalles de categoría / escalón. Tocarla abre modal con fecha y acción de reclamar.
-/// - Bloqueada: 40% opacidad en escala de grises con candado. Tocarla muestra requisitos pendientes.
+/// Tarjeta minimalista de medalla y logro (HU 4.2C.2) adaptada al diseño oficial de Vitrina de Trofeos.
+/// - Tarjeta horizontal con contenedor cuadrado redondeado con arte vectorial temático SVG.
+/// - Desbloqueada: a todo color, con detalles de categoría / escalón y estado. Tocarla abre modal con fecha y acción de reclamar.
+/// - Bloqueada: diseño oscuro forestal con candado esmeralda estilizado, requisitos e indicador de progreso del backend.
 class BadgeTile extends StatelessWidget {
   final AchievementItem badge;
   final bool isDark;
@@ -30,29 +30,117 @@ class BadgeTile extends StatelessWidget {
     this.onBadgeUpdated,
   });
 
+  ({Color bg, Color border, Color text, String icon}) _getCategoryStyle(String categoria, bool isDark) {
+    final cat = categoria.toUpperCase();
+    if (cat.contains('AGUA') || cat.contains('DUCHA')) {
+      return (
+        bg: isDark ? const Color(0xFF092938) : const Color(0xFFE0F2FE),
+        border: isDark ? const Color(0xFF0284C7) : const Color(0xFF38BDF8),
+        text: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
+        icon: '💧',
+      );
+    }
+    if (cat.contains('RECICL') || cat.contains('PUZZLE')) {
+      return (
+        bg: isDark ? const Color(0xFF0A2E1D) : const Color(0xFFDCFCE7),
+        border: isDark ? const Color(0xFF059669) : const Color(0xFF34D399),
+        text: isDark ? const Color(0xFF34D399) : const Color(0xFF15803D),
+        icon: '🔄',
+      );
+    }
+    if (cat.contains('RACHA') || cat.contains('CONSTANCIA')) {
+      return (
+        bg: isDark ? const Color(0xFF2E1B0A) : const Color(0xFFFEF3C7),
+        border: isDark ? const Color(0xFFD97706) : const Color(0xFFFBBF24),
+        text: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+        icon: '🔥',
+      );
+    }
+    if (cat.contains('TRIVIA') || cat.contains('MENTE') || cat.contains('CEREBRO')) {
+      return (
+        bg: isDark ? const Color(0xFF1E1430) : const Color(0xFFF3E8FF),
+        border: isDark ? const Color(0xFF7C3AED) : const Color(0xFFA855F7),
+        text: isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9),
+        icon: '🧠',
+      );
+    }
+    if (cat.contains('BOLETA') || cat.contains('ENERGIA') || cat.contains('GUARDIAN')) {
+      return (
+        bg: isDark ? const Color(0xFF0C2626) : const Color(0xFFCCFBF1),
+        border: isDark ? const Color(0xFF0D9488) : const Color(0xFF2DD4BF),
+        text: isDark ? const Color(0xFF5EEAD4) : const Color(0xFF0F766E),
+        icon: '🧾',
+      );
+    }
+    if (cat.contains('FAMILIAR') || cat.contains('EQUIPO') || cat.contains('HOGAR')) {
+      return (
+        bg: isDark ? const Color(0xFF0C2530) : const Color(0xFFE0F2FE),
+        border: isDark ? const Color(0xFF0284C7) : const Color(0xFF38BDF8),
+        text: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
+        icon: '👨‍👩‍👧‍👦',
+      );
+    }
+    return (
+      bg: isDark ? const Color(0xFF0A2E1D) : const Color(0xFFDCFCE7),
+      border: isDark ? const Color(0xFF059669) : const Color(0xFF34D399),
+      text: isDark ? const Color(0xFF34D399) : const Color(0xFF15803D),
+      icon: '🌱',
+    );
+  }
+
+  Widget _buildProgressChip(AchievementItem badge, bool isDark) {
+    final isRacha = badge.key.toUpperCase().contains('RACHA') || badge.categoria.toUpperCase().contains('RACHA');
+    final Color bg = isRacha
+        ? (isDark ? const Color(0xFF2B1A08) : const Color(0xFFFEF3C7))
+        : (isDark ? const Color(0xFF0A271E) : const Color(0xFFE8F5E9));
+    final Color border = isRacha
+        ? (isDark ? const Color(0xFF9A3412) : const Color(0xFFF59E0B).withValues(alpha: 0.5))
+        : (isDark ? const Color(0xFF134E3C) : const Color(0xFFA5DCB6));
+    final Color textColor = isRacha
+        ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309))
+        : (isDark ? const Color(0xFF34D399) : const Color(0xFF166534));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Text(
+        badge.progresoDisplay,
+        style: GoogleFonts.outfit(
+          color: textColor,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isUnlocked = badge.desbloqueado;
     final bool isClaimed = badge.reclamado;
     final bool isDestacado = badge.destacado;
+    final catStyle = _getCategoryStyle(badge.categoria, isDark);
 
-    // Paleta cromática minimalista alineada a Canjes y Panel de Administración
     final cardBg = isDark
-        ? HabitikColors.darkCardBg
+        ? const Color(0xFF10281D)
         : (isUnlocked ? const Color(0xFFF7FBF8) : const Color(0xFFF8FAFC));
 
     final cardBorder = isDark
-        ? (isDestacado ? const Color(0xFFF59E0B) : Colors.white.withValues(alpha: 0.08))
+        ? (isDestacado ? const Color(0xFFF59E0B) : const Color(0xFF1A3D2D))
         : (isDestacado
             ? const Color(0xFFF59E0B)
             : (isUnlocked ? const Color(0xFFBCE0C8) : const Color(0xFFE2E8F0)));
 
     final iconBg = isDark
-        ? (isUnlocked ? HabitikColors.green900.withValues(alpha: 0.45) : const Color(0xFF1E2620))
+        ? const Color(0xFF0B2218)
         : (isUnlocked ? const Color(0xFFD8EFE1) : const Color(0xFFF1F5F9));
 
     final iconBorder = isDark
-        ? (isUnlocked ? HabitikColors.green700.withValues(alpha: 0.45) : const Color(0x30FFFFFF))
+        ? const Color(0xFF174330)
         : (isUnlocked ? const Color(0xFFA5DCB6) : const Color(0xFFCBD5E1));
 
     Widget cardContent = Container(
@@ -69,28 +157,24 @@ class BadgeTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 1. Ícono cuadrado redondeado 46x46 con tinte temático ──
+          // ── 1. Contenedor de Ícono SVG temático (52x52) ──
           Container(
-            width: 46,
-            height: 46,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: iconBorder, width: 1.2),
             ),
             alignment: Alignment.center,
             child: isUnlocked
-                ? Text(badge.emoji, style: const TextStyle(fontSize: 22))
-                : const Icon(
-                    Icons.lock_rounded,
-                    size: 20,
-                    color: Color(0xFF64748B),
-                  ),
+                ? BadgeSvgIcons.buildSvg(badge.key, isLocked: false, size: 34)
+                : BadgeSvgIcons.buildSvg(badge.key, isLocked: true, size: 28),
           ),
 
           const SizedBox(width: 12),
 
-          // ── 2. Información del Logro y Progresión Escalada ──
+          // ── 2. Información del Logro y Progresión ──
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,115 +182,126 @@ class BadgeTile extends StatelessWidget {
                 // Fila superior: Chip de Categoría & Nivel + Estado
                 Row(
                   children: [
-                    // Chip de Categoría & Nivel (para dar contexto a logros escalonados)
+                    // Chip de Categoría & Nivel con icono temático
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF142E1F) : const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(6),
+                        color: catStyle.bg,
+                        borderRadius: BorderRadius.circular(7),
                         border: Border.all(
-                          color: isDark ? HabitikColors.green700 : const Color(0xFFA5DCB6),
+                          color: catStyle.border,
                           width: 1,
                         ),
                       ),
-                      child: Text(
-                        '${badge.categoria} · ${badge.nivelTier}',
-                        style: GoogleFonts.outfit(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? HabitikColors.green300 : const Color(0xFF166534),
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(catStyle.icon, style: const TextStyle(fontSize: 10)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${badge.categoria} · ${badge.nivelTier}',
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: catStyle.text,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
                     const Spacer(),
 
-                    // Chip de Estado minimalista
+                    // Chip / Estado a la derecha
                     if (isUnlocked && isClaimed)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF122C1B) : const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '✓ Desbloqueada',
-                          style: GoogleFonts.outfit(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? HabitikColors.green300 : const Color(0xFF15803D),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF10B981)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Desbloqueada',
+                            style: GoogleFonts.outfit(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF15803D),
+                            ),
                           ),
-                        ),
+                        ],
                       )
                     else if (isUnlocked && !isClaimed)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: const Color(0xFF2E1B0A),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                            color: const Color(0xFFD97706),
                             width: 1,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('🎁', style: TextStyle(fontSize: 9.5)),
+                            const Text('🎁', style: TextStyle(fontSize: 10)),
                             const SizedBox(width: 3),
                             Text(
                               'Reclamar',
                               style: GoogleFonts.outfit(
-                                fontSize: 9.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFFB45309),
+                                color: const Color(0xFFFBBF24),
                               ),
                             ),
                           ],
                         ),
                       )
                     else
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E2620) : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '🔒 Bloqueada',
-                          style: GoogleFonts.outfit(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.lock_rounded,
+                            size: 13,
+                            color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF64748B),
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Bloqueada',
+                            style: GoogleFonts.outfit(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
                       ),
                   ],
                 ),
 
                 const SizedBox(height: 5),
 
-                // Título en GoogleFonts.outfit (sin truncar bruscamente)
+                // Título
                 Text(
                   badge.nombre,
                   style: GoogleFonts.outfit(
-                    fontSize: 15,
+                    fontSize: 15.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.2,
                     color: isDark ? Colors.white : const Color(0xFF0F291E),
                   ),
                 ),
 
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
 
-                // Descripción clara y legible (el requisito completo se detalla en el modal al tocarla)
+                // Descripción
                 Text(
                   badge.descripcion.isNotEmpty
                       ? badge.descripcion
                       : (isUnlocked ? 'Logro completado con éxito' : 'Toca para ver los requisitos pendientes'),
                   style: GoogleFonts.outfit(
                     fontSize: 12,
-                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
                     height: 1.3,
                   ),
                   maxLines: 2,
@@ -215,82 +310,90 @@ class BadgeTile extends StatelessWidget {
 
                 const SizedBox(height: 8),
 
-                // Fila de recompensas e insignias
+                // Fila de recompensa y progreso
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Monedas
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF261D10) : const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
-                          width: 1,
+                    // Monedas y XP
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF271C0A) : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFFB45309),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🪙', style: TextStyle(fontSize: 11)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '+${badge.monedas}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🪙', style: TextStyle(fontSize: 11)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${badge.monedas}',
-                            style: GoogleFonts.outfit(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? HabitikColors.amber300 : const Color(0xFFB45309),
+
+                        if (badge.xp > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF132A1C) : const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '+${badge.xp} XP',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? HabitikColors.green300 : const Color(0xFF15803D),
+                              ),
                             ),
                           ),
                         ],
-                      ),
+
+                        if (isDestacado) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFF59E0B), width: 1),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.star_rounded, size: 12, color: Color(0xFFD97706)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'Destacada',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF92400E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
 
-                    if (badge.xp > 0) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF132A1C) : const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '+${badge.xp} XP',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? HabitikColors.green300 : const Color(0xFF15803D),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    if (isDestacado) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFBEB),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFF59E0B), width: 1),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.star_rounded, size: 12, color: Color(0xFFD97706)),
-                            const SizedBox(width: 2),
-                            Text(
-                              'Destacada',
-                              style: GoogleFonts.outfit(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF92400E),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    // Badge de Progreso del backend (ej. 0/1 completado, Racha 0/3 dias)
+                    _buildProgressChip(badge, isDark),
                   ],
                 ),
               ],
@@ -300,8 +403,8 @@ class BadgeTile extends StatelessWidget {
       ),
     );
 
-    // CA-4.2C.2-2: Bloqueada tiene 40% opacidad y escala de grises
-    if (!isUnlocked) {
+    // CA-4.2C.2-2: En modo claro legacy aplica opacidad 40% y escala de grises
+    if (!isUnlocked && !isDark) {
       cardContent = Opacity(
         opacity: 0.4,
         child: ColorFiltered(
@@ -451,9 +554,11 @@ class _BadgeDetailSheetState extends State<_BadgeDetailSheet> {
                 ),
               ),
               child: Center(
-                child: isUnlocked
-                    ? Text(_badge.emoji, style: const TextStyle(fontSize: 30))
-                    : const Icon(Icons.lock_rounded, size: 26, color: Color(0xFF64748B)),
+                child: BadgeSvgIcons.buildSvg(
+                  _badge.key,
+                  isLocked: !isUnlocked,
+                  size: isUnlocked ? 38 : 30,
+                ),
               ),
             ),
 
