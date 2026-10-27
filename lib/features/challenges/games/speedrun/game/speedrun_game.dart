@@ -3,14 +3,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:habitik/core/services/api_client.dart';
+import 'package:habitik/core/services/badge_service.dart';
 import 'package:habitik/core/services/history_service.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/data/models/achievement.dart';
 import 'models/speedrun_state.dart';
 import 'components/background_component.dart';
 
 class SpeedrunGame extends FlameGame {
   final VoidCallback? onGameClosed;
   final VoidCallback? onChallengeCompleted;
+  AchievementItem? unlockedBadge;
 
   // Temporizador de preparación: 30 segundos
   double prepRemainingSeconds = 30.0;
@@ -236,6 +239,10 @@ class SpeedrunGame extends FlameGame {
         final body = jsonDecode(response.body);
         Map<String, dynamic>? recompensas;
         if (body is Map<String, dynamic>) {
+          if (body['badge_unlocked'] == true ||
+              (body['data'] is Map && (body['data'] as Map)['badge_unlocked'] == true)) {
+            unlockedBadge = BadgeService.detectarBadgeDesbloqueado(body);
+          }
           if (body['recompensas'] is Map<String, dynamic>) {
             recompensas = body['recompensas'];
           } else if (body['data'] is Map<String, dynamic> &&

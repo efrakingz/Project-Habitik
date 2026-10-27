@@ -56,10 +56,39 @@ class FamilyFeedCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  UserAvatar(
-                    letra: item.avatarLetra,
-                    colorHex: item.avatarColor,
-                    radius: 18,
+                  // Avatar con insignia destacada (CA-4.2C-3)
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      UserAvatar(
+                        letra: item.avatarLetra,
+                        colorHex: item.avatarColor,
+                        radius: 18,
+                      ),
+                      if (item.badgeDestacado != null)
+                        Positioned(
+                          bottom: -2,
+                          right: -3,
+                          child: Container(
+                            padding: const EdgeInsets.all(1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E2E22) : Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFFFB300), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFFB300).withValues(alpha: 0.4),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              item.badgeDestacado!,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -99,6 +128,24 @@ class FamilyFeedCard extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            if (item.badgeDestacado != null) ...[
+                              const SizedBox(width: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF282310) : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: const Color(0xFFF59E0B).withValues(alpha: 0.6),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  item.badgeDestacado!,
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         Text(

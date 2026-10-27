@@ -7,6 +7,7 @@ import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import 'package:habitik/shared/widgets/effects/effects.dart';
 import '../../../../../core/services/session_service.dart';
 import '../../../../../core/services/api_client.dart';
+import '../../../../../core/services/badge_service.dart';
 import '../game/eco_puzzle_game.dart';
 import '../game/models/eco_puzzle_state.dart';
 
@@ -69,6 +70,12 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) {
+          if (body['badge_unlocked'] == true ||
+              (body['data'] is Map && (body['data'] as Map)['badge_unlocked'] == true)) {
+            widget.game.unlockedBadge = BadgeService.detectarBadgeDesbloqueado(body);
+          }
+        }
         if (body['ok'] == true &&
             body['data'] != null &&
             body['data']['recompensas'] != null) {

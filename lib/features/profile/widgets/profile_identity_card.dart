@@ -52,28 +52,56 @@ class ProfileIdentityCard extends StatelessWidget {
           child: Row(
             children: [
               // Avatar with subtle glow
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: _getGlowColor(user.nivel).withValues(alpha: 0.25),
-                      blurRadius: 14,
-                      spreadRadius: 1,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _getGlowColor(user.nivel).withValues(alpha: 0.25),
+                          blurRadius: 14,
+                          spreadRadius: 1,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: UserAvatar(
-                  letra: user.avatarLetra,
-                  colorHex: user.avatarColor,
-                  avatarUrl: user.avatarUrl,
-                  radius: 28,
-                  showBorder: true,
-                ),
-              ).animate().scale(
-                begin: const Offset(0.85, 0.85),
-                duration: 400.ms,
-                curve: Curves.easeOutBack,
+                    child: UserAvatar(
+                      letra: user.avatarLetra,
+                      colorHex: user.avatarColor,
+                      avatarUrl: user.avatarUrl,
+                      radius: 28,
+                      showBorder: true,
+                    ),
+                  ).animate().scale(
+                    begin: const Offset(0.85, 0.85),
+                    duration: 400.ms,
+                    curve: Curves.easeOutBack,
+                  ),
+                  if (user.badgeDestacado != null)
+                    Positioned(
+                      bottom: -3,
+                      right: -3,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark ? const Color(0xFF1B2E20) : Colors.white,
+                          border: Border.all(color: const Color(0xFFFFB300), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFB300).withValues(alpha: 0.4),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          user.badgeDestacado!,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 14),
 
@@ -111,8 +139,38 @@ class ProfileIdentityCard extends StatelessWidget {
 
                     const SizedBox(height: 6),
 
-                    // Role Badge (Miembro / Jefe)
-                    RolBadge(user.rol, fontSize: 11),
+                    // Role Badge (Miembro / Jefe) & Badge Destacado Pill
+                    Row(
+                      children: [
+                        RolBadge(user.rol, fontSize: 11),
+                        if (user.badgeDestacado != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF2E2612) : const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFF59E0B), width: 1),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(user.badgeDestacado!, style: const TextStyle(fontSize: 11)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Destacada',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? HabitikColors.amber300 : const Color(0xFFB45309),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -366,25 +424,25 @@ class _MiniStatBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 62, minHeight: 28),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 15)),
-          const SizedBox(width: 4),
+          Text(icon, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 3),
           Text(
             value,
             style: TextStyle(
               color: textColor,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.2,
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
+import 'package:habitik/shared/widgets/modals/modals.dart';
 
 import 'game/eco_puzzle_game.dart';
 import 'game/models/eco_puzzle_state.dart';
@@ -28,7 +29,10 @@ class _EcoPuzzleScreenState extends State<EcoPuzzleScreen> {
       onGameClosed: () {
         Navigator.maybePop(context);
       },
-      onChallengeCompleted: () {
+      onChallengeCompleted: () async {
+        if (_game.unlockedBadge != null && mounted) {
+          await BadgeUnlockedDialog.show(context, badge: _game.unlockedBadge!);
+        }
         widget.onChallengeCompleted?.call();
       },
     );

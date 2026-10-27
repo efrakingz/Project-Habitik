@@ -229,11 +229,13 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     });
   }
 
-  void _completeGame(String id, {bool showConfetti = true}) async {
+  void _completeGame(String id, {bool showConfetti = true, AchievementItem? unlockedBadge}) async {
     final newCompleted = {..._completedNotifier.value, id};
     _completedNotifier.value = newCompleted;
     if (mounted) {
-      if (showConfetti) {
+      if (unlockedBadge != null) {
+        await BadgeUnlockedDialog.show(context, badge: unlockedBadge);
+      } else if (showConfetti) {
         CelebrationConfetti.show(context);
         LevelService.checkAndShowLevelUp(context);
       }

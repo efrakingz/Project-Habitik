@@ -15,6 +15,7 @@ class UserProfile {
   final int rachaDias;
   final String? familyName;
   final bool onboardingCompleted;
+  final String? badgeDestacado;
 
   const UserProfile({
     this.id = '',
@@ -31,6 +32,7 @@ class UserProfile {
     this.rachaDias = 0,
     this.familyName,
     this.onboardingCompleted = false,
+    this.badgeDestacado,
   });
 
   bool get isJefe {
@@ -55,6 +57,7 @@ class UserProfile {
     int? rachaDias,
     String? familyName,
     bool? onboardingCompleted,
+    String? badgeDestacado,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -71,6 +74,7 @@ class UserProfile {
       rachaDias: rachaDias ?? this.rachaDias,
       familyName: familyName ?? this.familyName,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      badgeDestacado: badgeDestacado ?? this.badgeDestacado,
     );
   }
 
@@ -167,6 +171,7 @@ class UserProfile {
           : int.tryParse('${json['racha_dias']}') ?? 0,
       familyName: json['family_name'],
       onboardingCompleted: hasValidAnswers || hasCompletedFlag,
+      badgeDestacado: json['badge_destacado']?.toString() ?? json['badgeDestacado']?.toString(),
     );
   }
 
@@ -186,6 +191,7 @@ class UserProfile {
       'racha_dias': rachaDias,
       'family_name': familyName,
       'onboarding_completed': onboardingCompleted,
+      'badge_destacado': badgeDestacado,
     };
   }
 

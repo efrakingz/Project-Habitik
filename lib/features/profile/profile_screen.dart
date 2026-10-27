@@ -16,6 +16,7 @@ import 'package:habitik/features/profile/widgets/profile_identity_card.dart';
 import 'package:habitik/features/profile/widgets/profile_invite_card.dart';
 import 'package:habitik/features/profile/widgets/profile_settings_card.dart';
 import 'package:habitik/features/profile/widgets/profile_family_list.dart';
+import 'package:habitik/features/profile/widgets/profile_badges_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserProfile? user;
@@ -164,6 +165,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     ProfileIdentityCard(user: _user, isDark: isDark),
+                    const SizedBox(height: 20),
+
+                    ProfileBadgesCard(
+                      user: _user,
+                      isDark: isDark,
+                      onDataChanged: _loadData,
+                    ),
                     const SizedBox(height: 20),
 
                     ProfileInviteCard(

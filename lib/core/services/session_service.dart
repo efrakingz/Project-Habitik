@@ -134,6 +134,12 @@ class SessionService {
       try {
         final profileMap = jsonDecode(profileStr) as Map<String, dynamic>;
         var p = UserProfile.fromJson(profileMap);
+        if (p.badgeDestacado == null) {
+          final cachedBadge = _prefs?.getString('badge_destacado_${p.id}');
+          if (cachedBadge != null) {
+            p = p.copyWith(badgeDestacado: cachedBadge);
+          }
+        }
         if ((p.familyName == null || p.familyName!.isEmpty) && p.familyId != null) {
           final cachedName = _prefs?.getString('fam_name_${p.familyId}') ?? 'Hogar Familiar';
           p = p.copyWith(familyName: cachedName);
@@ -237,6 +243,27 @@ class SessionService {
     if (userId != null) {
       await _prefs?.setString('ob_role_$userId', role.toLowerCase());
     }
+  }
+
+  /// Retorna la clave del badge destacado del usuario actual
+  String? get badgeDestacado {
+    final userId = currentUser?.id;
+    if (userId == null) return currentUser?.badgeDestacado;
+    return currentUser?.badgeDestacado ?? _prefs?.getString('badge_destacado_$userId');
+  }
+
+  /// Establece o remueve el badge destacado del usuario actual
+  Future<void> setBadgeDestacado(String? badgeKey) async {
+    final current = currentUser;
+    if (current == null) return;
+    if (badgeKey != null && badgeKey.isNotEmpty) {
+      await _prefs?.setString('badge_destacado_${current.id}', badgeKey);
+    } else {
+      await _prefs?.remove('badge_destacado_${current.id}');
+    }
+    final updated = current.copyWith(badgeDestacado: badgeKey);
+    await _prefs?.setString('user_profile', jsonEncode(updated.toJson()));
+    currentUserNotifier.value = updated;
   }
 
   /// Consulta el perfil más reciente desde el backend y actualiza la sesión reactiva
