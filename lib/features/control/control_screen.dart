@@ -11,6 +11,7 @@ import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/features/rewards/widgets/reward_icon_helper.dart';
+import 'package:habitik/core/services/inspeccion_service.dart';
 
 class ControlScreen extends StatefulWidget {
   final bool isActive;
@@ -31,6 +32,10 @@ class _ControlScreenState extends State<ControlScreen> {
 
   List<FamilyColecta> _colectas = [];
   bool _loadingColectas = true;
+
+  final InspeccionService _inspeccionService = InspeccionService();
+  List<InspeccionEvidencia> _pendingInspecciones = [];
+  bool _loadingInspecciones = true;
 
   late final VoidCallback _unsubscribeSocket;
 
@@ -55,7 +60,9 @@ class _ControlScreenState extends State<ControlScreen> {
         tipo == 'CANJE_SOLICITADO' || 
         tipo == 'COLECTA_INICIADA' || 
         tipo == 'COLECTA_APORTE' || 
-        tipo == 'COLECTA_COMPLETADA') {
+        tipo == 'COLECTA_COMPLETADA' ||
+        tipo == 'inspeccion_pendiente' ||
+        tipo == 'INSPECCION_PENDIENTE') {
       if (mounted) {
         _refreshAll();
       }
@@ -73,6 +80,7 @@ class _ControlScreenState extends State<ControlScreen> {
       _loadProposals(),
       _loadPendingCanjes(),
       _loadColectas(),
+      _loadPendingInspecciones(),
     ]);
   }
 
@@ -122,6 +130,206 @@ class _ControlScreenState extends State<ControlScreen> {
       setState(() => _loadingColectas = false);
       debugPrint('⚠️ [ControlScreen] Error cargando colectas activas: $e');
     }
+  }
+
+  Future<void> _loadPendingInspecciones() async {
+    setState(() => _loadingInspecciones = true);
+    try {
+      final items = await _inspeccionService.obtenerPendientes();
+      if (!mounted) return;
+      setState(() {
+        _pendingInspecciones = items;
+        _loadingInspecciones = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingInspecciones = false);
+      debugPrint('⚠️ [ControlScreen] Error cargando inspecciones pendientes: $e');
+    }
+  }
+
+  Future<void> _aprobarInspeccion(InspeccionEvidencia evidencia) async {
+    try {
+      final res = await _inspeccionService.aprobarEvidencia(evidencia.id);
+      if (!mounted) return;
+      setState(() {
+        _pendingInspecciones.removeWhere((it) => it.id == evidencia.id);
+      });
+      HabitikFeedback.showSuccess(
+        context,
+        '¡Evidencia de ${evidencia.usuarioNombre} aprobada! Se otorgaron +${res.xpGanada} XP y +${res.monedasGanadas} 🪙.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      HabitikFeedback.showError(context, e.toString().replaceAll('Exception:', '').trim());
+    }
+  }
+
+  Future<void> _rechazarInspeccion(InspeccionEvidencia evidencia) async {
+    final motivoCtrl = TextEditingController();
+    final bool? confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Text('Rechazar Evidencia', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Indica a ${evidencia.usuarioNombre} el motivo del rechazo:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: motivoCtrl,
+              autofocus: true,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Ej. La foto no muestra claramente el enchufe desconectado...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirmar Rechazo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado == true) {
+      final motivo = motivoCtrl.text.trim().isEmpty ? 'Evidencia no cumple con los requisitos' : motivoCtrl.text.trim();
+      try {
+        await _inspeccionService.rechazarEvidencia(evidencia.id, motivo);
+        if (!mounted) return;
+        setState(() {
+          _pendingInspecciones.removeWhere((it) => it.id == evidencia.id);
+        });
+        HabitikFeedback.showInfo(context, 'Evidencia rechazada.');
+      } catch (e) {
+        if (!mounted) return;
+        HabitikFeedback.showError(context, e.toString().replaceAll('Exception:', '').trim());
+      }
+    }
+  }
+
+  void _verEvidenciaDetalle(InspeccionEvidencia evidencia) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 280,
+                color: Colors.black,
+                child: evidencia.fotoUrl.isNotEmpty
+                    ? Image.network(
+                        evidencia.fotoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Center(
+                          child: Icon(Icons.broken_image_rounded, color: Colors.white54, size: 48),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.image_not_supported_rounded, color: Colors.white54, size: 48),
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        UserAvatar(
+                          letra: (evidencia.usuarioNombre?.isNotEmpty == true) ? evidencia.usuarioNombre![0] : 'U',
+                          colorHex: '#43A047',
+                          avatarUrl: evidencia.usuarioAvatar,
+                          radius: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                evidencia.usuarioNombre ?? 'Familiar',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                evidencia.tituloMision,
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red.shade700,
+                              side: BorderSide(color: Colors.red.shade300),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            label: const Text('Rechazar'),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _rechazarInspeccion(evidencia);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.check_circle_rounded, size: 18),
+                            label: const Text('Aprobar (+80 XP)'),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _aprobarInspeccion(evidencia);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _aprobarPropuesta(
@@ -245,6 +453,44 @@ class _ControlScreenState extends State<ControlScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Sección 0: Inspecciones Fotográficas Pendientes (Naranja) ───────────
+              _AdminSectionGroupCard(
+                title: 'Inspecciones del Reto Cazador de Sombras',
+                subtitle: 'Revisa y aprueba evidencias fotográficas de los integrantes',
+                icon: Icons.camera_alt_rounded,
+                count: _pendingInspecciones.length,
+                badgeLabel: 'por validar',
+                accentColor: const Color(0xFFF57C00),
+                child: _loadingInspecciones
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : _pendingInspecciones.isEmpty
+                        ? const _EmptySectionCard(
+                            icon: Icons.verified_rounded,
+                            mensaje: 'No hay inspecciones fotográficas pendientes.',
+                            detalle: 'Cuando un familiar suba una foto de inspección aparecerá aquí para tu validación.',
+                            accentColor: Color(0xFFF57C00),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (int i = 0; i < _pendingInspecciones.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 12),
+                                _PendingInspeccionCard(
+                                  evidencia: _pendingInspecciones[i],
+                                  onTap: () => _verEvidenciaDetalle(_pendingInspecciones[i]),
+                                  onApprove: () => _aprobarInspeccion(_pendingInspecciones[i]),
+                                  onReject: () => _rechazarInspeccion(_pendingInspecciones[i]),
+                                ),
+                              ],
+                            ],
+                          ),
+              ),
+
+              const SizedBox(height: 32),
+
               // ── Sección 1: Propuestas de Premios Pendientes (Ámbar) ───────
               _AdminSectionGroupCard(
                 title: 'Propuestas de Premios',
@@ -1703,3 +1949,171 @@ class _ColectaStatusCard extends StatelessWidget {
     );
   }
 }
+
+class _PendingInspeccionCard extends StatelessWidget {
+  final InspeccionEvidencia evidencia;
+  final VoidCallback onTap;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  const _PendingInspeccionCard({
+    required this.evidencia,
+    required this.onTap,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2820) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 10),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              UserAvatar(
+                letra: (evidencia.usuarioNombre?.isNotEmpty == true) ? evidencia.usuarioNombre![0] : 'U',
+                colorHex: '#43A047',
+                avatarUrl: evidencia.usuarioAvatar,
+                radius: 18,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      evidencia.usuarioNombre ?? 'Familiar',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: isDark ? Colors.white : HabitikColors.textDark,
+                      ),
+                    ),
+                    Text(
+                      evidencia.tituloMision,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withAlpha(35),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  '+80 XP · +4 🪙',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: onTap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    height: 140,
+                    width: double.infinity,
+                    color: isDark ? Colors.black38 : Colors.grey.shade100,
+                    child: evidencia.fotoUrl.isNotEmpty
+                        ? Image.network(
+                            evidencia.fotoUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Icon(Icons.broken_image_rounded, color: Colors.grey, size: 36),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.image_not_supported_rounded, color: Colors.grey, size: 36),
+                          ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(160),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.fullscreen_rounded, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'Tocar para ampliar',
+                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onReject,
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  label: const Text('Rechazar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    side: BorderSide(color: Colors.red.shade300),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onApprove,
+                  icon: const Icon(Icons.check_circle_rounded, size: 16),
+                  label: const Text('Aprobar'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
