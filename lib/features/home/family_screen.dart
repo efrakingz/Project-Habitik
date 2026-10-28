@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/badge_service.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/cards/cards.dart';
@@ -42,27 +43,19 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
       final dynamic data = jsonDecode(response.body);
       if (data is List) {
-        final current = SessionService().currentUser;
-        final list = data.map((j) {
-          final m = FamilyMember.fromJson(j as Map<String, dynamic>);
-          final isMe = current != null &&
-              (m.id == current.id ||
-                  m.nombre.toLowerCase().trim() ==
-                      current.nombre.toLowerCase().trim());
-          return isMe
-              ? m.copyWith(
-                  xp: current.xp,
-                  nivel: current.nivel,
-                  badgeDestacado: SessionService().badgeDestacado ??
-                      current.badgeDestacado,
-                )
-              : m;
+        final rawMembers = data.map((j) {
+          return FamilyMember.fromJson(j as Map<String, dynamic>);
         }).toList();
 
-        setState(() {
-          _members = list;
-          _loading = false;
-        });
+        final enriched = await BadgeService().enrichMembers(rawMembers);
+        enriched.sort((a, b) => b.xp.compareTo(a.xp));
+
+        if (mounted) {
+          setState(() {
+            _members = enriched;
+            _loading = false;
+          });
+        }
         return;
       }
     } catch (e) {

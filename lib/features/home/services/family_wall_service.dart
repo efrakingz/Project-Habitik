@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/badge_service.dart';
 import 'package:habitik/data/models/family_energy_model.dart';
 import 'package:habitik/data/models/family_feed_item.dart';
 import 'package:habitik/data/models/family_member.dart';
@@ -47,11 +48,12 @@ class FamilyWallService extends ChangeNotifier {
         final response = await ApiClient().get(path);
         final dynamic data = jsonDecode(response.body);
         if (data is List) {
-          _members = data.map((json) {
-            final m = FamilyMember.fromJson(json as Map<String, dynamic>);
-            return m.id == user.id ? m.copyWith(xp: user.xp, nivel: user.nivel) : m;
-          }).toList()
-            ..sort((a, b) => b.xp.compareTo(a.xp));
+          final raw = data.map((json) {
+            return FamilyMember.fromJson(json as Map<String, dynamic>);
+          }).toList();
+          final enriched = await BadgeService().enrichMembers(raw);
+          enriched.sort((a, b) => b.xp.compareTo(a.xp));
+          _members = enriched;
         }
       } else {
         _members = [];

@@ -11,6 +11,8 @@ import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/shared/widgets/modals/modals.dart';
 
+import 'package:habitik/core/services/badge_service.dart';
+
 // Import newly created widgets
 import 'package:habitik/features/profile/widgets/profile_identity_card.dart';
 import 'package:habitik/features/profile/widgets/profile_invite_card.dart';
@@ -99,23 +101,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       final List<dynamic> data = jsonDecode(response.body);
-      final members = data.map((json) {
-        final m = FamilyMember.fromJson(json);
-        final isMe = m.id == _user.id ||
-            m.nombre.toLowerCase().trim() == _user.nombre.toLowerCase().trim();
-        return isMe
-            ? m.copyWith(
-                xp: _user.xp,
-                nivel: _user.nivel,
-                badgeDestacado: SessionService().badgeDestacado ?? _user.badgeDestacado,
-              )
-            : m;
-      }).toList()
-        ..sort((a, b) => b.xp.compareTo(a.xp));
+      final rawMembers = data.map((json) {
+        return FamilyMember.fromJson(json as Map<String, dynamic>);
+      }).toList();
+
+      // Enriquecer defensivamente desde la base de datos (/auth/perfil y /logros)
+      final enriched = await BadgeService().enrichMembers(rawMembers);
+      enriched.sort((a, b) => b.xp.compareTo(a.xp));
 
       if (mounted) {
         setState(() {
-          _familyMembers = members;
+          _familyMembers = enriched;
           _loadingMembers = false;
         });
       }

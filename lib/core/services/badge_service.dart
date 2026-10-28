@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/achievement.dart';
+import '../../data/models/family_member.dart';
 import 'api_client.dart';
 import 'session_service.dart';
 
@@ -30,12 +31,150 @@ class BadgeService {
   final ApiClient _apiClient = ApiClient();
   final SessionService _sessionService = SessionService();
 
+  /// Cache en memoria de insignias de miembros familiares para evitar llamadas repetitivas
+  final Map<String, String?> _memberBadgeCache = {};
+
   /// Retorna la insignia destacada actual desde la sesión
   String? get badgeDestacado => _sessionService.badgeDestacado;
 
   /// Remueve o limpia la insignia destacada actual
   Future<void> removerBadgeDestacado() async {
     await _sessionService.setBadgeDestacado(null);
+    _syncBadgeDestacadoToBackend(null);
+  }
+
+  /// Enriquece la lista de miembros del hogar con sus insignias destacadas
+  /// consultadas directamente desde la base de datos (/auth/perfil/:id y /logros/:id).
+  Future<List<FamilyMember>> enrichMembers(List<FamilyMember> members) async {
+    final current = _sessionService.currentUser;
+    final String? currentSessionBadge = _sessionService.badgeDestacado;
+
+    return Future.wait(members.map((m) async {
+      final isMe = current != null &&
+          (m.id == current.id ||
+              (m.id.isEmpty &&
+                  m.nombre.toLowerCase().trim() ==
+                      current.nombre.toLowerCase().trim()));
+
+      if (isMe) {
+        final effectiveBadge =
+            currentSessionBadge ?? current.badgeDestacado ?? m.badgeDestacado;
+        return m.copyWith(
+          xp: current.xp > 0 ? current.xp : m.xp,
+          nivel: current.nivel > 0 ? current.nivel : m.nivel,
+          badgeDestacado: effectiveBadge,
+        );
+      }
+
+      // Si ya vino la insignia destacada en el JSON de /familia/miembros desde la BD, respetarla
+      if (m.badgeDestacado != null && m.badgeDestacado!.trim().isNotEmpty) {
+        return m;
+      }
+
+      // Consultar estrictamente desde la BD (/auth/perfil/:id y /logros/:id)
+      final badgeFromDb = await fetchMemberBadge(m.id);
+      return m.copyWith(badgeDestacado: badgeFromDb);
+    }));
+  }
+
+  /// Consulta la insignia destacada de un miembro desde la base de datos (backend como única fuente de verdad)
+  Future<String?> fetchMemberBadge(String memberId) async {
+    if (memberId.isEmpty) return null;
+
+    if (_memberBadgeCache.containsKey(memberId)) {
+      return _memberBadgeCache[memberId];
+    }
+
+    // 1. Consultar perfil en BD (GET /auth/perfil/:id)
+    try {
+      final perfilRes = await _apiClient.get('/auth/perfil/$memberId');
+      if (perfilRes.statusCode == 200) {
+        final jsonResponse = jsonDecode(perfilRes.body);
+        final dynamic data = jsonResponse['data'] ?? jsonResponse;
+        if (data is Map) {
+          String? badge = data['badge_destacado']?.toString() ??
+              data['badgeDestacado']?.toString() ??
+              data['insignia_destacada']?.toString() ??
+              data['badge']?.toString();
+
+          if (badge == null && data['avatar'] != null) {
+            if (data['avatar'] is Map) {
+              badge = (data['avatar'] as Map)['badge_destacado']?.toString() ??
+                  (data['avatar'] as Map)['badgeDestacado']?.toString();
+            } else if (data['avatar'] is String) {
+              try {
+                final av = jsonDecode(data['avatar']);
+                if (av is Map) {
+                  badge = av['badge_destacado']?.toString() ??
+                      av['badgeDestacado']?.toString();
+                }
+              } catch (_) {}
+            }
+          }
+
+          if (badge != null && badge.trim().isNotEmpty && badge != 'null') {
+            _memberBadgeCache[memberId] = badge;
+            return badge;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BadgeService] Error consultando /auth/perfil/$memberId: $e');
+    }
+
+    // 2. Consultar vitrina de logros del miembro en BD (GET /logros/:id)
+    try {
+      final logrosRes = await _apiClient.get('/logros/$memberId');
+      if (logrosRes.statusCode == 200) {
+        final decoded = jsonDecode(logrosRes.body);
+        List<dynamic> listaRaw = [];
+        if (decoded is Map && decoded['logros'] is List) {
+          listaRaw = decoded['logros'];
+        } else if (decoded is Map && decoded['data'] is List) {
+          listaRaw = decoded['data'];
+        } else if (decoded is Map && decoded['data'] is Map && decoded['data']['logros'] is List) {
+          listaRaw = decoded['data']['logros'];
+        } else if (decoded is List) {
+          listaRaw = decoded;
+        }
+
+        // 2a. Buscar si en la BD tiene un logro marcado como destacado
+        Map? elegido;
+        for (final item in listaRaw) {
+          if (item is Map && (item['destacado'] == true || item['es_destacado'] == true || item['selected'] == true)) {
+            elegido = item;
+            break;
+          }
+        }
+
+        // 2b. Si la BD no usa flag de destacado plano, tomar el logro desbloqueado en la BD
+        if (elegido == null) {
+          for (final item in listaRaw) {
+            if (item is Map && (item['desbloqueado'] == true || item['completado'] == true || item['unlocked'] == true)) {
+              elegido = item;
+              break;
+            }
+          }
+        }
+
+        if (elegido != null) {
+          final key = elegido['codigo']?.toString() ??
+              elegido['key']?.toString() ??
+              elegido['id']?.toString() ??
+              elegido['titulo']?.toString();
+          if (key != null && key.isNotEmpty && key != 'null') {
+            _memberBadgeCache[memberId] = key;
+            return key;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BadgeService] Error consultando /logros/$memberId: $e');
+    }
+
+    // El backend es la única fuente de verdad: si no tiene logro desbloqueado ni destacado en la BD, es null.
+    _memberBadgeCache[memberId] = null;
+    return null;
   }
 
   /// Consulta la vitrina de logros y nivel del usuario (GET /logros/:userId).
@@ -190,12 +329,29 @@ class BadgeService {
   /// Alterna o establece la insignia destacada para mostrar al lado del avatar
   Future<void> alternarBadgeDestacado(AchievementItem logro) async {
     final actual = _sessionService.badgeDestacado;
-    if (actual == logro.key || actual == logro.emoji) {
+    final String? newBadge = (actual == logro.key || actual == logro.emoji) ? null : logro.key;
+
+    if (newBadge == null) {
       await _sessionService.setBadgeDestacado(null);
       debugPrint('⭐ [BadgeService] Insignia destacada removida');
     } else {
-      await _sessionService.setBadgeDestacado(logro.key);
-      debugPrint('⭐ [BadgeService] Nueva insignia destacada: ${logro.nombre} (${logro.key})');
+      await _sessionService.setBadgeDestacado(newBadge);
+      debugPrint('⭐ [BadgeService] Nueva insignia destacada: ${logro.nombre} ($newBadge)');
+    }
+
+    // Sincronizar en segundo plano con la base de datos
+    _syncBadgeDestacadoToBackend(newBadge);
+  }
+
+  Future<void> _syncBadgeDestacadoToBackend(String? badgeKey) async {
+    final current = _sessionService.currentUser;
+    if (current == null) return;
+    try {
+      await _apiClient.patch('/auth/perfil', {'badge_destacado': badgeKey});
+    } catch (_) {
+      try {
+        await _apiClient.put('/auth/perfil/${current.id}', {'badge_destacado': badgeKey});
+      } catch (_) {}
     }
   }
 

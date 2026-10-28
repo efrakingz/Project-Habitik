@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/badge_service.dart';
+import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/achievement.dart';
+import 'package:habitik/data/models/challenge.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/features/profile/widgets/badge_svg_icons.dart';
 import 'package:habitik/features/profile/widgets/badge_tile.dart';
 import 'package:habitik/features/profile/widgets/profile_badges_card.dart';
 import 'package:habitik/features/profile/widgets/profile_identity_card.dart';
+import 'package:habitik/features/profile/widgets/profile_invite_card.dart';
 import 'package:habitik/features/profile/trophy_showcase_screen.dart';
 import 'package:habitik/shared/widgets/cards/ranking_card.dart';
 import 'package:habitik/shared/widgets/modals/badge_unlocked_dialog.dart';
@@ -324,9 +328,16 @@ void main() {
       expect(find.text('benja@habitik.com'), findsOneWidget);
       expect(find.text('👑 Jefe'), findsOneWidget);
 
-      // Verificar que la insignia destacada está presente en el módulo
-      expect(find.text('Ducha Eficiente'), findsOneWidget);
+      // Verificar que la insignia destacada está presente únicamente junto al nombre del usuario
       expect(find.text('⭐'), findsWidgets);
+
+      // Al pulsar sobre la insignia destacada (el logo), se abre el modal que muestra cuál es el logro
+      await tester.tap(find.text('⭐'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ducha Eficiente'), findsOneWidget);
+      expect(find.text('INSIGNIA DESTACADA'), findsOneWidget);
+      expect(find.text('Entendido'), findsOneWidget);
     });
 
     test('Normalización de títulos de medallas: RECICLADOR_PERFECTO y snake_case a nombres originales', () {
@@ -373,12 +384,309 @@ void main() {
       expect(find.text('👑 Jefe'), findsOneWidget);
       expect(find.text('Nivel 6'), findsOneWidget);
 
-      // Verificar que NO muestra 'RECICLADOR_PERFECTO' en crudo sino el nombre original
-      expect(find.text('RECICLADOR_PERFECTO'), findsNothing);
-      expect(find.text('Reciclador Perfecto'), findsOneWidget);
-
-      // Verificar que el indicador de estrella está presente
+      // Verificar que el indicador de estrella está presente en el pill
       expect(find.text('⭐'), findsWidgets);
+
+      // Al pulsar sobre la insignia destacada (pill), se abre el modal con el detalle del logro
+      await tester.tap(find.text('⭐').first);
+      await tester.pumpAndSettle();
+
+      // Verificar que en el modal emergente se muestra el nombre real del logro
+      expect(find.text('Reciclador Perfecto'), findsOneWidget);
+      expect(find.text('Entendido'), findsOneWidget);
+    });
+
+    testWidgets('TrophyShowcaseScreen: En modo claro las cards superiores se muestran claras/blanquecinas y en modo oscuro verde bosque', (WidgetTester tester) async {
+      const user = UserProfile(
+        id: 'user-mode-test',
+        nombre: 'Benjamín',
+        nivel: 3,
+        monedas: 120,
+        xp: 450,
+      );
+
+      // 1. Modo claro: las cards superiores deben tener fondo claro/blanquecino
+      isDarkModeNotifier.value = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TrophyShowcaseScreen(
+            user: user,
+            initialBadges: AchievementItem.mockList,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final lightContainers = tester.widgetList<Container>(find.byType(Container));
+      final hasLightCards = lightContainers.any((c) {
+        final decoration = c.decoration;
+        if (decoration is BoxDecoration) {
+          return decoration.color == const Color(0xFFF7FBF8);
+        }
+        return false;
+      });
+      expect(hasLightCards, isTrue);
+
+      // 2. Modo oscuro: las cards superiores deben tener fondo verde bosque oscuro
+      isDarkModeNotifier.value = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TrophyShowcaseScreen(
+            user: user,
+            initialBadges: AchievementItem.mockList,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final darkContainers = tester.widgetList<Container>(find.byType(Container));
+      final hasDarkCards = darkContainers.any((c) {
+        final decoration = c.decoration;
+        if (decoration is BoxDecoration) {
+          return decoration.color == const Color(0xFF10271D) || decoration.color == const Color(0xFF112A1E);
+        }
+        return false;
+      });
+      expect(hasDarkCards, isTrue);
+
+      // Restaurar estado
+      isDarkModeNotifier.value = false;
+    });
+
+    test('BadgeService.enrichMembers: Respeta estrictamente el backend como única fuente de verdad (sin inventar badges)', () async {
+      final members = [
+        const FamilyMember(
+          id: 'mati-id',
+          nombre: 'Mati',
+          rol: 'miembro',
+          xp: 730,
+          nivel: 2,
+          avatarLetra: 'M',
+          avatarColor: '#2E7D32',
+          badgeDestacado: null, // No tiene badge en BD
+        ),
+        const FamilyMember(
+          id: 'benja-id',
+          nombre: 'Benja',
+          rol: 'jefe',
+          xp: 2680,
+          nivel: 6,
+          avatarLetra: 'B',
+          avatarColor: '#2E7D32',
+          badgeDestacado: 'CONSTANCIA_3', // Trae su badge desde la BD
+        ),
+      ];
+
+      final enriched = await BadgeService().enrichMembers(members);
+
+      expect(enriched.length, 2);
+      // Mati no tiene badge en la BD: debe permanecer null (no inventar badges por nivel o XP)
+      expect(enriched[0].badgeDestacado, isNull);
+
+      // Benja sí tiene badge en la BD: se mantiene intacto
+      expect(enriched[1].badgeDestacado, 'CONSTANCIA_3');
+    });
+
+    testWidgets('RankingCard: Miembros secundarios (otros usuarios) exhiben su insignia destacada al lado del nombre', (WidgetTester tester) async {
+      const otherMember = FamilyMember(
+        id: 'other-user-99',
+        nombre: 'Mati',
+        rol: 'miembro',
+        xp: 730,
+        nivel: 2,
+        avatarLetra: 'M',
+        avatarColor: '#2E7D32',
+        badgeDestacado: 'RECICLADOR_PERFECTO',
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RankingCard(
+              position: 2,
+              member: otherMember,
+              maxXp: 3000,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Debe mostrar el nombre Mati, su rol y nivel
+      expect(find.text('Mati'), findsOneWidget);
+      expect(find.text('👤 Miembro'), findsOneWidget);
+      expect(find.text('Nivel 2'), findsOneWidget);
+
+      // Debe exhibir el pill con la estrella junto a su nombre
+      expect(find.text('⭐'), findsWidgets);
+
+      // Al pulsar sobre su insignia, debe abrir el modal con el detalle
+      await tester.tap(find.text('⭐').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reciclador Perfecto'), findsOneWidget);
+      expect(find.text('Entendido'), findsOneWidget);
+    });
+
+    testWidgets('RankingCard: Miembro sin insignia destacada en BD NO exhibe ningún pill ni estrella ⭐', (WidgetTester tester) async {
+      const memberWithoutBadge = FamilyMember(
+        id: 'user-no-badge',
+        nombre: 'Carlos',
+        rol: 'miembro',
+        xp: 540,
+        nivel: 2,
+        avatarLetra: 'C',
+        avatarColor: '#E65100',
+        badgeDestacado: null,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RankingCard(
+              position: 3,
+              member: memberWithoutBadge,
+              maxXp: 3000,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Carlos'), findsOneWidget);
+      expect(find.text('👤 Miembro'), findsOneWidget);
+      expect(find.text('Nivel 2'), findsOneWidget);
+
+      // NO debe tener ninguna estrella ni píldora de insignia
+      expect(find.text('⭐'), findsNothing);
+    });
+
+    test('FamilyMember.fromJson: Extrae badge únicamente si está desbloqueado en la BD', () {
+      // 1. Miembro con logro desbloqueado en la BD
+      final memberWithUnlocked = FamilyMember.fromJson({
+        'id': 'benja-1',
+        'nombre': 'Benja',
+        'rol': 'jefe',
+        'xp': 2680,
+        'nivel': 6,
+        'logros': [
+          {
+            'codigo': 'PRIMERA_DUCHA',
+            'titulo': 'Ducha Eficiente',
+            'desbloqueado': true,
+          }
+        ]
+      });
+      expect(memberWithUnlocked.badgeDestacado, 'PRIMERA_DUCHA');
+
+      // 2. Miembro con logros todos bloqueados en la BD
+      final memberWithLocked = FamilyMember.fromJson({
+        'id': 'carlos-1',
+        'nombre': 'Carlos',
+        'rol': 'miembro',
+        'xp': 540,
+        'nivel': 2,
+        'logros': [
+          {
+            'codigo': 'PRIMERA_DUCHA',
+            'titulo': 'Ducha Eficiente',
+            'desbloqueado': false,
+          }
+        ]
+      });
+      expect(memberWithLocked.badgeDestacado, isNull);
+
+      // 3. Miembro sin lista de logros ni badge en la BD
+      final memberEmpty = FamilyMember.fromJson({
+        'id': 'efra-1',
+        'nombre': 'Efra',
+        'rol': 'miembro',
+        'xp': 100,
+        'nivel': 1,
+      });
+      expect(memberEmpty.badgeDestacado, isNull);
+    });
+
+    test('Eco-Puzzle: Recompensas en ChallengeType alineadas exactamente con el backend (150 XP, 2 monedas)', () {
+      final puzzleChallenge = ChallengeType.allChallenges.firstWhere((c) => c.id == 'puzzle');
+      expect(puzzleChallenge.xp, 150);
+      expect(puzzleChallenge.monedas, 2);
+    });
+
+    testWidgets('ProfileInviteCard: Es compacto para Jefe/Admin y dispara onInvite', (WidgetTester tester) async {
+      bool inviteTriggered = false;
+      final adminUser = UserProfile(
+        id: 'admin-1',
+        nombre: 'Benja',
+        email: 'benja@habitik.com',
+        rol: 'jefe',
+        familyId: 'fam-1',
+        familyName: 'Familia Demo',
+        xp: 2830,
+        nivel: 6,
+        monedas: 61,
+        rachaDias: 2,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProfileInviteCard(
+              user: adminUser,
+              isDark: false,
+              isGenerating: false,
+              onInvite: () => inviteTriggered = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Debe mostrar el título conciso y botón Invitar
+      expect(find.text('Invitar a mi Familia'), findsOneWidget);
+      expect(find.text('Comparte código o enlace QR'), findsOneWidget);
+      expect(find.text('Invitar'), findsOneWidget);
+      expect(find.text('🎟️'), findsOneWidget);
+
+      // Al pulsar sobre el botón o card, se dispara onInvite
+      await tester.tap(find.text('Invitar'));
+      await tester.pumpAndSettle();
+      expect(inviteTriggered, isTrue);
+    });
+
+    testWidgets('ProfileInviteCard: No se muestra si el usuario no es Jefe/Admin', (WidgetTester tester) async {
+      final memberUser = UserProfile(
+        id: 'member-1',
+        nombre: 'Mati',
+        email: 'mati@habitik.com',
+        rol: 'miembro',
+        familyId: 'fam-1',
+        familyName: 'Familia Demo',
+        xp: 730,
+        nivel: 2,
+        monedas: 10,
+        rachaDias: 1,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProfileInviteCard(
+              user: memberUser,
+              isDark: false,
+              isGenerating: false,
+              onInvite: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invitar a mi Familia'), findsNothing);
+      expect(find.text('Invitar'), findsNothing);
     });
   });
 }
+
+
+
