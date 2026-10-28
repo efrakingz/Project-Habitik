@@ -125,6 +125,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // ── CA-4.1-3: Feed Social en Tiempo Real con Reacciones ──
                       FamilyFeedSection(
                         items: _wallService.feed,
+                        loading: _wallService.feedLoading,
+                        hasMore: _wallService.hasMore,
+                        isLoadingMore: _wallService.isLoadingMore,
+                        onLoadMore: () => _wallService.fetchMoreFeed(),
                         onReactionTap: (feedId, emoji) {
                           _wallService.toggleReaction(feedId, emoji);
                         },
