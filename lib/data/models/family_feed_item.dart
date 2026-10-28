@@ -14,6 +14,7 @@ class FamilyFeedItem {
   final DateTime fecha;
   final Map<String, int> reacciones;
   final Set<String> misReacciones;
+  final String? badgeDestacado;
 
   const FamilyFeedItem({
     required this.id,
@@ -30,6 +31,7 @@ class FamilyFeedItem {
     required this.fecha,
     this.reacciones = const {'👏': 0, '🔥': 0, '💧': 0, '❤️': 0},
     this.misReacciones = const {},
+    this.badgeDestacado,
   });
 
   FamilyFeedItem copyWith({
@@ -47,6 +49,7 @@ class FamilyFeedItem {
     DateTime? fecha,
     Map<String, int>? reacciones,
     Set<String>? misReacciones,
+    String? badgeDestacado,
   }) {
     return FamilyFeedItem(
       id: id ?? this.id,
@@ -63,6 +66,7 @@ class FamilyFeedItem {
       fecha: fecha ?? this.fecha,
       reacciones: reacciones ?? this.reacciones,
       misReacciones: misReacciones ?? this.misReacciones,
+      badgeDestacado: badgeDestacado ?? this.badgeDestacado,
     );
   }
 
@@ -116,6 +120,7 @@ class FamilyFeedItem {
           : DateTime.now(),
       reacciones: reaccMap,
       misReacciones: misReaccSet,
+      badgeDestacado: json['badge_destacado']?.toString() ?? json['badgeDestacado']?.toString(),
     );
   }
 
@@ -134,6 +139,7 @@ class FamilyFeedItem {
     'fecha': fecha.toIso8601String(),
     'reacciones': reacciones,
     'mis_reacciones': misReacciones.toList(),
+    'badge_destacado': badgeDestacado,
   };
 
   /// Lista representativa de mock feeds
@@ -153,6 +159,7 @@ class FamilyFeedItem {
       fecha: DateTime.now().subtract(const Duration(minutes: 8)),
       reacciones: const {'👏': 4, '🔥': 5, '💧': 1, '❤️': 3},
       misReacciones: const {'🔥'},
+      badgeDestacado: '🧠',
     ),
     FamilyFeedItem(
       id: 'feed_2',
@@ -169,6 +176,7 @@ class FamilyFeedItem {
       fecha: DateTime.now().subtract(const Duration(minutes: 25)),
       reacciones: const {'👏': 3, '🔥': 2, '💧': 6, '❤️': 2},
       misReacciones: const {'💧'},
+      badgeDestacado: '🚿',
     ),
     FamilyFeedItem(
       id: 'feed_3',
@@ -201,6 +209,7 @@ class FamilyFeedItem {
       fecha: DateTime.now().subtract(const Duration(hours: 3)),
       reacciones: const {'👏': 6, '🔥': 3, '💧': 2, '❤️': 5},
       misReacciones: const {'❤️'},
+      badgeDestacado: '♻️',
     ),
   ];
 }

@@ -3,3 +3,4 @@ export 'level_up_modal.dart';
 export 'confirm_dialog.dart';
 export 'coming_soon_modal.dart';
 export 'qr_invite_modal.dart';
+export 'badge_unlocked_dialog.dart';

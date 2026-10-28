@@ -13,6 +13,7 @@ export 'loading_overlay.dart';
 class ScreenShell extends StatelessWidget {
   final String titulo;
   final String? subtitulo;
+  final Widget? customTitle;
   final Widget body;
   final List<Widget>? headerActions;
   final Widget? headerLeft;
@@ -24,6 +25,7 @@ class ScreenShell extends StatelessWidget {
     super.key,
     required this.titulo,
     this.subtitulo,
+    this.customTitle,
     required this.body,
     this.headerActions,
     this.headerLeft,
@@ -49,6 +51,7 @@ class ScreenShell extends StatelessWidget {
               context: context,
               titulo: titulo,
               subtitulo: subtitulo,
+              customTitle: customTitle,
               headerLeft: headerLeft,
               headerActions: headerActions,
               showBackButton: showBackButton,

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:habitik/data/models/achievement.dart';
 
 import 'models/eco_puzzle_state.dart';
 import 'models/waste_item.dart';
@@ -11,6 +12,7 @@ import 'components/eco_background_component.dart';
 class EcoPuzzleGame extends FlameGame with HasCollisionDetection {
   final VoidCallback? onGameClosed;
   final VoidCallback? onChallengeCompleted;
+  AchievementItem? unlockedBadge;
 
   EcoPuzzleState _gameState = EcoPuzzleState.loading;
   final ValueNotifier<EcoPuzzleState> gameStateNotifier = ValueNotifier(EcoPuzzleState.loading);

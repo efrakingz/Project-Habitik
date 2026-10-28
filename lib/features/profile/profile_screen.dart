@@ -16,6 +16,7 @@ import 'package:habitik/features/profile/widgets/profile_identity_card.dart';
 import 'package:habitik/features/profile/widgets/profile_invite_card.dart';
 import 'package:habitik/features/profile/widgets/profile_settings_card.dart';
 import 'package:habitik/features/profile/widgets/profile_family_list.dart';
+import 'package:habitik/features/profile/widgets/profile_badges_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserProfile? user;
@@ -100,8 +101,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final List<dynamic> data = jsonDecode(response.body);
       final members = data.map((json) {
         final m = FamilyMember.fromJson(json);
-        // Si el miembro es el usuario actual, usamos sus métricas más recientes
-        return m.id == _user.id ? m.copyWith(xp: _user.xp, nivel: _user.nivel) : m;
+        final isMe = m.id == _user.id ||
+            m.nombre.toLowerCase().trim() == _user.nombre.toLowerCase().trim();
+        return isMe
+            ? m.copyWith(
+                xp: _user.xp,
+                nivel: _user.nivel,
+                badgeDestacado: SessionService().badgeDestacado ?? _user.badgeDestacado,
+              )
+            : m;
       }).toList()
         ..sort((a, b) => b.xp.compareTo(a.xp));
 
@@ -164,6 +172,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     ProfileIdentityCard(user: _user, isDark: isDark),
+                    const SizedBox(height: 20),
+
+                    ProfileBadgesCard(
+                      user: _user,
+                      isDark: isDark,
+                      onDataChanged: _loadData,
+                    ),
                     const SizedBox(height: 20),
 
                     ProfileInviteCard(

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/badges/badges.dart';
 import 'package:habitik/shared/widgets/stats/stats.dart';
+import '../trophy_showcase_screen.dart';
+import 'badge_svg_icons.dart';
 
 class ProfileIdentityCard extends StatelessWidget {
   final UserProfile user;
@@ -18,149 +22,316 @@ class ProfileIdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Ultra-compact Profile Card (Identity + Inline Coins & Streak)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            gradient: isDark
-                ? null
-                : const LinearGradient(
-                    colors: [HabitikColors.green50, Color(0xFFE8F5E9)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+    return ValueListenableBuilder<UserProfile?>(
+      valueListenable: SessionService().currentUserNotifier,
+      builder: (context, sessionUser, _) {
+        final currentUser = sessionUser ?? user;
+        final featuredKey = SessionService().badgeDestacado ?? currentUser.badgeDestacado;
+        final hasFeatured = featuredKey != null && featuredKey.isNotEmpty;
+
+        return Column(
+          children: [
+            // Ultra-compact Profile Card (Identity + Inline Coins & Streak)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? null
+                    : const LinearGradient(
+                        colors: [HabitikColors.green50, Color(0xFFE8F5E9)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                color: isDark ? const Color(0xFF16221A) : null,
+                borderRadius: HabitikRadius.xl_,
+                border: Border.all(
+                  color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green200.withValues(alpha: 0.7),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? HabitikColors.green500.withValues(alpha: 0.05)
+                        : HabitikColors.green900.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 4),
                   ),
-            color: isDark ? const Color(0xFF16221A) : null,
-            borderRadius: HabitikRadius.xl_,
-            border: Border.all(
-              color: isDark ? const Color(0x30FFFFFF) : HabitikColors.green200.withValues(alpha: 0.7),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? HabitikColors.green500.withValues(alpha: 0.05)
-                    : HabitikColors.green900.withValues(alpha: 0.06),
-                blurRadius: 16,
-                spreadRadius: 1,
-                offset: const Offset(0, 4),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Avatar with subtle glow
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: _getGlowColor(user.nivel).withValues(alpha: 0.25),
-                      blurRadius: 14,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: UserAvatar(
-                  letra: user.avatarLetra,
-                  colorHex: user.avatarColor,
-                  avatarUrl: user.avatarUrl,
-                  radius: 28,
-                  showBorder: true,
-                ),
-              ).animate().scale(
-                begin: const Offset(0.85, 0.85),
-                duration: 400.ms,
-                curve: Curves.easeOutBack,
-              ),
-              const SizedBox(width: 14),
-
-              // User Info (Name, Email, Role)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      user.nombre,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : HabitikColors.textDark,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    if (user.email != null && user.email!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        user.email!,
-                        style: TextStyle(
-                          color: isDark ? Colors.white60 : HabitikColors.textLight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-
-                    const SizedBox(height: 6),
-
-                    // Role Badge (Miembro / Jefe)
-                    RolBadge(user.rol, fontSize: 11),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              // Stats stacked on the right (Symmetrical & Tappable for info)
-              GestureDetector(
-                onTap: () => ProfileStatsInfoModal.show(context, isDark: isDark),
-                child: IntrinsicWidth(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Row(
+                children: [
+                  // Avatar with subtle glow and featured badge ring
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      // Coins pill (🪙)
-                      _MiniStatBadge(
-                        icon: '🪙',
-                        value: '${user.monedas}',
-                        bgColor: isDark ? const Color(0xFF2E2412) : const Color(0xFFFFF8E7),
-                        textColor: isDark ? HabitikColors.amber300 : const Color(0xFFB78103),
-                        borderColor: HabitikColors.amber400.withValues(alpha: isDark ? 0.4 : 0.6),
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _getGlowColor(currentUser.nivel).withValues(alpha: 0.25),
+                              blurRadius: 14,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: UserAvatar(
+                          letra: currentUser.avatarLetra,
+                          colorHex: currentUser.avatarColor,
+                          avatarUrl: currentUser.avatarUrl,
+                          radius: 28,
+                          showBorder: true,
+                        ),
+                      ).animate().scale(
+                        begin: const Offset(0.85, 0.85),
+                        duration: 400.ms,
+                        curve: Curves.easeOutBack,
                       ),
-                      const SizedBox(height: 6),
-
-                      // Streak pill (🔥)
-                      _MiniStatBadge(
-                        icon: '🔥',
-                        value: '${user.rachaDias}',
-                        bgColor: isDark ? const Color(0xFF2E1A12) : const Color(0xFFFFF0EA),
-                        textColor: isDark ? HabitikColors.orange300 : const Color(0xFFD84315),
-                        borderColor: HabitikColors.orange500.withValues(alpha: isDark ? 0.4 : 0.6),
-                      ),
+                      if (hasFeatured)
+                        Positioned(
+                          bottom: -3,
+                          right: -3,
+                          child: Container(
+                            width: 25,
+                            height: 25,
+                            padding: const EdgeInsets.all(2.5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark ? const Color(0xFF1B2E20) : Colors.white,
+                              border: Border.all(color: const Color(0xFFFFB300), width: 1.8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFFB300).withValues(alpha: 0.45),
+                                  blurRadius: 6,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: BadgeSvgIcons.buildSvg(featuredKey, size: 16),
+                          ),
+                        ),
                     ],
                   ),
-                ),
+                  const SizedBox(width: 14),
+
+                  // User Info (Name + Featured Badge, Email, Role)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Name Row with Featured Badge Mini Tag
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                currentUser.nombre,
+                                style: GoogleFonts.outfit(
+                                  color: isDark ? Colors.white : HabitikColors.textDark,
+                                  fontSize: 18.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (hasFeatured) ...[
+                              const SizedBox(width: 6),
+                              Tooltip(
+                                message: 'Insignia destacada: ${BadgeSvgIcons.getBadgeTitle(featuredKey)}',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF2E220D) : const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFFD97706) : const Color(0xFFF59E0B),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      BadgeSvgIcons.buildSvg(featuredKey, size: 12),
+                                      const SizedBox(width: 2.5),
+                                      const Text('⭐', style: TextStyle(fontSize: 8)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+
+                        if (currentUser.email != null && currentUser.email!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            currentUser.email!,
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white60 : HabitikColors.textLight,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+
+                        const SizedBox(height: 6),
+
+                        // Role Badge (Miembro / Jefe) & Medalla Destacada Completa
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            RolBadge(currentUser.rol, fontSize: 11),
+                            if (hasFeatured) ...[
+                              InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => TrophyShowcaseScreen(user: currentUser),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: isDark
+                                          ? [const Color(0xFF2E220D), const Color(0xFF1F1707)]
+                                          : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFFD97706) : const Color(0xFFF59E0B),
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.15 : 0.25),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      BadgeSvgIcons.buildSvg(featuredKey, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        BadgeSvgIcons.getBadgeTitle(featuredKey),
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      const Text('⭐', style: TextStyle(fontSize: 9)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => TrophyShowcaseScreen(user: currentUser),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1B2E20) : const Color(0xFFE8F5E9),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isDark ? HabitikColors.green500.withValues(alpha: 0.35) : HabitikColors.green300,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('🏅', style: TextStyle(fontSize: 10)),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'Destacar medalla',
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark ? HabitikColors.green300 : const Color(0xFF166534),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  // Stats stacked on the right (Symmetrical & Tappable for info)
+                  GestureDetector(
+                    onTap: () => ProfileStatsInfoModal.show(context, isDark: isDark),
+                    child: IntrinsicWidth(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Coins pill (🪙)
+                          _MiniStatBadge(
+                            icon: '🪙',
+                            value: '${currentUser.monedas}',
+                            bgColor: isDark ? const Color(0xFF2E2412) : const Color(0xFFFFF8E7),
+                            textColor: isDark ? HabitikColors.amber300 : const Color(0xFFB78103),
+                            borderColor: HabitikColors.amber400.withValues(alpha: isDark ? 0.4 : 0.6),
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Streak pill (🔥)
+                          _MiniStatBadge(
+                            icon: '🔥',
+                            value: '${currentUser.rachaDias}',
+                            bgColor: isDark ? const Color(0xFF2E1A12) : const Color(0xFFFFF0EA),
+                            textColor: isDark ? HabitikColors.orange300 : const Color(0xFFD84315),
+                            borderColor: HabitikColors.orange500.withValues(alpha: isDark ? 0.4 : 0.6),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ).animate().fadeIn(duration: 350.ms),
+            ).animate().fadeIn(duration: 350.ms),
 
-        const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-        // Level / XP Progress Bar right below
-        XpProgressBar(xp: user.xp, nivel: user.nivel)
-            .animate()
-            .fadeIn(delay: 200.ms)
-            .slideY(begin: 0.05),
-      ],
+            // Level / XP Progress Bar right below
+            XpProgressBar(xp: currentUser.xp, nivel: currentUser.nivel)
+                .animate()
+                .fadeIn(delay: 200.ms)
+                .slideY(begin: 0.05),
+          ],
+        );
+      },
     );
   }
 
@@ -366,25 +537,25 @@ class _MiniStatBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 62, minHeight: 28),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 15)),
-          const SizedBox(width: 4),
+          Text(icon, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 3),
           Text(
             value,
             style: TextStyle(
               color: textColor,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.2,
             ),

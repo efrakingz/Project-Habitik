@@ -41,7 +41,10 @@ class _SpeedrunScreenState extends State<SpeedrunScreen> {
       onGameClosed: () {
         Navigator.maybePop(context);
       },
-      onChallengeCompleted: () {
+      onChallengeCompleted: () async {
+        if (_game.unlockedBadge != null && mounted) {
+          await BadgeUnlockedDialog.show(context, badge: _game.unlockedBadge!);
+        }
         widget.onChallengeCompleted?.call();
       },
     );
