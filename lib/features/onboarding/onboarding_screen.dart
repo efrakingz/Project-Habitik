@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -175,6 +176,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final XFile? photo = await _imagePicker.pickImage(
         source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
         imageQuality: 85,
       );
       if (photo == null) return;
@@ -182,8 +185,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       setState(() => _isOcrReading = true);
 
       int length = 0;
+      Uint8List? bytes;
       try {
         length = await photo.length();
+        bytes = await photo.readAsBytes();
       } catch (_) {
         length = 1024;
       }
@@ -191,6 +196,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         fileName: photo.name.isNotEmpty ? photo.name : 'captura_camara.jpg',
         fileSizeBytes: length,
         filePath: photo.path,
+        fileBytes: bytes,
+        preferredServiceType: _tipoBoleta == 'agua' ? 'Agua' : 'Electricidad',
       );
 
       if (!mounted) return;
@@ -216,17 +223,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           candidate.unidad.toLowerCase().contains('m');
 
       setState(() {
-        if (isAgua && !isElectricidad) {
+        if (isAgua) {
           _tipoBoleta = 'agua';
         } else if (isElectricidad) {
           _tipoBoleta = 'luz';
         }
 
-        final consumoFormatted = candidate.consumo.truncateToDouble() == candidate.consumo
-            ? candidate.consumo.toInt().toString()
-            : candidate.consumo.toString();
+        final consumoFormatted = candidate.consumo > 0
+            ? (candidate.consumo.truncateToDouble() == candidate.consumo
+                ? candidate.consumo.toInt().toString()
+                : candidate.consumo.toString())
+            : '';
         _consumoCtrl.text = consumoFormatted;
-        _montoCtrl.text = candidate.monto.toString();
+        _montoCtrl.text = candidate.monto > 0 ? candidate.monto.toString() : '';
         _empresaCtrl.text = candidate.proveedor;
         _periodoCtrl.text = _formatPeriod(candidate.periodoDesde);
 
