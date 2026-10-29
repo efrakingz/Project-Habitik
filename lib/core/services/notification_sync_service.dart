@@ -132,6 +132,7 @@ class NotificationSyncService {
   /// Programa las alertas fijas del día para los 5 cortes de horario (09:00, 12:00, 15:00, 18:00, 21:00)
   /// utilizando el reloj nativo del sistema (AlarmManager)
   static Future<void> programarRecordatoriosDiarios() async {
+    if (kIsWeb) return;
     final now = DateTime.now();
     for (final hora in horasChequeo) {
       DateTime target = DateTime(now.year, now.month, now.day, hora, 0);

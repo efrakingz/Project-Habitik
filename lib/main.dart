@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -27,9 +28,11 @@ void main() async {
   // Inicializaciones en segundo plano diferidas tras el primer frame (evita bloqueo del hilo principal y ANR)
   WidgetsBinding.instance.addPostFrameCallback((_) {
     NetworkService().init();
-    NotificationService.initNotificationService();
-    NotificationSyncService.programarRecordatoriosDiarios();
-    BackgroundServiceManager.initializeService();
+    if (!kIsWeb) {
+      NotificationService.initNotificationService();
+      NotificationSyncService.programarRecordatoriosDiarios();
+      BackgroundServiceManager.initializeService();
+    }
   });
 
   // Configurar flutter_animate

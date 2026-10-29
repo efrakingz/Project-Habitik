@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:http/http.dart' as http;
 
 class NetworkService {
   static final NetworkService _instance = NetworkService._internal();
@@ -65,14 +64,11 @@ class NetworkService {
     bool hasRealAccess = false;
 
     if (kIsWeb) {
-      try {
-        final resp = await http
-            .get(Uri.parse('https://clients3.google.com/generate_204'))
-            .timeout(const Duration(seconds: 3));
-        hasRealAccess = resp.statusCode == 204 || resp.statusCode == 200;
-      } catch (_) {
-        hasRealAccess = false;
-      }
+      // En Web (Safari iOS, Chrome, etc.), el navegador valida la conexión a través de
+      // window.navigator.onLine (reflejado en _connectivity.checkConnectivity()).
+      // Las peticiones cross-origin a generate_204 son bloqueadas por políticas CORS del navegador.
+      // Si la interfaz no es 'none', el navegador tiene conexión a internet activa.
+      hasRealAccess = true;
     } else {
       try {
         // Intento 1: Resolución de DNS estándar a google.com

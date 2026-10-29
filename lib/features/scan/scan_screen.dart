@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -69,15 +70,23 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       final XFile? photo = await _imagePicker.pickImage(
         source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
         imageQuality: 85,
       );
       if (photo == null) return;
 
       final length = await photo.length();
+      Uint8List? bytes;
+      try {
+        bytes = await photo.readAsBytes();
+      } catch (_) {}
+
       await _processFile(
         fileName: photo.name.isNotEmpty ? photo.name : 'captura_camara.jpg',
         fileSizeBytes: length,
         tempPath: photo.path,
+        fileBytes: bytes,
       );
     } catch (e) {
       debugPrint('⚠️ [ScanScreen] Error al capturar foto: $e');
@@ -96,15 +105,23 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
         imageQuality: 85,
       );
       if (image == null) return;
 
       final length = await image.length();
+      Uint8List? bytes;
+      try {
+        bytes = await image.readAsBytes();
+      } catch (_) {}
+
       await _processFile(
         fileName: image.name.isNotEmpty ? image.name : 'imagen_galeria.png',
         fileSizeBytes: length,
         tempPath: image.path,
+        fileBytes: bytes,
       );
     } catch (e) {
       debugPrint('⚠️ [ScanScreen] Error al elegir imagen: $e');
@@ -129,11 +146,20 @@ class _ScanScreenState extends State<ScanScreen> {
       if (files.isEmpty) return;
       final file = files.first;
 
-      final length = await file.xFile.length();
+      Uint8List? bytes;
+      int length = 0;
+      try {
+        bytes = await file.xFile.readAsBytes();
+        length = bytes.length;
+      } catch (_) {
+        length = 1024;
+      }
+
       await _processFile(
         fileName: file.name,
         fileSizeBytes: length,
         tempPath: file.path,
+        fileBytes: bytes,
       );
     } catch (e) {
       debugPrint('⚠️ [ScanScreen] Error al elegir PDF: $e');
@@ -167,6 +193,7 @@ class _ScanScreenState extends State<ScanScreen> {
     required String fileName,
     required int fileSizeBytes,
     String? tempPath,
+    Uint8List? fileBytes,
   }) async {
     // Validación previa inmediata
     final validationError = _ocrService.validateFile(
@@ -188,6 +215,7 @@ class _ScanScreenState extends State<ScanScreen> {
       fileName: fileName,
       fileSizeBytes: fileSizeBytes,
       filePath: tempPath,
+      fileBytes: fileBytes,
     );
 
     if (!mounted) return;
