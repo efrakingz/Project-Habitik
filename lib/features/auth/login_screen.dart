@@ -8,8 +8,9 @@ import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
-import 'package:habitik/shared/widgets/layout/loading_overlay.dart';
+import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLogin;
@@ -121,51 +122,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showSuccess(String msg) => HabitikFeedback.showSuccess(context, msg);
 
-  void _showForgotPasswordDialog(bool isDark) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E2E22) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          children: [
-            const Icon(Icons.help_outline_rounded, color: HabitikColors.green500, size: 26),
-            const SizedBox(width: 10),
-            Text(
-              'Recuperar cuenta',
-              style: GoogleFonts.outfit(
-                color: isDark ? Colors.white : HabitikColors.textDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-            ),
-          ],
+  Future<void> _navigateToForgotPassword() async {
+    final returnedEmail = await Navigator.of(context).push<String>(
+      FadePageRoute(
+        child: ForgotPasswordScreen(
+          initialEmail: _emailCtrl.text.trim(),
         ),
-        content: Text(
-          'En Habitik, tu cuenta forma parte de un hogar familiar colaborativo.\n\n'
-          '• Si eres miembro, el Jefe de tu hogar puede asistirte directamente con tus credenciales.\n'
-          '• Si eres Jefe de Hogar, verifica con el correo de registro o ponte en contacto con soporte.',
-          style: GoogleFonts.outfit(
-            color: isDark ? Colors.white70 : HabitikColors.textMid,
-            fontSize: 13.5,
-            height: 1.45,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Entendido',
-              style: GoogleFonts.outfit(
-                color: HabitikColors.green500,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
       ),
     );
+
+    if (returnedEmail != null && returnedEmail.isNotEmpty && mounted) {
+      setState(() {
+        _isLogin = true;
+        _emailCtrl.text = returnedEmail;
+        _pwdCtrl.clear();
+      });
+      HabitikFeedback.showSuccess(
+        context,
+        'Contraseña restablecida. Ingresa tus nuevas credenciales.',
+      );
+    }
   }
 
   @override
@@ -384,7 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton(
-                                      onPressed: () => _showForgotPasswordDialog(isDark),
+                                      onPressed: _navigateToForgotPassword,
                                       style: TextButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 4,

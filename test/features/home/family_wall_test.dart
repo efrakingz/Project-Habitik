@@ -58,6 +58,53 @@ void main() {
       expect(updated.reacciones['👏'], equals(3));
       expect(updated.misReacciones.contains('👏'), isTrue);
     });
+
+    test('FamilyFeedItem.fromJson parsea el contrato real de la API del Backend', () {
+      final backendJson = {
+        'id': '4',
+        'user_id': '5f0813c3-216e-4158-b1b9-af2abbb845d0',
+        'nombre': 'Cristóbal',
+        'avatar': {
+          'url': 'https://cdn.habitik.app/avatars/cris.png',
+          'color': '#2e7d32',
+          'letra': 'C',
+        },
+        'tipo': 'speedrun_ducha',
+        'mensaje': 'Cristóbal completó el Speedrun de la Ducha en 4m 20s.',
+        'imagen_url': 'https://storage.habitik.app/evidencias/ducha_4.jpg',
+        'recompensas': {
+          'xp': 200,
+          'monedas': 2,
+        },
+        'fecha': '2026-10-27T18:40:00.000Z',
+        'total_reacciones': 3,
+        'reacciones_conteo': {
+          'fuego': 2,
+          'aplauso': 1,
+        },
+        'mi_reaccion': 'fuego',
+      };
+
+      final item = FamilyFeedItem.fromJson(backendJson);
+
+      expect(item.id, equals('4'));
+      expect(item.usuarioId, equals('5f0813c3-216e-4158-b1b9-af2abbb845d0'));
+      expect(item.nombreUsuario, equals('Cristóbal'));
+      expect(item.avatarUrl, equals('https://cdn.habitik.app/avatars/cris.png'));
+      expect(item.avatarColor, equals('#2e7d32'));
+      expect(item.avatarLetra, equals('C'));
+      expect(item.tipoReto, equals('ducha'));
+      expect(item.tituloReto, equals('Ducha Speedrun'));
+      expect(item.descripcion, contains('4m 20s'));
+      expect(item.imagenUrl, equals('https://storage.habitik.app/evidencias/ducha_4.jpg'));
+      expect(item.xpGanada, equals(200));
+      expect(item.monedasGanadas, equals(2));
+      expect(item.reacciones['🔥'], equals(2));
+      expect(item.reacciones['👏'], equals(1));
+      expect(item.misReacciones.contains('🔥'), isTrue);
+      expect(item.misReacciones.contains('fuego'), isTrue);
+      expect(item.miReaccion, equals('fuego'));
+    });
   });
 
   group('HU 4.1 – Widgets del Muro Familiar', () {

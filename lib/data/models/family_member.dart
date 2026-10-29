@@ -65,6 +65,8 @@ class FamilyMember {
     String color = '#43A047';
     String? url;
 
+    String? badge;
+
     if (json['avatar'] != null && json['avatar'].toString() != 'null') {
       if (json['avatar'] is Map) {
         final avMap = json['avatar'] as Map;
@@ -75,6 +77,12 @@ class FamilyMember {
                 : 'U');
         color = avMap['color']?.toString() ?? '#43A047';
         url = avMap['url']?.toString();
+        badge = avMap['badge_destacado']?.toString() ??
+            avMap['badgeDestacado']?.toString() ??
+            avMap['badge']?.toString() ??
+            avMap['insignia']?.toString() ??
+            avMap['insignia_destacada']?.toString() ??
+            avMap['medalla']?.toString();
       } else if (json['avatar'] is String) {
         try {
           final avMap = jsonDecode(json['avatar']);
@@ -86,6 +94,12 @@ class FamilyMember {
                     : 'U');
             color = avMap['color']?.toString() ?? '#43A047';
             url = avMap['url']?.toString();
+            badge = avMap['badge_destacado']?.toString() ??
+                avMap['badgeDestacado']?.toString() ??
+                avMap['badge']?.toString() ??
+                avMap['insignia']?.toString() ??
+                avMap['insignia_destacada']?.toString() ??
+                avMap['medalla']?.toString();
           }
         } catch (_) {}
       }
@@ -99,8 +113,91 @@ class FamilyMember {
       url = json['avatar_url'];
     }
 
+    // Buscar en la raíz de json si no estaba en avatar
+    badge ??= json['badge_destacado']?.toString() ??
+        json['badgeDestacado']?.toString() ??
+        json['insignia_destacada']?.toString() ??
+        json['insigniaDestacada']?.toString() ??
+        json['medalla_destacada']?.toString() ??
+        json['medallaDestacada']?.toString() ??
+        json['badge']?.toString() ??
+        json['insignia']?.toString() ??
+        json['medalla']?.toString() ??
+        json['logro']?.toString() ??
+        json['logro_destacado']?.toString() ??
+        json['logroDestacado']?.toString() ??
+        json['badge_id']?.toString() ??
+        json['badgeId']?.toString();
+
+    // Si viene anidado en usuario / user
+    if (badge == null) {
+      final userObj = json['usuario'] ?? json['user'];
+      if (userObj is Map) {
+        badge = userObj['badge_destacado']?.toString() ??
+            userObj['badgeDestacado']?.toString() ??
+            userObj['insignia_destacada']?.toString() ??
+            userObj['badge']?.toString();
+      }
+    }
+
+    // Si viene lista de logros/badges del miembro en el JSON de /familia/miembros
+    if (badge == null) {
+      if (json['logros'] is List && (json['logros'] as List).isNotEmpty) {
+        final logrosList = json['logros'] as List;
+        Map? elegido;
+        for (final item in logrosList) {
+          if (item is Map && (item['destacado'] == true || item['es_destacado'] == true || item['selected'] == true)) {
+            elegido = item;
+            break;
+          }
+        }
+        if (elegido == null) {
+          for (final item in logrosList) {
+            if (item is Map && (item['desbloqueado'] == true || item['completado'] == true || item['unlocked'] == true)) {
+              elegido = item;
+              break;
+            }
+          }
+        }
+        if (elegido != null) {
+          badge = elegido['codigo']?.toString() ??
+              elegido['key']?.toString() ??
+              elegido['titulo']?.toString() ??
+              elegido['nombre']?.toString();
+        }
+      } else if (json['badges'] is List && (json['badges'] as List).isNotEmpty) {
+        final badgesList = json['badges'] as List;
+        Map? elegido;
+        for (final item in badgesList) {
+          if (item is Map && (item['destacado'] == true || item['selected'] == true)) {
+            elegido = item;
+            break;
+          }
+        }
+        if (elegido == null) {
+          for (final item in badgesList) {
+            if (item is Map && (item['desbloqueado'] == true || item['unlocked'] == true)) {
+              elegido = item;
+              break;
+            }
+          }
+        }
+        if (elegido != null) {
+          badge = elegido['codigo']?.toString() ??
+              elegido['key']?.toString() ??
+              elegido['name']?.toString() ??
+              elegido['title']?.toString();
+        }
+      }
+    }
+
     return FamilyMember(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ??
+          json['user_id']?.toString() ??
+          json['usuario_id']?.toString() ??
+          json['id_usuario']?.toString() ??
+          json['userId']?.toString() ??
+          '',
       nombre: json['nombre'] ?? '',
       rol: (json['rol'] ?? 'miembro').toString().toLowerCase(),
       xp: (json['xp_total'] ?? json['total_xp'] ?? json['xp']) is num
@@ -118,10 +215,7 @@ class FamilyMember {
       avatarLetra: letra,
       avatarColor: color,
       avatarUrl: url,
-      badgeDestacado: json['badge_destacado']?.toString() ??
-          json['badgeDestacado']?.toString() ??
-          json['insignia_destacada']?.toString() ??
-          json['medalla_destacada']?.toString(),
+      badgeDestacado: badge,
     );
   }
 }

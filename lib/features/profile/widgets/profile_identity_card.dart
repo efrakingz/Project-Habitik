@@ -3,11 +3,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/data/models/achievement.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/badges/badges.dart';
 import 'package:habitik/shared/widgets/stats/stats.dart';
-import '../trophy_showcase_screen.dart';
 import 'badge_svg_icons.dart';
 
 class ProfileIdentityCard extends StatelessWidget {
@@ -19,6 +19,209 @@ class ProfileIdentityCard extends StatelessWidget {
     required this.user,
     required this.isDark,
   });
+
+  AchievementItem _getAchievementDetails(String key) {
+    final upper = key.toUpperCase().trim();
+    final title = BadgeSvgIcons.getBadgeTitle(key);
+
+    try {
+      return AchievementItem.officialCatalog.firstWhere(
+        (b) =>
+            b.key.toUpperCase() == upper ||
+            b.nombre.toUpperCase() == title.toUpperCase() ||
+            b.emoji == key,
+      );
+    } catch (_) {}
+
+    try {
+      return AchievementItem.mockList.firstWhere(
+        (b) =>
+            b.key.toUpperCase() == upper ||
+            b.nombre.toUpperCase() == title.toUpperCase() ||
+            b.emoji == key,
+      );
+    } catch (_) {}
+
+    return AchievementItem(
+      key: key,
+      nombre: title,
+      descripcion: 'Logro completado con éxito y seleccionado como insignia destacada en tu perfil.',
+      emoji: '⭐',
+      desbloqueado: true,
+    );
+  }
+
+  void _showFeaturedBadgeModal(BuildContext context, String featuredKey, bool isDark) {
+    final item = _getAchievementDetails(featuredKey);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF16251B) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark ? const Color(0xFF2E4233) : const Color(0xFFBCE0C8),
+              width: 1.5,
+            ),
+            boxShadow: HabitikShadows.floating,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tirador superior (drag handle)
+              Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+
+              // Contenedor del ícono/logo de la insignia
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2A2410) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B),
+                    width: 1.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.25 : 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: BadgeSvgIcons.buildSvg(item.key, size: 40),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Tag "INSIGNIA DESTACADA ⭐"
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2E220D) : const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      'INSIGNIA DESTACADA',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // Nombre del logro
+              Text(
+                item.nombre,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : const Color(0xFF0F291E),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              // Descripción del logro
+              Text(
+                item.descripcion.isNotEmpty
+                    ? item.descripcion
+                    : 'Logro completado con éxito y lucido con orgullo en tu perfil.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+
+              if (item.categoria.isNotEmpty || item.nivelTier.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF142E1F) : const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? HabitikColors.green700 : const Color(0xFFA5DCB6),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '${item.categoria}${item.nivelTier.isNotEmpty ? ' · ${item.nivelTier}' : ''}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? HabitikColors.green300 : const Color(0xFF166534),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              // Botón de cerrar ("¡Entendido!")
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: HabitikColors.green600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Entendido',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,58 +265,29 @@ class ProfileIdentityCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Avatar with subtle glow and featured badge ring
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: _getGlowColor(currentUser.nivel).withValues(alpha: 0.25),
-                              blurRadius: 14,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                  // Avatar with subtle glow (limpio, sin insignia duplicada)
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _getGlowColor(currentUser.nivel).withValues(alpha: 0.25),
+                          blurRadius: 14,
+                          spreadRadius: 1,
                         ),
-                        child: UserAvatar(
-                          letra: currentUser.avatarLetra,
-                          colorHex: currentUser.avatarColor,
-                          avatarUrl: currentUser.avatarUrl,
-                          radius: 28,
-                          showBorder: true,
-                        ),
-                      ).animate().scale(
-                        begin: const Offset(0.85, 0.85),
-                        duration: 400.ms,
-                        curve: Curves.easeOutBack,
-                      ),
-                      if (hasFeatured)
-                        Positioned(
-                          bottom: -3,
-                          right: -3,
-                          child: Container(
-                            width: 25,
-                            height: 25,
-                            padding: const EdgeInsets.all(2.5),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDark ? const Color(0xFF1B2E20) : Colors.white,
-                              border: Border.all(color: const Color(0xFFFFB300), width: 1.8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFFFB300).withValues(alpha: 0.45),
-                                  blurRadius: 6,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                            alignment: Alignment.center,
-                            child: BadgeSvgIcons.buildSvg(featuredKey, size: 16),
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
+                    child: UserAvatar(
+                      letra: currentUser.avatarLetra,
+                      colorHex: currentUser.avatarColor,
+                      avatarUrl: currentUser.avatarUrl,
+                      radius: 28,
+                      showBorder: true,
+                    ),
+                  ).animate().scale(
+                    begin: const Offset(0.85, 0.85),
+                    duration: 400.ms,
+                    curve: Curves.easeOutBack,
                   ),
                   const SizedBox(width: 14),
 
@@ -141,25 +315,36 @@ class ProfileIdentityCard extends StatelessWidget {
                             ),
                             if (hasFeatured) ...[
                               const SizedBox(width: 6),
-                              Tooltip(
-                                message: 'Insignia destacada: ${BadgeSvgIcons.getBadgeTitle(featuredKey)}',
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF2E220D) : const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: isDark ? const Color(0xFFD97706) : const Color(0xFFF59E0B),
-                                      width: 1,
+                              InkWell(
+                                onTap: () => _showFeaturedBadgeModal(context, featuredKey, isDark),
+                                borderRadius: BorderRadius.circular(10),
+                                child: Tooltip(
+                                  message: 'Insignia destacada: ${BadgeSvgIcons.getBadgeTitle(featuredKey)} (Toca para ver)',
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF2E220D) : const Color(0xFFFEF3C7),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: isDark ? const Color(0xFFD97706) : const Color(0xFFF59E0B),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.2 : 0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      BadgeSvgIcons.buildSvg(featuredKey, size: 12),
-                                      const SizedBox(width: 2.5),
-                                      const Text('⭐', style: TextStyle(fontSize: 8)),
-                                    ],
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        BadgeSvgIcons.buildSvg(featuredKey, size: 14),
+                                        const SizedBox(width: 3),
+                                        const Text('⭐', style: TextStyle(fontSize: 9)),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -183,105 +368,8 @@ class ProfileIdentityCard extends StatelessWidget {
 
                         const SizedBox(height: 6),
 
-                        // Role Badge (Miembro / Jefe) & Medalla Destacada Completa
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            RolBadge(currentUser.rol, fontSize: 11),
-                            if (hasFeatured) ...[
-                              InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => TrophyShowcaseScreen(user: currentUser),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: isDark
-                                          ? [const Color(0xFF2E220D), const Color(0xFF1F1707)]
-                                          : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isDark ? const Color(0xFFD97706) : const Color(0xFFF59E0B),
-                                      width: 1,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.15 : 0.25),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      BadgeSvgIcons.buildSvg(featuredKey, size: 14),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        BadgeSvgIcons.getBadgeTitle(featuredKey),
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      const Text('⭐', style: TextStyle(fontSize: 9)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ] else ...[
-                              InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => TrophyShowcaseScreen(user: currentUser),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF1B2E20) : const Color(0xFFE8F5E9),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isDark ? HabitikColors.green500.withValues(alpha: 0.35) : HabitikColors.green300,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text('🏅', style: TextStyle(fontSize: 10)),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'Destacar medalla',
-                                        style: TextStyle(
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: isDark ? HabitikColors.green300 : const Color(0xFF166534),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                        // Role Badge (Miembro / Jefe)
+                        RolBadge(currentUser.rol, fontSize: 11),
                       ],
                     ),
                   ),

@@ -63,6 +63,7 @@ class FamilyFeedCard extends StatelessWidget {
                       UserAvatar(
                         letra: item.avatarLetra,
                         colorHex: item.avatarColor,
+                        avatarUrl: item.avatarUrl,
                         radius: 18,
                       ),
                       if (item.badgeDestacado != null)
@@ -200,6 +201,36 @@ class FamilyFeedCard extends StatelessWidget {
                 ),
               ],
 
+              // ── 2.1 Imagen de Evidencia Fotográfica (si aplica) ──
+              if (item.imagenUrl != null && item.imagenUrl!.trim().isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    width: double.infinity,
+                    color: isDark ? const Color(0xFF0F1B12) : const Color(0xFFF1F5F9),
+                    child: Image.network(
+                      item.imagenUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const SizedBox(
+                          height: 140,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: HabitikColors.green500,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 10),
 
               // ── 3. Recompensas Obtenidas ──
@@ -226,8 +257,11 @@ class FamilyFeedCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 6,
                 children: ['👏', '🔥', '💧', '❤️'].map((emoji) {
-                  final count = item.reacciones[emoji] ?? 0;
-                  final yaReacciono = item.misReacciones.contains(emoji);
+                  final backendKey = FamilyFeedItem.emojiToKey[emoji];
+                  final count = item.reacciones[emoji] ?? (backendKey != null ? item.reacciones[backendKey] ?? 0 : 0);
+                  final yaReacciono = item.misReacciones.contains(emoji) ||
+                      (backendKey != null && item.misReacciones.contains(backendKey)) ||
+                      (item.miReaccion != null && (item.miReaccion == backendKey || item.miReaccion == emoji));
 
                   return _buildReactionPill(
                     emoji: emoji,

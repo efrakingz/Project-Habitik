@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/core/theme/theme.dart';
+import 'package:habitik/data/models/achievement.dart';
 import 'package:habitik/data/models/family_member.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/features/profile/widgets/badge_svg_icons.dart';
@@ -24,6 +26,209 @@ class RankingCard extends StatelessWidget {
     this.maxXp,
     this.margin,
   });
+
+  AchievementItem _getAchievementDetails(String key) {
+    final upper = key.toUpperCase().trim();
+    final title = BadgeSvgIcons.getBadgeTitle(key);
+
+    try {
+      return AchievementItem.officialCatalog.firstWhere(
+        (b) =>
+            b.key.toUpperCase() == upper ||
+            b.nombre.toUpperCase() == title.toUpperCase() ||
+            b.emoji == key,
+      );
+    } catch (_) {}
+
+    try {
+      return AchievementItem.mockList.firstWhere(
+        (b) =>
+            b.key.toUpperCase() == upper ||
+            b.nombre.toUpperCase() == title.toUpperCase() ||
+            b.emoji == key,
+      );
+    } catch (_) {}
+
+    return AchievementItem(
+      key: key,
+      nombre: title,
+      descripcion: 'Logro completado con éxito y seleccionado como insignia destacada.',
+      emoji: '⭐',
+      desbloqueado: true,
+    );
+  }
+
+  void _showBadgeDetailModal(BuildContext context, String badgeKey, bool isDark) {
+    final item = _getAchievementDetails(badgeKey);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF16251B) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark ? const Color(0xFF2E4233) : const Color(0xFFBCE0C8),
+              width: 1.5,
+            ),
+            boxShadow: HabitikShadows.floating,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tirador superior (drag handle)
+              Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+
+              // Contenedor del ícono/logo de la insignia
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2A2410) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B),
+                    width: 1.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.25 : 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: BadgeSvgIcons.buildSvg(item.key, size: 40),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Tag "INSIGNIA DESTACADA ⭐"
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2E220D) : const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      'INSIGNIA DESTACADA',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // Nombre del logro
+              Text(
+                item.nombre,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : const Color(0xFF0F291E),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              // Descripción del logro
+              Text(
+                item.descripcion.isNotEmpty
+                    ? item.descripcion
+                    : 'Logro completado con éxito por este miembro del hogar.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+
+              if (item.categoria.isNotEmpty || item.nivelTier.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF142E1F) : const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? HabitikColors.green700 : const Color(0xFFA5DCB6),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '${item.categoria}${item.nivelTier.isNotEmpty ? ' · ${item.nivelTier}' : ''}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? HabitikColors.green300 : const Color(0xFF166534),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              // Botón de cerrar ("¡Entendido!")
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: HabitikColors.green600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Entendido',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,46 +308,12 @@ class RankingCard extends StatelessWidget {
                         ),
                       ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  UserAvatar(
-                    letra: member.avatarLetra,
-                    colorHex: member.avatarColor,
-                    avatarUrl: member.avatarUrl,
-                    radius: 20,
-                  ),
-                  if (hasBadge)
-                    Positioned(
-                      bottom: -2,
-                      right: -3,
-                      child: Container(
-                        width: 17,
-                        height: 17,
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E2E22) : Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFFFB300),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFFB300).withValues(alpha: 0.4),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: BadgeSvgIcons.buildSvg(
-                            effectiveBadge,
-                            size: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              // Avatar limpio (sin insignia sobrepuesta)
+              UserAvatar(
+                letra: member.avatarLetra,
+                colorHex: member.avatarColor,
+                avatarUrl: member.avatarUrl,
+                radius: 20,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -167,31 +338,35 @@ class RankingCard extends StatelessWidget {
                         RolBadge(member.rol),
                         if (hasBadge) ...[
                           const SizedBox(width: 5),
-                          Tooltip(
-                            message:
-                                'Insignia destacada: ${BadgeSvgIcons.getBadgeTitle(effectiveBadge)}',
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF2E220D)
-                                    : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
+                          InkWell(
+                            onTap: () => _showBadgeDetailModal(context, effectiveBadge, isDark),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Tooltip(
+                              message:
+                                  'Insignia destacada: ${BadgeSvgIcons.getBadgeTitle(effectiveBadge)} (Toca para ver)',
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
                                   color: isDark
-                                      ? const Color(0xFFD97706)
-                                      : const Color(0xFFF59E0B),
-                                  width: 0.8,
+                                      ? const Color(0xFF2E220D)
+                                      : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFFF59E0B),
+                                    width: 0.8,
+                                  ),
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  BadgeSvgIcons.buildSvg(effectiveBadge, size: 12),
-                                  const SizedBox(width: 2.5),
-                                  const Text('⭐', style: TextStyle(fontSize: 8)),
-                                ],
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    BadgeSvgIcons.buildSvg(effectiveBadge, size: 12),
+                                    const SizedBox(width: 2.5),
+                                    const Text('⭐', style: TextStyle(fontSize: 8)),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -208,29 +383,6 @@ class RankingCard extends StatelessWidget {
                             fontSize: 12,
                           ),
                         ),
-                        if (hasBadge) ...[
-                          Text(
-                            ' • ',
-                            style: TextStyle(
-                              color: isDark ? Colors.white30 : HabitikColors.textLight,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              BadgeSvgIcons.getBadgeTitle(effectiveBadge),
-                              style: TextStyle(
-                                color: isDark
-                                    ? const Color(0xFFFDE68A)
-                                    : const Color(0xFFB45309),
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ],

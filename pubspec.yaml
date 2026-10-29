@@ -24,6 +24,8 @@ dependencies:
   http: ^1.2.0
   shared_preferences: ^2.2.2
   camera: ^0.10.6
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
   permission_handler: ^11.3.1
   mobile_scanner: ^5.1.1
   qr_flutter: ^4.1.0

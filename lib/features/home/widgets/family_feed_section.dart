@@ -10,11 +10,23 @@ import 'family_feed_card.dart';
 class FamilyFeedSection extends StatefulWidget {
   final List<FamilyFeedItem> items;
   final void Function(String feedId, String emoji)? onReactionTap;
+  final bool loading;
+  final String? errorMessage;
+  final VoidCallback? onRetry;
+  final VoidCallback? onLoadMore;
+  final bool hasMore;
+  final bool isLoadingMore;
 
   const FamilyFeedSection({
     super.key,
     required this.items,
     this.onReactionTap,
+    this.loading = false,
+    this.errorMessage,
+    this.onRetry,
+    this.onLoadMore,
+    this.hasMore = false,
+    this.isLoadingMore = false,
   });
 
   @override
@@ -121,7 +133,17 @@ class _FamilyFeedSectionState extends State<FamilyFeedSection> {
 
               const SizedBox(height: 14),
 
-              if (widget.items.isEmpty)
+              if (widget.loading && widget.items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: HabitikColors.green500,
+                    ),
+                  ),
+                )
+              else if (widget.items.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
@@ -205,6 +227,33 @@ class _FamilyFeedSectionState extends State<FamilyFeedSection> {
                             color: isDark ? const Color(0xFF34D399) : HabitikColors.green700,
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                // ── Botón para solicitar más páginas al Backend (Paginación) ──
+                if (_expanded && widget.hasMore) ...[
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: widget.isLoadingMore ? null : widget.onLoadMore,
+                    icon: widget.isLoadingMore
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: HabitikColors.green500,
+                            ),
+                          )
+                        : const Icon(Icons.history_rounded, size: 16),
+                    label: Text(
+                      widget.isLoadingMore
+                          ? 'Cargando anteriores...'
+                          : 'Cargar actividades anteriores',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

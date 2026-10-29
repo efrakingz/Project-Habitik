@@ -103,7 +103,7 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
         final destacado = _destacadoBadge;
 
         return Scaffold(
-          backgroundColor: const Color(0xFF091E15),
+          backgroundColor: isDark ? const Color(0xFF091E15) : HabitikColors.bgLight,
           body: ScreenShell(
             titulo: 'Vitrina de Trofeos',
             subtitulo: '🌱 Colecciona medallas por tus hábitos sustentables',
@@ -119,10 +119,10 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF133023),
+                  color: isDark ? const Color(0xFF133023) : Colors.white.withValues(alpha: 0.22),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFF1F4835),
+                    color: isDark ? const Color(0xFF1F4835) : Colors.white.withValues(alpha: 0.35),
                     width: 1.2,
                   ),
                 ),
@@ -169,7 +169,7 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
             body: RefreshIndicator(
               onRefresh: _loadData,
               color: HabitikColors.green500,
-              backgroundColor: const Color(0xFF10281D),
+              backgroundColor: isDark ? const Color(0xFF10281D) : Colors.white,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
@@ -262,7 +262,9 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
                             children: [
                               Text(
                                 _errorMessage!,
-                                style: const TextStyle(color: Color(0xFF94A3B8)),
+                                style: TextStyle(
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                ),
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
@@ -285,7 +287,7 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
                           child: Text(
                             'No hay medallas en esta categoría.',
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF94A3B8),
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF166534),
                               fontSize: 14,
                             ),
                           ),
@@ -327,21 +329,22 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFF10B981)
-              : const Color(0xFF10271D),
+              : (isDark ? const Color(0xFF10271D) : const Color(0xFFF7FBF8)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? const Color(0xFF10B981)
-                : const Color(0xFF1A3B2B),
+                : (isDark ? const Color(0xFF1A3B2B) : const Color(0xFFBCE0C8)),
             width: 1.2,
           ),
+          boxShadow: isDark ? null : HabitikShadows.card,
         ),
         child: Text(
           label,
           style: GoogleFonts.outfit(
             color: isSelected
                 ? const Color(0xFF062E1D)
-                : const Color(0xFF94A3B8),
+                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF166534)),
             fontSize: 12.5,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           ),
@@ -352,7 +355,7 @@ class _TrophyShowcaseScreenState extends State<TrophyShowcaseScreen> {
 }
 
 /// Banner superior que exhibe la insignia destacada o el avatar del usuario.
-/// Rediseñado con tarjeta verde bosque profundo y caja de avatar dorada con la inicial.
+/// Adaptado a modo claro (blanco/claro refinado) y modo oscuro (verde bosque profundo).
 class _FeaturedBadgeBanner extends StatelessWidget {
   final UserProfile user;
   final AchievementItem? destacado;
@@ -374,9 +377,12 @@ class _FeaturedBadgeBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF112A1E),
+        color: isDark ? const Color(0xFF112A1E) : const Color(0xFFF7FBF8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1F4332), width: 1.2),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1F4332) : const Color(0xFFBCE0C8),
+          width: 1.2,
+        ),
         boxShadow: HabitikShadows.card,
       ),
       child: Row(
@@ -386,10 +392,10 @@ class _FeaturedBadgeBanner extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFF2B2A12),
+              color: isDark ? const Color(0xFF2B2A12) : const Color(0xFFFEF3C7),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: const Color(0xFFCA8A04),
+                color: isDark ? const Color(0xFFCA8A04) : const Color(0xFFF59E0B),
                 width: 1.5,
               ),
             ),
@@ -399,7 +405,7 @@ class _FeaturedBadgeBanner extends StatelessWidget {
                 : Text(
                     initial,
                     style: GoogleFonts.outfit(
-                      color: const Color(0xFFFBBF24),
+                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                     ),
@@ -422,7 +428,7 @@ class _FeaturedBadgeBanner extends StatelessWidget {
                       style: GoogleFonts.outfit(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFFFBBF24),
+                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -436,7 +442,7 @@ class _FeaturedBadgeBanner extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : const Color(0xFF0F291E),
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -449,7 +455,7 @@ class _FeaturedBadgeBanner extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
-                    color: const Color(0xFF94A3B8),
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -460,7 +466,11 @@ class _FeaturedBadgeBanner extends StatelessWidget {
 
           if (destacado != null)
             IconButton(
-              icon: const Icon(Icons.close_rounded, size: 18, color: Colors.white70),
+              icon: Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+              ),
               tooltip: 'Remover insignia destacada',
               onPressed: onClear,
             ),
@@ -470,7 +480,8 @@ class _FeaturedBadgeBanner extends StatelessWidget {
   }
 }
 
-/// Tarjeta de métricas gamificadas con barra de acento superior e icono circular
+/// Tarjeta de métricas gamificadas con barra de acento superior e icono circular.
+/// En modo claro se adapta a un tono blanco/claro con sombras y tipografía de alto contraste.
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
@@ -492,15 +503,18 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveIconColor = isDark ? iconColor : accentColor;
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFF10271D),
+        color: isDark ? const Color(0xFF10271D) : const Color(0xFFF7FBF8),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFF1A3B2B),
+          color: isDark ? const Color(0xFF1A3B2B) : const Color(0xFFBCE0C8),
           width: 1.2,
         ),
+        boxShadow: HabitikShadows.card,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -524,11 +538,11 @@ class _StatCard extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.15),
+                    color: effectiveIconColor.withValues(alpha: isDark ? 0.15 : 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Icon(icon, color: iconColor, size: 16),
+                    child: Icon(icon, color: effectiveIconColor, size: 16),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -537,7 +551,7 @@ class _StatCard extends StatelessWidget {
                   child: Text(
                     value,
                     style: GoogleFonts.outfit(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : const Color(0xFF0F291E),
                       fontSize: 16.5,
                       fontWeight: FontWeight.w900,
                     ),
@@ -551,7 +565,7 @@ class _StatCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     style: GoogleFonts.outfit(
-                      color: const Color(0xFF94A3B8),
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                     ),

@@ -20,6 +20,7 @@ import 'package:habitik/features/challenges/games/speedrun/speedrun.dart';
 import 'package:habitik/features/challenges/games/eco_puzzle/eco_puzzle.dart';
 import 'package:habitik/features/challenges/games/eco_wordle/eco_wordle.dart';
 import 'package:habitik/features/challenges/games/trivia/trivia.dart';
+import 'package:habitik/features/challenges/games/cazador_sombras/cazador_sombras_screen.dart';
 import 'widgets/weekly_streak_card.dart';
 import 'widgets/daily_bonus_card.dart';
 
@@ -207,6 +208,11 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         gameWidget = TriviaScreen(
           onChallengeCompleted: () => _completeGame(id),
           onGameModeChanged: widget.onGameModeChanged,
+        );
+        break;
+      case 'inspeccion':
+        gameWidget = CazadorSombrasScreen(
+          onChallengeCompleted: () => _completeGame(id),
         );
         break;
       default:
