@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/inspeccion_evidencia.dart';
 import 'api_client.dart';
@@ -69,16 +70,43 @@ class InspeccionService {
     }
 
     request.fields['titulo_mision'] = tituloMision;
-    request.files.add(await http.MultipartFile.fromPath('foto', foto.path));
+
+    // Detectar formato para que Multer lo reconozca como mimetype image/*
+    final extension = foto.path.split('.').last.toLowerCase();
+    MediaType mediaType;
+    if (extension == 'png') {
+      mediaType = MediaType('image', 'png');
+    } else if (extension == 'webp') {
+      mediaType = MediaType('image', 'webp');
+    } else {
+      mediaType = MediaType('image', 'jpeg');
+    }
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'foto',
+        foto.path,
+        contentType: mediaType,
+      ),
+    );
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
 
-    final dynamic body = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300 && body['ok'] == true) {
+    dynamic body;
+    try {
+      body = jsonDecode(response.body);
+    } catch (_) {
+      body = null;
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300 && body is Map && body['ok'] == true) {
       return InspeccionEvidencia.fromJson(body['data'] as Map<String, dynamic>);
     } else {
-      throw Exception(body['error'] ?? 'Error al subir evidencia al servidor.');
+      final errorMsg = body is Map
+          ? (body['error'] ?? body['message'])
+          : null;
+      throw Exception(errorMsg ?? 'Error al subir evidencia al servidor (${response.statusCode}).');
     }
   }
 
