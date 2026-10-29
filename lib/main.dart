@@ -21,14 +21,16 @@ void main() async {
   // Cargar preferencia de tema (caché persistente de SharedPreferences o modo del celular)
   await ThemeService.init();
 
-  // Lanzar la aplicación
+  // Lanzar la aplicación inmediatamente
   runApp(const HabitikApp());
 
-  // Inicializaciones en segundo plano concurrentes (no bloqueantes para la UI)
-  NetworkService().init();
-  NotificationService.initNotificationService();
-  NotificationSyncService.programarRecordatoriosDiarios();
-  BackgroundServiceManager.initializeService();
+  // Inicializaciones en segundo plano diferidas tras el primer frame (evita bloqueo del hilo principal y ANR)
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NetworkService().init();
+    NotificationService.initNotificationService();
+    NotificationSyncService.programarRecordatoriosDiarios();
+    BackgroundServiceManager.initializeService();
+  });
 
   // Configurar flutter_animate
   Animate.restartOnHotReload = true;
@@ -75,7 +77,6 @@ class _HabitikAppState extends State<HabitikApp> with WidgetsBindingObserver {
       ThemeService.checkOnResume();
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

@@ -15,3 +15,4 @@ export 'family_feed_item.dart';
 export 'family_colecta.dart';
 export 'reward_proposal.dart';
 export 'inspeccion_evidencia.dart';
+export 'bill_record.dart';

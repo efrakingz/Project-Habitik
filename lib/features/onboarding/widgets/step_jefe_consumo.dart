@@ -3,29 +3,35 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 
 class StepJefeConsumo extends StatelessWidget {
-  final String tipoBoleta;
+  final String tipoBoleta; // 'luz' | 'agua'
   final ValueChanged<String> onTipoBoletaChanged;
   final bool isOcrReading;
-  final VoidCallback onSimulateOcr;
+  final VoidCallback onScanBill;
+  final VoidCallback? onPickGallery;
   final TextEditingController consumoCtrl;
   final TextEditingController montoCtrl;
   final TextEditingController empresaCtrl;
   final TextEditingController periodoCtrl;
   final TextEditingController familyNameCtrl;
   final VoidCallback onSubmit;
+  final String? documentBackupName;
+  final VoidCallback? onClearDocument;
 
   const StepJefeConsumo({
     super.key,
     required this.tipoBoleta,
     required this.onTipoBoletaChanged,
     required this.isOcrReading,
-    required this.onSimulateOcr,
+    required this.onScanBill,
+    this.onPickGallery,
     required this.consumoCtrl,
     required this.montoCtrl,
     required this.empresaCtrl,
     required this.periodoCtrl,
     required this.familyNameCtrl,
     required this.onSubmit,
+    this.documentBackupName,
+    this.onClearDocument,
   });
 
   @override
@@ -44,6 +50,11 @@ class StepJefeConsumo extends StatelessWidget {
                 label: const Text('⚡ Electricidad (Luz)'),
                 selected: tipoBoleta == 'luz',
                 onSelected: (val) => onTipoBoletaChanged('luz'),
+                selectedColor: HabitikColors.green100,
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: tipoBoleta == 'luz' ? HabitikColors.green900 : HabitikColors.textMid,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -52,13 +63,18 @@ class StepJefeConsumo extends StatelessWidget {
                 label: const Text('💧 Agua Potable'),
                 selected: tipoBoleta == 'agua',
                 onSelected: (val) => onTipoBoletaChanged('agua'),
+                selectedColor: const Color(0xFFE0F2FE),
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: tipoBoleta == 'agua' ? const Color(0xFF0369A1) : HabitikColors.textMid,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 20),
 
-        // Lector OCR
+        // Lector OCR con IA Local
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -77,7 +93,8 @@ class StepJefeConsumo extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Esperando OCR... Escaneando boleta...',
+                  'Leyendo boleta con IA local... Por favor espera...',
+                  textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.bold, color: HabitikColors.textDark, fontSize: 13),
                 ),
               ] else ...[
@@ -92,20 +109,78 @@ class StepJefeConsumo extends StatelessWidget {
                   style: TextStyle(color: HabitikColors.textLight, fontSize: 11),
                 ),
                 const SizedBox(height: 12),
+
+                // Respaldo de documento si ya fue cargado
+                if (documentBackupName != null) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: HabitikColors.green100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: HabitikColors.green500.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle_rounded, color: HabitikColors.green700, size: 16),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Respaldo: $documentBackupName',
+                            style: const TextStyle(
+                              color: HabitikColors.green900,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (onClearDocument != null) ...[
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            key: const Key('onboarding_clear_document_button'),
+                            onTap: onClearDocument,
+                            child: const Icon(Icons.close_rounded, size: 16, color: HabitikColors.textMid),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+
                 GestureDetector(
-                  onTap: onSimulateOcr,
+                  key: const Key('onboarding_scan_bill_button'),
+                  onTap: onScanBill,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: HabitikColors.green700,
                       borderRadius: BorderRadius.circular(10),
+                      boxShadow: HabitikShadows.card,
                     ),
-                    child: const Text(
-                      'Escanear 📷',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    child: Text(
+                      documentBackupName != null ? 'Volver a escanear 📷' : 'Escanear 📷',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ),
                 ),
+                if (onPickGallery != null) ...[
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    key: const Key('onboarding_pick_gallery_button'),
+                    onPressed: onPickGallery,
+                    icon: const Icon(Icons.photo_library_outlined, size: 14, color: HabitikColors.green700),
+                    label: const Text(
+                      'O seleccionar de la galería',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: HabitikColors.green700,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
@@ -130,7 +205,7 @@ class StepJefeConsumo extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _label('Empresa'),
-                  _textField('Ej: Enel', empresaCtrl, TextInputType.text),
+                  _textField(tipoBoleta == 'luz' ? 'Ej: Enel' : 'Ej: Aguas Andinas', empresaCtrl, TextInputType.text),
                 ],
               ),
             ),

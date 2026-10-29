@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:habitik/core/services/bill_ocr_service.dart';
+import 'package:habitik/core/services/bill_service.dart';
+import 'package:habitik/data/models/bill_record.dart';
 
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
@@ -21,7 +25,17 @@ import 'widgets/step_miembro_final.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onFinish;
-  const OnboardingScreen({super.key, required this.onFinish});
+  final BillOcrService? ocrService;
+  final BillService? billService;
+  final ImagePicker? imagePicker;
+
+  const OnboardingScreen({
+    super.key,
+    required this.onFinish,
+    this.ocrService,
+    this.billService,
+    this.imagePicker,
+  });
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -46,6 +60,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _inviteToken;
   bool _qrError = false;
 
+  late final BillOcrService _ocrService;
+  late final BillService _billService;
+  late final ImagePicker _imagePicker;
+
+  String? _documentBackupName;
+  String? _documentBackupType;
+  int? _documentBackupSize;
+  String? _documentTempPath;
+  bool _hasDocumentBackup = false;
+
   // Datos Jefe: Cuestionario del Hogar
   int _personasCount = 4;
   int _habitacionesCount = 3;
@@ -65,6 +89,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
+    _ocrService = widget.ocrService ?? BillOcrService();
+    _billService = widget.billService ?? BillService();
+    _imagePicker = widget.imagePicker ?? ImagePicker();
+    _billService.init();
     _rol = SessionService().getOnboardingRole();
     if (_rol == 'miembro') {
       _scannerController = MobileScannerController(
@@ -96,6 +124,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _periodoCtrl.dispose();
     _inviteCodeCtrl.dispose();
     _scannerController?.dispose();
+    _ocrService.cleanupTempFiles(specificPath: _documentTempPath);
     super.dispose();
   }
 
@@ -142,19 +171,104 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _simulateOcr() async {
-    setState(() => _isOcrReading = true);
-    await Future.delayed(2500.ms);
-    if (mounted) {
+  Future<void> _handleScanBill({ImageSource source = ImageSource.camera}) async {
+    try {
+      final XFile? photo = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (photo == null) return;
+
+      setState(() => _isOcrReading = true);
+
+      int length = 0;
+      try {
+        length = await photo.length();
+      } catch (_) {
+        length = 1024;
+      }
+      final result = await _ocrService.processDocument(
+        fileName: photo.name.isNotEmpty ? photo.name : 'captura_camara.jpg',
+        fileSizeBytes: length,
+        filePath: photo.path,
+      );
+
+      if (!mounted) return;
+      setState(() => _isOcrReading = false);
+
+      if (!result.isSuccess) {
+        _showError(
+          result.errorMessage ??
+              'No se detectaron datos de una boleta válida en la imagen. Asegúrate de enfocar bien la boleta o ingresa los datos de forma manual.',
+        );
+        return;
+      }
+
+      final candidate = result.candidateData;
+      if (candidate == null) {
+        _showError('No se pudieron extraer datos de la boleta. Puedes ingresarlos de forma manual.');
+        return;
+      }
+
+      final isElectricidad = candidate.tipoServicio.toLowerCase().contains('elec') ||
+          candidate.unidad.toLowerCase().contains('kwh');
+      final isAgua = candidate.tipoServicio.toLowerCase().contains('agua') ||
+          candidate.unidad.toLowerCase().contains('m');
+
       setState(() {
-        _isOcrReading = false;
-        _consumoCtrl.text = _tipoBoleta == 'luz' ? '185' : '12';
-        _montoCtrl.text = _tipoBoleta == 'luz' ? '27800' : '14400';
-        _empresaCtrl.text = _tipoBoleta == 'luz' ? 'Enel' : 'Aguas Andinas';
-        _periodoCtrl.text = 'Junio';
+        if (isAgua && !isElectricidad) {
+          _tipoBoleta = 'agua';
+        } else if (isElectricidad) {
+          _tipoBoleta = 'luz';
+        }
+
+        final consumoFormatted = candidate.consumo.truncateToDouble() == candidate.consumo
+            ? candidate.consumo.toInt().toString()
+            : candidate.consumo.toString();
+        _consumoCtrl.text = consumoFormatted;
+        _montoCtrl.text = candidate.monto.toString();
+        _empresaCtrl.text = candidate.proveedor;
+        _periodoCtrl.text = _formatPeriod(candidate.periodoDesde);
+
+        _documentBackupName = result.documentName ?? photo.name;
+        _documentBackupType = result.documentType ?? 'imagen';
+        _documentBackupSize = result.documentSizeBytes ?? length;
+        _documentTempPath = photo.path;
+        _hasDocumentBackup = true;
       });
-      _showSuccess('¡OCR leido correctamente! Datos cargados.');
+
+      _showSuccess(
+        '¡Boleta de ${candidate.tipoServicio} leída con éxito! Revisa los datos antes de continuar.',
+      );
+    } catch (e) {
+      debugPrint('⚠️ [Onboarding] Error al procesar escaneo: $e');
+      if (mounted) {
+        setState(() => _isOcrReading = false);
+        _showError('Error al procesar la cámara o imagen: $e');
+      }
     }
+  }
+
+  void _clearDocumentBackup() {
+    _ocrService.cleanupTempFiles(specificPath: _documentTempPath);
+    setState(() {
+      _documentBackupName = null;
+      _documentBackupType = null;
+      _documentBackupSize = null;
+      _documentTempPath = null;
+      _hasDocumentBackup = false;
+    });
+  }
+
+  String _formatPeriod(DateTime date) {
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    if (date.month >= 1 && date.month <= 12) {
+      return months[date.month - 1];
+    }
+    return 'Mes actual';
   }
 
   void _submitJefeConsumoStep() async {
@@ -177,7 +291,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
-      await ApiClient().patch('/familia/nombre', {'nombre': familyName});
+      try {
+        await ApiClient().patch('/familia/nombre', {'nombre': familyName});
+      } catch (netErr) {
+        debugPrint('ℹ️ [Onboarding] Backend offline al actualizar nombre de familia: $netErr');
+      }
+
+      // Registrar boleta inicial vinculada al Jefe de Familia (POST /bills y local)
+      final now = DateTime.now();
+      final billRecord = BillRecord(
+        id: 'bill_init_${now.millisecondsSinceEpoch}',
+        tipoServicio: _tipoBoleta == 'luz' ? 'Electricidad' : 'Agua',
+        proveedor: _empresaCtrl.text.trim().isNotEmpty
+            ? _empresaCtrl.text.trim()
+            : (_tipoBoleta == 'luz' ? 'Enel Distribución' : 'Aguas Andinas'),
+        periodoDesde: DateTime(now.year, now.month - 1, 1),
+        periodoHasta: DateTime(now.year, now.month, 1).subtract(const Duration(days: 1)),
+        consumo: consumo,
+        unidad: _tipoBoleta == 'luz' ? 'kWh' : 'm³',
+        monto: monto.toInt(),
+        fechaVencimiento: now.add(const Duration(days: 15)),
+        entrySource: _hasDocumentBackup ? 'ocr_confirmed' : 'manual',
+        hasDocumentBackup: _hasDocumentBackup,
+        documentName: _documentBackupName,
+        documentType: _documentBackupType,
+        documentSizeBytes: _documentBackupSize,
+        createdAt: now,
+      );
+
+      try {
+        await _billService.registerBill(billRecord);
+      } catch (billError) {
+        debugPrint('ℹ️ [Onboarding] Registro local de boleta preservado ante backend offline: $billError');
+      }
 
       final user = SessionService().currentUser;
       if (user != null) {
@@ -418,9 +564,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         case 0:
           return StepJefeConsumo(
             tipoBoleta: _tipoBoleta,
-            onTipoBoletaChanged: (val) => setState(() => _tipoBoleta = val),
+            onTipoBoletaChanged: (val) {
+              setState(() {
+                _tipoBoleta = val;
+                if (val == 'agua' && (_empresaCtrl.text.isEmpty || _empresaCtrl.text == 'Enel')) {
+                  _empresaCtrl.text = 'Aguas Andinas';
+                  if (_consumoCtrl.text == '140') _consumoCtrl.text = '15';
+                  if (_montoCtrl.text == '21000') _montoCtrl.text = '14500';
+                } else if (val == 'luz' && (_empresaCtrl.text.isEmpty || _empresaCtrl.text == 'Aguas Andinas')) {
+                  _empresaCtrl.text = 'Enel';
+                  if (_consumoCtrl.text == '15') _consumoCtrl.text = '140';
+                  if (_montoCtrl.text == '14500') _montoCtrl.text = '21000';
+                }
+              });
+            },
             isOcrReading: _isOcrReading,
-            onSimulateOcr: _simulateOcr,
+            onScanBill: () => _handleScanBill(source: ImageSource.camera),
+            onPickGallery: () => _handleScanBill(source: ImageSource.gallery),
+            documentBackupName: _documentBackupName,
+            onClearDocument: _clearDocumentBackup,
             consumoCtrl: _consumoCtrl,
             montoCtrl: _montoCtrl,
             empresaCtrl: _empresaCtrl,
