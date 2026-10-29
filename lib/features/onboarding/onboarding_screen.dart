@@ -7,6 +7,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/data/models/user.dart';
+import 'package:habitik/shared/widgets/feedback/habitik_feedback.dart';
 import 'package:habitik/shared/widgets/layout/loading_overlay.dart';
 
 import 'widgets/onboarding_progress_header.dart';
@@ -213,11 +215,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }
       }
 
+      if (!mounted) return;
       await _next();
     } catch (e) {
+      if (!mounted) return;
       _showError('Error al guardar onboarding: $e');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -256,22 +262,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       final data = jsonDecode(response.body);
       final family = data['family'];
+      final newToken = data['token_jwt'] as String?;
+      final profileJson = data['profile'];
 
-      if (user != null) {
-        final updatedProfile = user.copyWith(
+      UserProfile updatedProfile;
+      if (profileJson != null && profileJson is Map<String, dynamic>) {
+        updatedProfile = UserProfile.fromJson(profileJson);
+      } else if (user != null) {
+        updatedProfile = user.copyWith(
           familyId: family['id'],
           familyName: family['nombre'],
           rol: 'miembro',
         );
-        await SessionService().saveSession(
-          token: SessionService().token ?? '',
-          profile: updatedProfile,
+      } else {
+        updatedProfile = UserProfile.empty.copyWith(
+          familyId: family['id'],
+          familyName: family['nombre'],
+          rol: 'miembro',
         );
       }
 
+      await SessionService().saveSession(
+        token: newToken ?? SessionService().token ?? '',
+        profile: updatedProfile,
+      );
+      await SessionService().setOnboardingRole('miembro');
+
+      if (!mounted) return;
       _showSuccess('¡Te has unido con éxito a la ${family['nombre']}!');
       _next();
     } catch (e) {
+      if (!mounted) return;
       _showError(e.toString());
       if (_rol == 'miembro') {
         setState(() {
@@ -279,7 +300,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         });
       }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -310,11 +333,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'frecuenciaReciclaje': reciclajeFreq
       });
 
+      if (!mounted) return;
       await _next();
     } catch (e) {
+      if (!mounted) return;
       _showError('Error al guardar hábitos: $e');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -329,23 +356,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg.replaceAll('Exception:', '').trim()),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    HabitikFeedback.showError(context, msg.replaceAll('Exception:', '').trim());
   }
 
   void _showSuccess(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: HabitikColors.green700,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    HabitikFeedback.showSuccess(context, msg);
   }
 
   @override
