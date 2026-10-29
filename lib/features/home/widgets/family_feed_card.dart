@@ -31,12 +31,12 @@ class FamilyFeedCard extends StatelessWidget {
           margin: margin ?? const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF132217) : Colors.white,
+            color: isDark ? const Color(0xFF132217).withValues(alpha: 0.88) : Colors.white.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isDark
                   ? const Color(0x25FFFFFF)
-                  : const Color(0xFFE2E8F0),
+                  : const Color(0xFFE2E8F0).withValues(alpha: 0.8),
               width: 1.2,
             ),
             boxShadow: [

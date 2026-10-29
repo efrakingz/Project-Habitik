@@ -118,6 +118,15 @@ class UserProfile {
       url = json['avatar_url'];
     }
 
+    final directColor = json['color']?.toString() ?? json['avatar_color']?.toString();
+    final directLetra = json['letra']?.toString() ?? json['avatar_letra']?.toString();
+    if (directColor != null && directColor.isNotEmpty) {
+      color = directColor;
+    }
+    if (directLetra != null && directLetra.isNotEmpty) {
+      letra = directLetra;
+    }
+
     // 2. Validación de Onboarding
     final answers = json['onboarding_answers'];
     bool hasValidAnswers = false;
@@ -180,6 +189,11 @@ class UserProfile {
       'id': id,
       'nombre': nombre,
       'email': email,
+      'avatar': {
+        'letra': avatarLetra,
+        'color': avatarColor,
+        'url': avatarUrl,
+      },
       'avatar_letra': avatarLetra,
       'avatar_color': avatarColor,
       'avatar_url': avatarUrl,
