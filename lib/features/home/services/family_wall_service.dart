@@ -8,6 +8,7 @@ import 'package:habitik/core/services/socket_service.dart';
 import 'package:habitik/data/models/family_energy_model.dart';
 import 'package:habitik/data/models/family_feed_item.dart';
 import 'package:habitik/data/models/family_member.dart';
+import 'package:habitik/data/models/user.dart';
 
 /// Servicio para el Muro Social Familiar (HU 4.1).
 /// Conecta con la API para los miembros reales, feed social cronológico
@@ -17,6 +18,14 @@ class FamilyWallService extends ChangeNotifier {
   factory FamilyWallService() => _instance;
   FamilyWallService._internal() {
     _initSocketSubscription();
+    SessionService().currentUserNotifier.addListener(_onCurrentUserChanged);
+  }
+
+  void _onCurrentUserChanged() {
+    final user = SessionService().currentUserNotifier.value;
+    if (user != null) {
+      updateMemberProfile(user);
+    }
   }
 
   final FamilyEnergyModel _energy = FamilyEnergyModel.mockDefault;
@@ -138,7 +147,16 @@ class FamilyWallService extends ChangeNotifier {
         if (data is List) {
           final raw = data.map((json) {
             final m = FamilyMember.fromJson(json as Map<String, dynamic>);
-            return m.id == user.id ? m.copyWith(xp: user.xp, nivel: user.nivel) : m;
+            return m.id == user.id
+                ? m.copyWith(
+                    xp: user.xp,
+                    nivel: user.nivel,
+                    nombre: user.nombre,
+                    avatarColor: user.avatarColor,
+                    avatarLetra: user.avatarLetra,
+                    avatarUrl: user.avatarUrl,
+                  )
+                : m;
           }).toList();
           final enriched = await BadgeService().enrichMembers(raw);
           enriched.sort((a, b) => b.xp.compareTo(a.xp));
@@ -321,6 +339,29 @@ class FamilyWallService extends ChangeNotifier {
     }
   }
 
+  /// Actualiza inmediatamente los datos del usuario en la lista de miembros del ranking
+  void updateMemberProfile(UserProfile updatedUser) {
+    bool changed = false;
+    _members = _members.map((m) {
+      if (m.id == updatedUser.id) {
+        changed = true;
+        return m.copyWith(
+          nombre: updatedUser.nombre,
+          avatarColor: updatedUser.avatarColor,
+          avatarLetra: updatedUser.avatarLetra,
+          avatarUrl: updatedUser.avatarUrl,
+          xp: updatedUser.xp,
+          nivel: updatedUser.nivel,
+        );
+      }
+      return m;
+    }).toList();
+
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
   /// Permite inyectar un nuevo evento al feed en vivo (simulación de SSE o tests)
   void simulateNewFeedEvent(FamilyFeedItem newItem) {
     _feed.insert(0, newItem);
@@ -330,6 +371,7 @@ class FamilyWallService extends ChangeNotifier {
 
   @override
   void dispose() {
+    SessionService().currentUserNotifier.removeListener(_onCurrentUserChanged);
     _socketUnsubscribe?.call();
     _realtimeFeedController.close();
     super.dispose();

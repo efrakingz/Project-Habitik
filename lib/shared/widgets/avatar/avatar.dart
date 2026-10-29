@@ -21,8 +21,13 @@ class UserAvatar extends StatelessWidget {
   });
 
   Color get _color {
-    try { return Color(int.parse(colorHex.replaceAll('#', '0xFF'))); }
-    catch (_) { return HabitikColors.green600; }
+    try {
+      final clean = colorHex.replaceAll('#', '').replaceAll('0x', '').replaceAll('0X', '').trim();
+      final fullHex = clean.length == 6 ? 'FF$clean' : clean;
+      return Color(int.parse(fullHex, radix: 16));
+    } catch (_) {
+      return HabitikColors.green600;
+    }
   }
 
   @override

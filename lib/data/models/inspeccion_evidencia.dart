@@ -73,6 +73,7 @@ class AprobarEvidenciaResult {
   final int monedasGanadas;
   final int? nuevoSaldoMonedas;
   final int? totalXp;
+  final Map<String, dynamic> data;
 
   const AprobarEvidenciaResult({
     required this.exito,
@@ -81,6 +82,7 @@ class AprobarEvidenciaResult {
     this.monedasGanadas = 4,
     this.nuevoSaldoMonedas,
     this.totalXp,
+    this.data = const {},
   });
 
   factory AprobarEvidenciaResult.fromJson(Map<String, dynamic> json) {
@@ -94,6 +96,9 @@ class AprobarEvidenciaResult {
       monedasGanadas: recomp['monedas_ganadas'] is num ? (recomp['monedas_ganadas'] as num).toInt() : 4,
       nuevoSaldoMonedas: recomp['nuevo_saldo_monedas'] is num ? (recomp['nuevo_saldo_monedas'] as num).toInt() : null,
       totalXp: recomp['total_xp'] is num ? (recomp['total_xp'] as num).toInt() : null,
+      data: data,
     );
   }
+
+  dynamic operator [](String key) => data[key];
 }

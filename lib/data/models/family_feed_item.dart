@@ -55,7 +55,7 @@ class FamilyFeedItem {
     '👏': 'aplauso',
     '❤️': 'corazon',
     '🌱': 'planta',
-    '💧': 'fuego',
+    '💧': 'gota',
     '👍': 'like',
   };
 
@@ -370,3 +370,4 @@ class FamilyFeedItem {
     ),
   ];
 }
+

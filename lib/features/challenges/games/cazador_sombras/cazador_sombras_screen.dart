@@ -175,7 +175,7 @@ class _CazadorSombrasScreenState extends State<CazadorSombrasScreen> {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      'El Jefe de Hogar revisará tu foto. Al aprobarla recibirás +80 XP y +4 Monedas.',
+                      'El Jefe de Hogar revisará tu foto. Al aprobarla recibirás +80 XP y +4 🪙.',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -338,7 +338,7 @@ class _CazadorSombrasScreenState extends State<CazadorSombrasScreen> {
                                 const GameCoinIcon(size: 14),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '+4 Monedas',
+                                  '+4 🪙',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     fontSize: 12,
@@ -678,7 +678,9 @@ class _CazadorSombrasScreenState extends State<CazadorSombrasScreen> {
                 const SizedBox(height: 32),
 
                 // ── 5. Botón de Envío Épico ────────────────────────────────
-                AnimatedContainer(
+                Opacity(
+                  opacity: canSubmit ? 1.0 : 0.5,
+                  child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   height: 54,
                   decoration: BoxDecoration(
@@ -761,6 +763,7 @@ class _CazadorSombrasScreenState extends State<CazadorSombrasScreen> {
                             ],
                           ),
                   ),
+                ),
                 ),
                 const SizedBox(height: 30),
               ],

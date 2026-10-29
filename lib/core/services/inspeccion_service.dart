@@ -17,7 +17,6 @@ class InspeccionService {
   InspeccionService._internal();
 
   final ImagePicker _picker = ImagePicker();
-  final ApiClient _apiClient = ApiClient();
   final SessionService _sessionService = SessionService();
 
   /// 1. Seleccionar foto desde cámara o galería
@@ -57,22 +56,32 @@ class InspeccionService {
   }
 
   /// 3. Subir evidencia comprimida mediante multipart/form-data
+  /// Compatible tanto con parámetros directos como con los de la guía técnica.
   Future<InspeccionEvidencia> enviarEvidencia({
     required String tituloMision,
-    required File foto,
+    File? foto,
+    File? fotoComprimida,
+    String? baseUrl,
+    String? tokenJwt,
   }) async {
-    final uri = Uri.parse('${ApiClient.baseUrl}/reto/inspeccion/evidencia');
+    final file = fotoComprimida ?? foto;
+    if (file == null) {
+      throw ArgumentError('Se requiere un archivo de imagen (foto o fotoComprimida).');
+    }
+
+    final activeBaseUrl = baseUrl ?? ApiClient.baseUrl;
+    final activeToken = tokenJwt ?? _sessionService.token;
+    final uri = Uri.parse('$activeBaseUrl/reto/inspeccion/evidencia');
     final request = http.MultipartRequest('POST', uri);
 
-    final token = _sessionService.token;
-    if (token != null && token.isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $token';
+    if (activeToken != null && activeToken.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $activeToken';
     }
 
     request.fields['titulo_mision'] = tituloMision;
 
     // Detectar formato para que Multer lo reconozca como mimetype image/*
-    final extension = foto.path.split('.').last.toLowerCase();
+    final extension = file.path.split('.').last.toLowerCase();
     MediaType mediaType;
     if (extension == 'png') {
       mediaType = MediaType('image', 'png');
@@ -85,7 +94,7 @@ class InspeccionService {
     request.files.add(
       await http.MultipartFile.fromPath(
         'foto',
-        foto.path,
+        file.path,
         contentType: mediaType,
       ),
     );
@@ -106,54 +115,111 @@ class InspeccionService {
       final errorMsg = body is Map
           ? (body['error'] ?? body['message'])
           : null;
-      throw Exception(errorMsg ?? 'Error al subir evidencia al servidor (${response.statusCode}).');
+      throw Exception(errorMsg ?? 'Error al registrar la evidencia (${response.statusCode}).');
     }
   }
 
-  /// 4. Listar evidencias pendientes de la familia (Exclusivo Jefe de Hogar)
-  Future<List<InspeccionEvidencia>> obtenerPendientes() async {
-    final response = await _apiClient.get('/reto/inspeccion/pendientes');
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final dynamic body = jsonDecode(response.body);
-      if (body['ok'] == true && body['data'] is List) {
-        return (body['data'] as List)
-            .map((json) => InspeccionEvidencia.fromJson(json as Map<String, dynamic>))
-            .toList();
-      }
-    }
-    return [];
-  }
+  /// 4. Listar evidencias pendientes en formato `List<dynamic>` (contrato de la guía)
+  Future<List<dynamic>> listarPendientes({
+    String? baseUrl,
+    String? tokenJwt,
+  }) async {
+    final activeBaseUrl = baseUrl ?? ApiClient.baseUrl;
+    final activeToken = tokenJwt ?? _sessionService.token;
+    final uri = Uri.parse('$activeBaseUrl/reto/inspeccion/pendientes');
 
-  /// 5. Aprobar evidencia fotográfica (Exclusivo Jefe de Hogar)
-  Future<AprobarEvidenciaResult> aprobarEvidencia(String evidenciaId) async {
-    final response = await _apiClient.post(
-      '/reto/inspeccion/aprobar',
-      {'evidencia_id': evidenciaId},
-    );
-
-    final dynamic body = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300 && body['ok'] == true) {
-      return AprobarEvidenciaResult.fromJson(body);
-    } else {
-      throw Exception(body['error'] ?? 'Error al aprobar la evidencia.');
-    }
-  }
-
-  /// 6. Rechazar evidencia fotográfica con motivo (Exclusivo Jefe de Hogar)
-  Future<bool> rechazarEvidencia(String evidenciaId, String motivo) async {
-    final response = await _apiClient.post(
-      '/reto/inspeccion/rechazar',
-      {
-        'evidencia_id': evidenciaId,
-        'motivo': motivo,
+    final response = await http.get(
+      uri,
+      headers: {
+        if (activeToken != null && activeToken.isNotEmpty)
+          'Authorization': 'Bearer $activeToken',
       },
     );
 
+    final dynamic data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data is Map && data['ok'] == true && data['data'] is List) {
+      return data['data'] as List<dynamic>;
+    } else {
+      final errorMsg = data is Map ? data['error'] : null;
+      throw Exception(errorMsg ?? 'Error al obtener inspecciones pendientes.');
+    }
+  }
+
+  /// 5. Listar evidencias pendientes tipadas de la familia (Exclusivo Jefe de Hogar)
+  Future<List<InspeccionEvidencia>> obtenerPendientes({
+    String? baseUrl,
+    String? tokenJwt,
+  }) async {
+    try {
+      final list = await listarPendientes(baseUrl: baseUrl, tokenJwt: tokenJwt);
+      return list
+          .map((json) => InspeccionEvidencia.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('⚠️ [InspeccionService] Error al obtener pendientes: $e');
+      return [];
+    }
+  }
+
+  /// 6. Aprobar evidencia fotográfica (Exclusivo Jefe de Hogar)
+  Future<AprobarEvidenciaResult> aprobarEvidencia(
+    String evidenciaId, {
+    String? baseUrl,
+    String? tokenJwt,
+  }) async {
+    final activeBaseUrl = baseUrl ?? ApiClient.baseUrl;
+    final activeToken = tokenJwt ?? _sessionService.token;
+
+    final uri = Uri.parse('$activeBaseUrl/reto/inspeccion/aprobar');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (activeToken != null && activeToken.isNotEmpty)
+          'Authorization': 'Bearer $activeToken',
+      },
+      body: jsonEncode({'evidencia_id': evidenciaId}),
+    );
+
     final dynamic body = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300 && body['ok'] == true) {
+    if (response.statusCode >= 200 && response.statusCode < 300 && body is Map && body['ok'] == true) {
+      return AprobarEvidenciaResult.fromJson(body as Map<String, dynamic>);
+    } else {
+      final errorMsg = body is Map ? (body['error'] ?? body['message']) : null;
+      throw Exception(errorMsg ?? 'Error al aprobar la evidencia.');
+    }
+  }
+
+  /// 7. Rechazar evidencia fotográfica con motivo (Exclusivo Jefe de Hogar)
+  Future<bool> rechazarEvidencia(
+    String evidenciaId,
+    String motivo, {
+    String? baseUrl,
+    String? tokenJwt,
+  }) async {
+    final activeBaseUrl = baseUrl ?? ApiClient.baseUrl;
+    final activeToken = tokenJwt ?? _sessionService.token;
+
+    final uri = Uri.parse('$activeBaseUrl/reto/inspeccion/rechazar');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (activeToken != null && activeToken.isNotEmpty)
+          'Authorization': 'Bearer $activeToken',
+      },
+      body: jsonEncode({
+        'evidencia_id': evidenciaId,
+        'motivo': motivo,
+      }),
+    );
+
+    final dynamic body = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300 && body is Map && body['ok'] == true) {
       return true;
     } else {
-      throw Exception(body['error'] ?? 'Error al rechazar la evidencia.');
+      final errorMsg = body is Map ? (body['error'] ?? body['message']) : null;
+      throw Exception(errorMsg ?? 'Error al rechazar la evidencia.');
     }
   }
 }

@@ -220,6 +220,35 @@ class SessionService {
     return _prefs?.getString('ob_role_$userId') ?? 'jefe';
   }
 
+  /// Actualiza y persiste el perfil del usuario activo en memoria y almacenamiento local.
+  Future<void> saveUserProfile(UserProfile updated) async {
+    var enriched = updated;
+    final current = currentUser;
+    if (current != null) {
+      enriched = current.copyWith(
+        nombre: updated.nombre.isNotEmpty ? updated.nombre : current.nombre,
+        avatarColor: updated.avatarColor.isNotEmpty ? updated.avatarColor : current.avatarColor,
+        avatarLetra: updated.avatarLetra.isNotEmpty ? updated.avatarLetra : current.avatarLetra,
+        avatarUrl: updated.avatarUrl ?? current.avatarUrl,
+        email: updated.email ?? current.email,
+        rol: updated.rol.isNotEmpty ? updated.rol : current.rol,
+        familyId: updated.familyId ?? current.familyId,
+        xp: updated.xp > 0 ? updated.xp : current.xp,
+        nivel: updated.nivel > 0 ? updated.nivel : current.nivel,
+        monedas: updated.monedas > 0 ? updated.monedas : current.monedas,
+        rachaDias: updated.rachaDias > 0 ? updated.rachaDias : current.rachaDias,
+        familyName: (updated.familyName != null && updated.familyName!.isNotEmpty) ? updated.familyName : current.familyName,
+        badgeDestacado: updated.badgeDestacado ?? current.badgeDestacado,
+      );
+    }
+    if ((enriched.familyName == null || enriched.familyName!.isEmpty) && enriched.familyId != null) {
+      final cachedName = _prefs?.getString('fam_name_${enriched.familyId}') ?? 'Hogar Familiar';
+      enriched = enriched.copyWith(familyName: cachedName);
+    }
+    await _prefs?.setString('user_profile', jsonEncode(enriched.toJson()));
+    currentUserNotifier.value = enriched;
+  }
+
   Future<void> updateRewardsAndXp({
     int? xp,
     int? monedas,

@@ -1,3 +1,4 @@
+import 'edit_profile_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -265,24 +266,52 @@ class ProfileIdentityCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Avatar with subtle glow (limpio, sin insignia duplicada)
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _getGlowColor(currentUser.nivel).withValues(alpha: 0.25),
-                          blurRadius: 14,
-                          spreadRadius: 1,
+                  // Avatar with subtle glow y badge de edicion
+                  GestureDetector(
+                    onTap: () => EditProfileModal.show(context),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: _getGlowColor(currentUser.nivel).withValues(alpha: 0.25),
+                                blurRadius: 14,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: UserAvatar(
+                            letra: currentUser.avatarLetra,
+                            colorHex: currentUser.avatarColor,
+                            avatarUrl: currentUser.avatarUrl,
+                            radius: 28,
+                            showBorder: true,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: -1,
+                          right: -1,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: HabitikColors.green600,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF16221A) : Colors.white,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              color: Colors.white,
+                              size: 11,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                    child: UserAvatar(
-                      letra: currentUser.avatarLetra,
-                      colorHex: currentUser.avatarColor,
-                      avatarUrl: currentUser.avatarUrl,
-                      radius: 28,
-                      showBorder: true,
                     ),
                   ).animate().scale(
                     begin: const Offset(0.85, 0.85),

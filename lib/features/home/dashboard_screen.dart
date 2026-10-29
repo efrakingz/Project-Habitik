@@ -15,9 +15,9 @@ import 'package:habitik/core/services/level_service.dart';
 
 /// Dashboard y Muro Social Familiar en Tiempo Real (HU 4.1).
 /// Incorpora:
-/// - CA-4.1-1: Barra de Energía Colectiva animada y meta mensual.
-/// - CA-4.1-2: Ranking Familiar con avatares, nivel, rachas y filtros semanal/mensual.
-/// - CA-4.1-3: Feed de actividad con emisión de retos y reacciones rápidas (👏, 🔥, 💧, ❤️).
+/// - Top Familiar Fijo minimalista con podio horizontal semitransparente.
+/// - Feed de actividad continuo independiente deslizándose por debajo del top.
+/// - Glassmorphism en contenedores dejando entrever el fondo verde de la app.
 class DashboardScreen extends StatefulWidget {
   final bool isActive;
   const DashboardScreen({super.key, this.isActive = true});
@@ -57,88 +57,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ValueListenableBuilder<bool>(
       valueListenable: isDarkModeNotifier,
       builder: (context, isDark, _) {
-        final familyTitle = (_user.familyName != null && _user.familyName!.isNotEmpty)
-            ? 'Hogar: ${_user.familyName}'
-            : 'Muro del Hogar';
+        return ValueListenableBuilder<UserProfile?>(
+          valueListenable: SessionService().currentUserNotifier,
+          builder: (context, liveUser, _) {
+            final activeUser = liveUser ?? _user;
+            final familyTitle = (activeUser.familyName != null && activeUser.familyName!.isNotEmpty)
+                ? 'Hogar: ${activeUser.familyName}'
+                : 'Muro del Hogar';
 
-        return ScreenShell(
-          titulo: 'Muro Familiar',
-          subtitulo: familyTitle,
-          headerLeft: GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              FadePageRoute(child: const FamilyScreen()),
-            ),
-            child: UserAvatar(
-              letra: (_user.familyName ?? 'F').isNotEmpty
-                  ? (_user.familyName ?? 'F')[0]
-                  : 'F',
-              colorHex: _user.avatarColor,
-              radius: 22,
-            ),
-          ),
-          headerActions: [
-            IconActionButton(
-              icon: Icons.notifications_outlined,
-              onTap: () => Navigator.push(
-                context,
-                FadePageRoute(child: const NotificationsScreen()),
+            return ScreenShell(
+              titulo: 'Muro Familiar',
+              subtitulo: familyTitle,
+              headerLeft: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  FadePageRoute(child: const FamilyScreen()),
+                ),
+                child: UserAvatar(
+                  letra: (activeUser.familyName ?? 'F').isNotEmpty
+                      ? (activeUser.familyName ?? 'F')[0]
+                      : 'F',
+                  colorHex: activeUser.avatarColor,
+                  radius: 22,
+                ),
               ),
-              hasBadge: false,
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                FadePageRoute(child: const ProfileScreen()),
-              ),
-              child: UserAvatar(
-                letra: _user.avatarLetra,
-                colorHex: _user.avatarColor,
-                radius: 20,
-                showBorder: true,
-              ),
-            ),
-          ],
+              headerActions: [
+                IconActionButton(
+                  icon: Icons.notifications_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    FadePageRoute(child: const NotificationsScreen()),
+                  ),
+                  hasBadge: false,
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    FadePageRoute(child: const ProfileScreen()),
+                  ),
+                  child: UserAvatar(
+                    letra: activeUser.avatarLetra,
+                    colorHex: activeUser.avatarColor,
+                    avatarUrl: activeUser.avatarUrl,
+                    radius: 20,
+                    showBorder: true,
+                  ),
+                ),
+              ],
           body: ListenableBuilder(
             listenable: _wallService,
             builder: (context, _) {
-              return RefreshIndicator(
-                color: HabitikColors.green500,
-                backgroundColor: isDark ? const Color(0xFF1B2E22) : Colors.white,
-                onRefresh: () => _wallService.loadWallData(notify: true),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                  child: Column(
-                    children: [
-                      // ── Ranking Familiar (En cuadrito como el feed) ──
-                      FamilyRankingSection(
-                        members: _wallService.members,
-                        loading: _wallService.membersLoading,
-                        errorMessage: _wallService.membersError,
-                        onRetry: () => _wallService.loadWallData(notify: true),
+              return Column(
+                children: [
+                  // ── 1. Top Familiar Fijo (Estático en la parte superior) ──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+                    child: FamilyRankingSection(
+                      members: _wallService.members,
+                      loading: _wallService.membersLoading,
+                      errorMessage: _wallService.membersError,
+                      onRetry: () => _wallService.loadWallData(notify: true),
+                      compact: true,
+                      onViewAll: () => Navigator.push(
+                        context,
+                        FadePageRoute(child: const FamilyScreen()),
                       ),
-
-                      const SizedBox(height: 18),
-
-                      // ── CA-4.1-3: Feed Social en Tiempo Real con Reacciones ──
-                      FamilyFeedSection(
-                        items: _wallService.feed,
-                        loading: _wallService.feedLoading,
-                        hasMore: _wallService.hasMore,
-                        isLoadingMore: _wallService.isLoadingMore,
-                        onLoadMore: () => _wallService.fetchMoreFeed(),
-                        onReactionTap: (feedId, emoji) {
-                          _wallService.toggleReaction(feedId, emoji);
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+
+                  // ── 2. Feed de Actividad Continuo (Scroll independiente) ──
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: HabitikColors.green500,
+                      backgroundColor: isDark ? const Color(0xFF1B2E22) : Colors.white,
+                      onRefresh: () => _wallService.loadWallData(notify: true),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: FamilyFeedSection(
+                          items: _wallService.feed,
+                          loading: _wallService.feedLoading,
+                          hasMore: _wallService.hasMore,
+                          isLoadingMore: _wallService.isLoadingMore,
+                          onLoadMore: () => _wallService.fetchMoreFeed(),
+                          onReactionTap: (feedId, emoji) {
+                            _wallService.toggleReaction(feedId, emoji);
+                          },
+                          isScrollable: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
+            );
+          },
         );
       },
     );

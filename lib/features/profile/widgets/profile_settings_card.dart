@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/features/auth/splash_screen.dart';
-import 'package:habitik/shared/widgets/modals/modals.dart';
+import 'edit_profile_modal.dart';
 
 class ProfileSettingsCard extends StatelessWidget {
   final bool isDark;
@@ -53,15 +53,7 @@ class ProfileSettingsCard extends StatelessWidget {
                 title: 'Editar Perfil',
                 subtitle: 'Personaliza tu avatar y nombre',
                 isDark: isDark,
-                onTap: () {
-                  ComingSoonModal.show(
-                    context,
-                    title: 'Editar Perfil',
-                    emoji: '👤',
-                    description:
-                        'La personalización avanzada de avatar y nombre estará disponible muy pronto.',
-                  );
-                },
+                onTap: () => EditProfileModal.show(context),
               ),
               
               Divider(
