@@ -28,12 +28,21 @@ class InspeccionEvidencia {
       fecha = DateTime.tryParse(json['created_at'].toString());
     }
 
+    String url = json['foto_url']?.toString() ?? '';
+    // Asegurar HTTPS en servidores remotos para evitar bloqueos de cleartext en Android
+    if (url.startsWith('http://') &&
+        !url.contains('localhost') &&
+        !url.contains('10.0.2.2') &&
+        !url.contains('192.168.')) {
+      url = url.replaceFirst('http://', 'https://');
+    }
+
     return InspeccionEvidencia(
       id: json['id']?.toString() ?? '',
       familyId: json['family_id']?.toString(),
       userId: json['user_id']?.toString() ?? '',
       tituloMision: json['titulo_mision']?.toString() ?? 'Inspección del Hogar',
-      fotoUrl: json['foto_url']?.toString() ?? '',
+      fotoUrl: url,
       estado: json['estado']?.toString() ?? 'pendiente',
       createdAt: fecha,
       usuarioNombre: json['usuario_nombre']?.toString() ?? 'Familiar',
