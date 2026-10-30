@@ -1,294 +1,234 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/bill_record.dart';
 
-/// Sección de historial y auditoría de boletas registradas (HU 3.2, Criterio 4).
-/// Muestra los registros históricos vinculados a sus respaldos documentales (PDF/Imagen) o ingreso manual.
-class BillHistorySection extends StatelessWidget {
-  final List<BillRecord> bills;
+class MonthlyConsumptionPoint {
+  const MonthlyConsumptionPoint({required this.month, required this.label, required this.total});
 
-  const BillHistorySection({
-    super.key,
-    required this.bills,
-  });
+  final DateTime month;
+  final String label;
+  final double total;
+}
+
+class MonthlyConsumptionSeries {
+  const MonthlyConsumptionSeries({required this.electricity, required this.water});
+
+  final List<MonthlyConsumptionPoint> electricity;
+  final List<MonthlyConsumptionPoint> water;
+}
+
+MonthlyConsumptionSeries buildMonthlyConsumptionSeries(List<BillRecord> bills) {
+  List<MonthlyConsumptionPoint> buildFor(bool Function(BillRecord) matches) {
+    final totals = <DateTime, double>{};
+    for (final bill in bills.where(matches)) {
+      final month = DateTime(bill.periodoDesde.year, bill.periodoDesde.month);
+      totals[month] = (totals[month] ?? 0) + bill.consumo;
+    }
+    final points = totals.entries
+        .map((entry) => MonthlyConsumptionPoint(month: entry.key, label: _monthLabel(entry.key.month), total: entry.value))
+        .toList()
+      ..sort((a, b) => a.month.compareTo(b.month));
+    return points.length <= 6 ? points : points.sublist(points.length - 6);
+  }
+
+  return MonthlyConsumptionSeries(
+    electricity: buildFor((bill) => bill.isElectricidad),
+    water: buildFor((bill) => bill.isAgua),
+  );
+}
+
+String _monthLabel(int month) {
+  const labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return labels[month - 1];
+}
+
+class BillHistorySection extends StatelessWidget {
+  const BillHistorySection({super.key, required this.bills});
+
+  final List<BillRecord> bills;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark ||
-        isDarkModeNotifier.value;
-    final currencyFormatter = NumberFormat.currency(
-      locale: 'es_CL',
-      symbol: r'$',
-      decimalDigits: 0,
-    );
-    final dateFormat = DateFormat('dd/MM/yyyy');
+    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+    final series = buildMonthlyConsumptionSeries(bills);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Encabezado de la sección
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Historial de Auditoría',
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : HabitikColors.green900,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? HabitikColors.green500.withValues(alpha: 0.15)
-                        : HabitikColors.green100,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${bills.length}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? HabitikColors.green400 : HabitikColors.green800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+        Text(
+          'Consumo mensual',
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: isDark ? Colors.white : HabitikColors.green900,
+          ),
         ),
         const SizedBox(height: 12),
-
-        if (bills.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: isDark ? HabitikColors.darkCardBg : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isDark ? Colors.white12 : HabitikColors.divider,
-              ),
-            ),
-            child: Column(
-              children: [
-                const Text('📋', style: TextStyle(fontSize: 36)),
-                const SizedBox(height: 10),
-                Text(
-                  'Aún no hay boletas auditadas',
-                  style: GoogleFonts.outfit(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : HabitikColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Captura una boleta o ingresa tus datos manualmente para mantener íntegro el historial de consumo de tu hogar.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 12.5,
-                    color: isDark ? Colors.white54 : HabitikColors.textLight,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: bills.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final bill = bills[index];
-              final isLuz = bill.isElectricidad;
-              final serviceColor = isLuz ? HabitikColors.amber500 : HabitikColors.blue500;
-
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? HabitikColors.darkCardBg : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : HabitikColors.divider,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark
-                          ? Colors.black.withValues(alpha: 0.15)
-                          : HabitikColors.green900.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Fila Superior: Servicio + Proveedor + Monto
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: serviceColor.withValues(alpha: isDark ? 0.2 : 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            isLuz ? '⚡' : '💧',
-                            style: const TextStyle(fontSize: 20),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                bill.proveedor,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.white : HabitikColors.textDark,
-                                ),
-                              ),
-                              Text(
-                                '${bill.tipoServicio} • ${dateFormat.format(bill.periodoDesde)} al ${dateFormat.format(bill.periodoHasta)}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.white54 : HabitikColors.textLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          currencyFormatter.format(bill.monto),
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : HabitikColors.green900,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Divider(height: 1),
-                    const SizedBox(height: 10),
-
-                    // Fila Inferior: Consumo + Fuente + Respaldo Documental
-                    Row(
-                      children: [
-                        // Consumo
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? HabitikColors.darkInputFill
-                                : HabitikColors.green50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '📊 ${bill.consumo} ${bill.unidad}',
-                            style: GoogleFonts.outfit(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? HabitikColors.green400 : HabitikColors.green800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Etiqueta de fuente (OCR o Manual)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            bill.entrySource == 'ocr_confirmed'
-                                ? '🔍 OCR Confirmado'
-                                : '✍️ Manual',
-                            style: GoogleFonts.outfit(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white70 : const Color(0xFF475569),
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-
-                        // Respaldo Documental Vinculado (Criterio 4)
-                        if (bill.hasDocumentBackup && bill.documentName != null)
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: (bill.documentType == 'pdf'
-                                        ? Colors.redAccent
-                                        : HabitikColors.blue500)
-                                    .withValues(alpha: isDark ? 0.2 : 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    bill.documentType == 'pdf'
-                                        ? Icons.picture_as_pdf_rounded
-                                        : Icons.image_rounded,
-                                    size: 13,
-                                    color: bill.documentType == 'pdf'
-                                        ? Colors.redAccent
-                                        : HabitikColors.blue500,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      bill.documentName!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? Colors.white70 : HabitikColors.textMid,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        else
-                          Text(
-                            'Sin doc. adjunto',
-                            style: GoogleFonts.outfit(
-                              fontSize: 11,
-                              color: isDark ? Colors.white38 : HabitikColors.textHint,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+        _MonthlyConsumptionChart(
+          title: 'Consumo de electricidad',
+          emptyLabel: 'Aún no hay consumo de electricidad registrado.',
+          unit: 'kWh',
+          icon: '⚡',
+          color: HabitikColors.amber500,
+          points: series.electricity,
+        ),
+        const SizedBox(height: 16),
+        _MonthlyConsumptionChart(
+          title: 'Consumo de agua',
+          emptyLabel: 'Aún no hay consumo de agua registrado.',
+          unit: 'm³',
+          icon: '💧',
+          color: HabitikColors.blue500,
+          points: series.water,
+        ),
       ],
     );
   }
+}
+
+class _MonthlyConsumptionChart extends StatelessWidget {
+  const _MonthlyConsumptionChart({
+    required this.title,
+    required this.emptyLabel,
+    required this.unit,
+    required this.icon,
+    required this.color,
+    required this.points,
+  });
+
+  final String title;
+  final String emptyLabel;
+  final String unit;
+  final String icon;
+  final Color color;
+  final List<MonthlyConsumptionPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? HabitikColors.darkCardBg : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white12 : HabitikColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : HabitikColors.textDark,
+                ),
+              ),
+              const Spacer(),
+              Text(unit, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+            ],
+          ),
+          const SizedBox(height: 18),
+          if (points.isEmpty)
+            SizedBox(
+              height: 132,
+              child: Center(
+                child: Text(
+                  emptyLabel,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white54 : HabitikColors.textLight,
+                  ),
+                ),
+              ),
+            )
+          else
+            _ChartBars(points: points, color: color, unit: unit, isDark: isDark),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChartBars extends StatelessWidget {
+  const _ChartBars({required this.points, required this.color, required this.unit, required this.isDark});
+
+  final List<MonthlyConsumptionPoint> points;
+  final Color color;
+  final String unit;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxTotal = points.map((point) => point.total).reduce((a, b) => a > b ? a : b);
+
+    return SizedBox(
+      height: 168,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: points
+            .map(
+              (point) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${_formatConsumption(point.total)} $unit',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white70 : HabitikColors.textMid,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        height: 112,
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            heightFactor: (point.total / maxTotal).clamp(0.08, 1.0),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        point.label,
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white60 : HabitikColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+String _formatConsumption(double value) {
+  return value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
 }

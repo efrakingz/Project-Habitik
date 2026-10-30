@@ -249,6 +249,41 @@ void main() {
     });
   });
 
+  group('HU 3.2 - Consumo mensual', () {
+    test('agrupa consumo por servicio y mes', () {
+      BillRecord bill(
+        String id,
+        String service,
+        DateTime periodStart,
+        double consumption,
+        String unit,
+      ) => BillRecord(
+            id: id,
+            tipoServicio: service,
+            proveedor: service == 'Agua' ? 'Esval' : 'CGE',
+            periodoDesde: periodStart,
+            periodoHasta: periodStart.add(const Duration(days: 29)),
+            consumo: consumption,
+            unidad: unit,
+            monto: 10000,
+            fechaVencimiento: periodStart.add(const Duration(days: 40)),
+            entrySource: 'manual',
+            createdAt: periodStart,
+          );
+
+      final series = buildMonthlyConsumptionSeries([
+        bill('e1', 'Electricidad', DateTime(2026, 8, 1), 120, 'kWh'),
+        bill('e2', 'Electricidad', DateTime(2026, 8, 15), 80, 'kWh'),
+        bill('a1', 'Agua', DateTime(2026, 9, 1), 15, 'm³'),
+      ]);
+
+      expect(series.electricity.single.total, 200);
+      expect(series.electricity.single.label, 'Ago');
+      expect(series.water.single.total, 15);
+      expect(series.water.single.label, 'Sep');
+    });
+  });
+
   group('HU 3.2 - Widgets & User Experience Flow', () {
     Widget buildTestableWidget(Widget child) {
       return MaterialApp(
@@ -258,7 +293,7 @@ void main() {
       );
     }
 
-    testWidgets('ScanActionCard despliega las 4 opciones y el aviso de privacidad',
+    testWidgets('ScanActionCard despliega las 4 opciones sin aviso de privacidad',
         (tester) async {
       bool photoCalled = false;
       bool imageCalled = false;
@@ -284,7 +319,7 @@ void main() {
       expect(find.text('Ingresar manual'), findsOneWidget);
       expect(
         find.textContaining('Tu documento se procesa solo en este dispositivo'),
-        findsOneWidget,
+        findsNothing,
       );
 
       // Prueba de interacción táctil
@@ -434,7 +469,7 @@ void main() {
     });
 
     testWidgets(
-        'CA-4: El documento cargado queda vinculado al registro histórico para futuras auditorías',
+        'CA-4: muestra gráficos mensuales por servicio sin metadatos de OCR o adjuntos',
         (tester) async {
       final billWithDoc = BillRecord(
         id: 'bill_hist_01',
@@ -475,20 +510,14 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Historial de Auditoría'), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
-
-      // Registro con documento PDF vinculado
-      expect(find.text('CGE'), findsOneWidget);
-      expect(find.text('boleta_cge_sep.pdf'), findsOneWidget);
-      expect(find.text('🔍 OCR Confirmado'), findsOneWidget);
-      expect(find.text('📊 175.0 kWh'), findsOneWidget);
-
-      // Registro manual sin documento
-      expect(find.text('Aguas Andinas'), findsOneWidget);
-      expect(find.text('Sin doc. adjunto'), findsOneWidget);
-      expect(find.text('✍️ Manual'), findsOneWidget);
-      expect(find.text('📊 18.0 m³'), findsOneWidget);
+      expect(find.text('Consumo mensual'), findsOneWidget);
+      expect(find.text('Consumo de electricidad'), findsOneWidget);
+      expect(find.text('Consumo de agua'), findsOneWidget);
+      expect(find.text('175 kWh'), findsOneWidget);
+      expect(find.text('18 m³'), findsOneWidget);
+      expect(find.textContaining('OCR Confirmado'), findsNothing);
+      expect(find.textContaining('Sin doc. adjunto'), findsNothing);
+      expect(find.textContaining('Manual'), findsNothing);
     });
   });
 }
