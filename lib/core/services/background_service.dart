@@ -96,6 +96,13 @@ void onStart(ServiceInstance service) async {
           return;
         }
 
+        final String tipo = (parsedData['tipo'] ?? '').toString().toUpperCase();
+        // Las reacciones del feed no deben generar notificaciones en el sistema ni en segundo plano
+        if (tipo == 'FEED_REACCION' || parsedData['silencioso'] == true || parsedData['es_notificacion'] == false) {
+          service.invoke('nuevo_evento', parsedData);
+          return;
+        }
+
         final String notifKey = '${parsedData['id'] ?? parsedData['titulo']}_${parsedData['tipo'] ?? 'ALERTA'}';
         final int notifId = notifKey.hashCode.abs() % 100000;
         final String sender = parsedData['usuario_nombre'] ?? parsedData['sender_name'] ?? 'Familiar';

@@ -257,6 +257,12 @@ class NotificationService {
     String? payload,
     String? deduplicationKey,
   }) async {
+    // Las reacciones del muro nunca deben generar notificaciones en el sistema
+    final String cleanTipo = (tipo?.toString() ?? '').toUpperCase();
+    if (cleanTipo == 'FEED_REACCION' || cleanTipo.contains('REACCION')) {
+      return;
+    }
+
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Normalizar para evitar discrepancias por emojis, espacios o mayúsculas

@@ -14,9 +14,8 @@ import 'package:habitik/core/services/session_service.dart';
 
 /// Dashboard y Muro Social Familiar en Tiempo Real (HU 4.1).
 /// Incorpora:
-/// - Top Familiar Fijo minimalista con podio horizontal semitransparente.
-/// - Feed de actividad continuo independiente deslizándose por debajo del top.
-/// - Glassmorphism en contenedores dejando entrever el fondo verde de la app.
+/// - Top Familiar Fijo minimalista con podio horizontal.
+/// - Feed de actividad continuo independiente sobre fondo limpio.
 class DashboardScreen extends StatefulWidget {
   final bool isActive;
   const DashboardScreen({super.key, this.isActive = true});
@@ -35,8 +34,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _user = SessionService().currentUser ?? UserProfile.empty;
     _wallService = FamilyWallService();
     _wallService.loadWallData(notify: false);
-
-
   }
 
   @override
@@ -63,19 +60,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return ScreenShell(
               titulo: 'Muro Familiar',
               subtitulo: familyTitle,
-              headerLeft: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  FadePageRoute(child: const FamilyScreen()),
-                ),
-                child: UserAvatar(
-                  letra: (activeUser.familyName ?? 'F').isNotEmpty
-                      ? (activeUser.familyName ?? 'F')[0]
-                      : 'F',
-                  colorHex: activeUser.avatarColor,
-                  radius: 22,
-                ),
-              ),
               headerActions: [
                 IconActionButton(
                   icon: Icons.notifications_outlined,
@@ -100,53 +84,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ],
-          body: ListenableBuilder(
-            listenable: _wallService,
-            builder: (context, _) {
-              return Column(
-                children: [
-                  // ── 1. Top Familiar Fijo (Estático en la parte superior) ──
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-                    child: FamilyRankingSection(
-                      members: _wallService.members,
-                      loading: _wallService.membersLoading,
-                      errorMessage: _wallService.membersError,
-                      onRetry: () => _wallService.loadWallData(notify: true),
-                      compact: true,
-                      onViewAll: () => Navigator.push(
-                        context,
-                        FadePageRoute(child: const FamilyScreen()),
-                      ),
-                    ),
-                  ),
-
-                  // ── 2. Feed de Actividad Continuo (Scroll independiente) ──
-                  Expanded(
-                    child: RefreshIndicator(
-                      color: HabitikColors.green500,
-                      backgroundColor: isDark ? const Color(0xFF1B2E22) : Colors.white,
-                      onRefresh: () => _wallService.loadWallData(notify: true),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: FamilyFeedSection(
-                          items: _wallService.feed,
-                          loading: _wallService.feedLoading,
-                          hasMore: _wallService.hasMore,
-                          isLoadingMore: _wallService.isLoadingMore,
-                          onLoadMore: () => _wallService.fetchMoreFeed(),
-                          onReactionTap: (feedId, emoji) {
-                            _wallService.toggleReaction(feedId, emoji);
-                          },
-                          isScrollable: true,
+              body: ListenableBuilder(
+                listenable: _wallService,
+                builder: (context, _) {
+                  return Column(
+                    children: [
+                      // ── 1. Top Familiar Fijo (Estático en la parte superior) ──
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+                        child: FamilyRankingSection(
+                          members: _wallService.members,
+                          loading: _wallService.membersLoading,
+                          errorMessage: _wallService.membersError,
+                          onRetry: () => _wallService.loadWallData(notify: true),
+                          compact: true,
+                          onViewAll: () => Navigator.push(
+                            context,
+                            FadePageRoute(child: const FamilyScreen()),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+
+                      // ── 2. Feed de Actividad Continuo (Scroll independiente) ──
+                      Expanded(
+                        child: RefreshIndicator(
+                          color: HabitikColors.green500,
+                          backgroundColor: isDark ? const Color(0xFF1B2E22) : Colors.white,
+                          onRefresh: () => _wallService.loadWallData(notify: true),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: FamilyFeedSection(
+                              items: _wallService.feed,
+                              loading: _wallService.feedLoading,
+                              hasMore: _wallService.hasMore,
+                              isLoadingMore: _wallService.isLoadingMore,
+                              onLoadMore: () => _wallService.fetchMoreFeed(),
+                              onReactionTap: (feedId, emoji) {
+                                _wallService.toggleReaction(feedId, emoji);
+                              },
+                              isScrollable: true,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             );
           },
         );

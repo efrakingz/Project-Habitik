@@ -293,8 +293,11 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
 
     final String crownEmoji = isTop1 ? '👑' : (isTop2 ? '🥈' : '🥉');
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+    return InkWell(
+      onTap: widget.onViewAll,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       decoration: BoxDecoration(
         color: isTop1
             ? (isDark ? const Color(0xFF2C2410) : const Color(0xFFFFFBEB))
@@ -364,6 +367,7 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

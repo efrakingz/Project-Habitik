@@ -61,9 +61,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         dedup[id.toString()] = it;
       }
 
+      final filteredList = dedup.values.where((item) {
+        final tipo = (item['tipo']?.toString() ?? item['type']?.toString() ?? '').toUpperCase();
+        return tipo != 'FEED_REACCION' && !tipo.contains('REACCION');
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _notificaciones = dedup.values.toList();
+          _notificaciones = filteredList;
           _isLoading = false;
         });
       }
@@ -80,6 +85,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       // 1. Escuchar eventos Socket.io en primer plano
       SocketService.initSocket(familyId);
       _socketUnsubscribe = SocketService.subscribe((data) {
+        final tipo = (data['tipo']?.toString() ?? '').toUpperCase();
+        if (tipo == 'FEED_REACCION' || data['es_notificacion'] == false || data['silencioso'] == true) {
+          return;
+        }
         if (mounted) {
           setState(() {
             _notificaciones.insert(0, data);
@@ -90,6 +99,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       // 2. Escuchar eventos del isolate de segundo plano si se despachan
       _bgSubscription = FlutterBackgroundService().on('nuevo_evento').listen((data) {
         if (data != null && mounted) {
+          final tipo = (data['tipo']?.toString() ?? '').toUpperCase();
+          if (tipo == 'FEED_REACCION' || data['es_notificacion'] == false || data['silencioso'] == true) {
+            return;
+          }
           setState(() {
             final yaExiste = _notificaciones.any((n) =>
                 (n['id'] != null && n['id'] == data['id']) ||
