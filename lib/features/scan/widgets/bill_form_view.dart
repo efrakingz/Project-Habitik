@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/bill_record.dart';
+import 'package:habitik/shared/widgets/feedback/habitik_feedback.dart';
 
 /// Formulario editable de revisión y corrección de boleta (HU 3.2).
 /// Valida campos obligatorios, formatos numéricos y coherencia de fechas.
@@ -169,11 +170,9 @@ class _BillFormViewState extends State<BillFormView> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_periodoHasta.isBefore(_periodoDesde)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La fecha de término debe ser posterior a la de inicio.'),
-          backgroundColor: Color(0xFFD32F2F),
-        ),
+      HabitikFeedback.showError(
+        context,
+        'La fecha de término debe ser posterior a la de inicio.',
       );
       return;
     }

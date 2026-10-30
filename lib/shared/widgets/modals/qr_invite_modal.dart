@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/audio_service.dart';
+import 'package:habitik/shared/widgets/feedback/habitik_feedback.dart';
 
 /// Modal centralizado para mostrar el código QR y enlace de invitación familiar.
 class QrInviteModal extends StatelessWidget {
@@ -25,12 +26,9 @@ class QrInviteModal extends StatelessWidget {
         token = data['invite_token'] ?? '';
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error al obtener código: ${e.toString().replaceAll('Exception:', '').trim()}'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.redAccent,
-            ),
+          HabitikFeedback.showError(
+            context,
+            "Error al obtener código: ${e.toString().replaceFirst('Exception:', '').trim()}",
           );
         }
         return;
@@ -171,12 +169,9 @@ class QrInviteModal extends StatelessWidget {
                   onPressed: () {
                     AudioService.playSFX('click.mp3');
                     Clipboard.setData(ClipboardData(text: inviteToken));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('¡Código copiado al portapapeles! 📋✨'),
-                        backgroundColor: HabitikColors.green700,
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    HabitikFeedback.showSuccess(
+                      context,
+                      '¡Código copiado al portapapeles! 📋✨',
                     );
                   },
                   icon: const Icon(Icons.copy_rounded, size: 16),
@@ -195,12 +190,9 @@ class QrInviteModal extends StatelessWidget {
                     final link = 'https://habitik.app/join?token=$inviteToken';
                     final text = '¡Únete a mi hogar en Habitik! 🏡\nUsa este enlace para unirte: $link\n\nCódigo de invitación: $inviteToken';
                     Clipboard.setData(ClipboardData(text: text));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('¡Enlace de invitación copiado! 🔗✨'),
-                        backgroundColor: HabitikColors.green700,
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    HabitikFeedback.showSuccess(
+                      context,
+                      '¡Enlace de invitación copiado! 🔗✨',
                     );
                   },
                   icon: const Icon(Icons.link_rounded, size: 16),

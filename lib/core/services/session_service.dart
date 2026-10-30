@@ -233,10 +233,10 @@ class SessionService {
         email: updated.email ?? current.email,
         rol: updated.rol.isNotEmpty ? updated.rol : current.rol,
         familyId: updated.familyId ?? current.familyId,
-        xp: updated.xp > 0 ? updated.xp : current.xp,
+        xp: updated.xp >= 0 ? updated.xp : current.xp,
         nivel: updated.nivel > 0 ? updated.nivel : current.nivel,
-        monedas: updated.monedas > 0 ? updated.monedas : current.monedas,
-        rachaDias: updated.rachaDias > 0 ? updated.rachaDias : current.rachaDias,
+        monedas: updated.monedas >= 0 ? updated.monedas : current.monedas,
+        rachaDias: updated.rachaDias >= 0 ? updated.rachaDias : current.rachaDias,
         familyName: (updated.familyName != null && updated.familyName!.isNotEmpty) ? updated.familyName : current.familyName,
         badgeDestacado: updated.badgeDestacado ?? current.badgeDestacado,
       );
