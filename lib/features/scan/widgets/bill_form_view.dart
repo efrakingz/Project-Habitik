@@ -48,21 +48,13 @@ class _BillFormViewState extends State<BillFormView> {
     'CGE',
     'Chilquinta Energía',
     'Saesa',
-    'Frontel',
-    'Colbún',
-    'Edelaysen',
-    'Otro (Luz)',
   ];
 
   static const List<String> _proveedoresAgua = [
     'Aguas Andinas',
     'Essbio',
     'Esval',
-    'Aguas del Valle',
-    'Smapa',
-    'Aguas Nuevas',
-    'Aguas Antofagasta',
-    'Otro (Agua)',
+    'Suralis',
   ];
 
   @override

@@ -101,10 +101,20 @@ class BillService {
     try {
       final response = await _apiClient.post(
         '/bills',
-        recordToSave.toJson(),
+        recordToSave.toBackendPayload(),
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) {
+          final remoteRecord = BillRecord.fromJson(body);
+          final index = _bills.indexWhere((item) => item.id == recordToSave.id);
+          if (index >= 0) {
+            _bills[index] = remoteRecord;
+            billsNotifier.value = List.unmodifiable(_bills);
+            await _persistLocal();
+          }
+        }
         debugPrint('✅ [BillService] Boleta sincronizada exitosamente con el backend');
       } else {
         debugPrint('⚠️ [BillService] Servidor respondió con código ${response.statusCode}, guardada en caché');

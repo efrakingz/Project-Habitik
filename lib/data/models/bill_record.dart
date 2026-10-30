@@ -1,6 +1,16 @@
 /// Modelo inmutable para el registro histórico y auditoría de boletas de servicios
 /// (HU 3.2: Carga Manual y Respaldo Documental).
 class BillRecord {
+  static const Map<String, String> _providerCodes = {
+    'Enel Distribución': 'enel_distribucion',
+    'CGE': 'cge',
+    'Chilquinta Energía': 'chilquinta',
+    'Saesa': 'saesa',
+    'Aguas Andinas': 'aguas_andinas',
+    'Essbio': 'essbio',
+    'Esval': 'esval',
+    'Suralis': 'suralis',
+  };
   final String id;
   final String tipoServicio; // 'Electricidad' | 'Agua'
   final String proveedor;
@@ -123,12 +133,13 @@ class BillRecord {
 
     final tipoServicioRaw =
         json['service_type'] ?? json['tipo_servicio'] ?? 'Electricidad';
+    final serviceValue = tipoServicioRaw.toString().toLowerCase();
     final tipoServicioNormalizado =
-        tipoServicioRaw.toString().toLowerCase().contains('agua')
+        serviceValue == 'water' || serviceValue.contains('agua')
             ? 'Agua'
             : 'Electricidad';
 
-    final unidadRaw = json['unit'] ?? json['unidad'];
+    final unidadRaw = json['consumption_unit'] ?? json['unit'] ?? json['unidad'];
     final unidadNormalizada = unidadRaw != null && unidadRaw.toString().isNotEmpty
         ? unidadRaw.toString()
         : (tipoServicioNormalizado == 'Agua' ? 'm³' : 'kWh');
@@ -136,12 +147,18 @@ class BillRecord {
     return BillRecord(
       id: json['id']?.toString() ?? '',
       tipoServicio: tipoServicioNormalizado,
-      proveedor: json['provider']?.toString() ?? json['proveedor']?.toString() ?? '',
-      periodoDesde: parseDate(json['period_from'] ?? json['periodo_desde']),
-      periodoHasta: parseDate(json['period_to'] ?? json['periodo_hasta']),
+      proveedor: _providerCodes.entries
+              .where((entry) => entry.value == json['provider_code']?.toString())
+              .map((entry) => entry.key)
+              .firstOrNull ??
+          json['provider']?.toString() ??
+          json['proveedor']?.toString() ??
+          '',
+      periodoDesde: parseDate(json['period_start'] ?? json['period_from'] ?? json['periodo_desde']),
+      periodoHasta: parseDate(json['period_end'] ?? json['period_to'] ?? json['periodo_hasta']),
       consumo: parseDouble(json['consumption'] ?? json['consumo']),
       unidad: unidadNormalizada,
-      monto: parseInt(json['amount'] ?? json['monto']),
+      monto: parseInt(json['amount_clp'] ?? json['amount'] ?? json['monto']),
       fechaVencimiento: parseDate(json['due_date'] ?? json['fecha_vencimiento']),
       entrySource: json['entry_source']?.toString() ??
           json['fuente_ingreso']?.toString() ??
@@ -185,6 +202,24 @@ class BillRecord {
       if (documentType != null) 'document_type': documentType,
       if (documentSizeBytes != null) 'document_size_bytes': documentSizeBytes,
       'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> toBackendPayload() {
+    final providerCode = _providerCodes[proveedor];
+    if (providerCode == null) {
+      throw ArgumentError('Proveedor no compatible con el Backend: $proveedor');
+    }
+
+    return {
+      'service_type': isAgua ? 'water' : 'electricity',
+      'provider_code': providerCode,
+      'period_start': periodoDesde.toIso8601String().split('T').first,
+      'period_end': periodoHasta.toIso8601String().split('T').first,
+      'consumption': consumo,
+      'amount_clp': monto,
+      'due_date': fechaVencimiento.toIso8601String().split('T').first,
+      'entry_source': entrySource,
     };
   }
 
