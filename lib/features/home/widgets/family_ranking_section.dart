@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
@@ -50,27 +49,21 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
           (prev, m) => m.xp > prev ? m.xp : prev,
         );
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: isMinimal ? 10 : 16,
-              ),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1B2E22).withValues(alpha: 0.82)
-                    : Colors.white.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.16)
-                      : Colors.white.withValues(alpha: 0.85),
-                  width: 1.5,
-                ),
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: isMinimal ? 10 : 16,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1B2E22) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark
+                  ? const Color(0x25FFFFFF)
+                  : const Color(0xFFE2E8F0),
+              width: 1.5,
+            ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
@@ -265,9 +258,7 @@ class _FamilyRankingSectionState extends State<FamilyRankingSection> {
                   ],
                 ],
               ),
-            ),
-          ),
-        );
+            );
       },
     );
   }

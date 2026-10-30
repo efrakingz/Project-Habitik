@@ -5,7 +5,6 @@ import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/audio_service.dart';
 import 'package:habitik/core/services/session_service.dart';
-import 'package:habitik/core/services/level_service.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
@@ -243,7 +242,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         await BadgeUnlockedDialog.show(context, badge: unlockedBadge);
       } else if (showConfetti) {
         CelebrationConfetti.show(context);
-        LevelService.checkAndShowLevelUp(context);
       }
       _cargarRachaSemanal();
     }

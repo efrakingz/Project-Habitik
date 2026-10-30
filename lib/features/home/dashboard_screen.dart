@@ -11,7 +11,6 @@ import 'package:habitik/features/home/widgets/family_feed_section.dart';
 import 'package:habitik/shared/widgets/avatar/avatar.dart';
 import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'package:habitik/core/services/session_service.dart';
-import 'package:habitik/core/services/level_service.dart';
 
 /// Dashboard y Muro Social Familiar en Tiempo Real (HU 4.1).
 /// Incorpora:
@@ -37,11 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _wallService = FamilyWallService();
     _wallService.loadWallData(notify: false);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        LevelService.checkAndShowLevelUp(context);
-      }
-    });
+
   }
 
   @override

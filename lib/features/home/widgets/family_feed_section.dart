@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
@@ -50,24 +49,18 @@ class _FamilyFeedSectionState extends State<FamilyFeedSection> {
             ? widget.items
             : widget.items.take(2).toList();
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1B2E22).withValues(alpha: 0.82)
-                    : Colors.white.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.16)
-                      : Colors.white.withValues(alpha: 0.85),
-                  width: 1.5,
-                ),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1B2E22) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark
+                  ? const Color(0x25FFFFFF)
+                  : const Color(0xFFE2E8F0),
+              width: 1.5,
+            ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
@@ -239,9 +232,7 @@ class _FamilyFeedSectionState extends State<FamilyFeedSection> {
                   ],
                 ],
               ),
-            ),
-          ),
-        );
+            );
       },
     );
   }
