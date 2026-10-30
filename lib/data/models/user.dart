@@ -16,6 +16,7 @@ class UserProfile {
   final String? familyName;
   final bool onboardingCompleted;
   final String? badgeDestacado;
+  final String? telefono;
 
   const UserProfile({
     this.id = '',
@@ -33,6 +34,7 @@ class UserProfile {
     this.familyName,
     this.onboardingCompleted = false,
     this.badgeDestacado,
+    this.telefono,
   });
 
   bool get isJefe {
@@ -58,6 +60,7 @@ class UserProfile {
     String? familyName,
     bool? onboardingCompleted,
     String? badgeDestacado,
+    String? telefono,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -75,6 +78,7 @@ class UserProfile {
       familyName: familyName ?? this.familyName,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       badgeDestacado: badgeDestacado ?? this.badgeDestacado,
+      telefono: telefono ?? this.telefono,
     );
   }
 
@@ -181,6 +185,7 @@ class UserProfile {
       familyName: json['family_name'],
       onboardingCompleted: hasValidAnswers || hasCompletedFlag,
       badgeDestacado: json['badge_destacado']?.toString() ?? json['badgeDestacado']?.toString(),
+      telefono: json['telefono']?.toString() ?? json['phone']?.toString(),
     );
   }
 
@@ -189,6 +194,7 @@ class UserProfile {
       'id': id,
       'nombre': nombre,
       'email': email,
+      'telefono': telefono,
       'avatar': {
         'letra': avatarLetra,
         'color': avatarColor,

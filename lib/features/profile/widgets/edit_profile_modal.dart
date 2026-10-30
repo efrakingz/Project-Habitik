@@ -61,6 +61,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
 
   late final TextEditingController _nameController;
   late final TextEditingController _letterController;
+  late final TextEditingController _phoneController;
 
   late String _selectedColor;
   late String _activeLetter;
@@ -86,6 +87,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
     super.initState();
     _nameController = TextEditingController(text: widget.user.nombre);
     _letterController = TextEditingController(text: widget.user.avatarLetra);
+    _phoneController = TextEditingController(text: widget.user.telefono ?? '');
     _selectedColor = widget.user.avatarColor.isNotEmpty ? widget.user.avatarColor : '#2E7D32';
     _activeLetter = widget.user.avatarLetra.isNotEmpty ? widget.user.avatarLetra : 'A';
   }
@@ -94,6 +96,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
   void dispose() {
     _nameController.dispose();
     _letterController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -130,6 +133,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
 
     final nuevoNombre = _nameController.text.trim();
     final nuevaLetra = _activeLetter.toUpperCase().trim();
+    final nuevoTelefono = _phoneController.text.trim();
 
     setState(() => _isSaving = true);
 
@@ -138,6 +142,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
         nombre: nuevoNombre,
         color: _selectedColor,
         letra: nuevaLetra,
+        telefono: nuevoTelefono,
       );
 
       if (!mounted) return;
@@ -327,7 +332,51 @@ class _EditProfileModalState extends State<EditProfileModal> {
 
             const SizedBox(height: 16),
 
-            // ── 5. Campo Inicial / Letra del Avatar (Restricción maxLength: 1) ──
+            // ── 5. Campo Teléfono Celular (SMS) ──
+            Text(
+              'Teléfono Celular (SMS)',
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : HabitikColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              style: TextStyle(
+                color: isDark ? Colors.white : HabitikColors.textDark,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                hintText: '+56 9 1234 5678',
+                prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1B2E22) : const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: HabitikColors.green500, width: 1.8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── 6. Campo Inicial / Letra del Avatar (Restricción maxLength: 1) ──
             Row(
               children: [
                 Expanded(
