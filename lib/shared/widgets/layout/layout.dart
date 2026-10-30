@@ -64,6 +64,7 @@ class ScreenShell extends StatelessWidget {
                     ? const BorderRadius.vertical(top: Radius.circular(28))
                     : BorderRadius.zero,
                 child: Stack(
+                  fit: StackFit.expand,
                   children: [
                     // Fondo interactivo de colinas verdes dentro del contenedor curvado
                     if (useDefaultBackground)
@@ -72,7 +73,9 @@ class ScreenShell extends StatelessWidget {
                           child: LightClearBackground(),
                         ),
                       ),
-                    body,
+                    Positioned.fill(
+                      child: body,
+                    ),
                   ],
                 ),
               ),
