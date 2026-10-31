@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'session_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   /// IP local configurable por flag de compilación: --dart-define=API_LOCAL_IP=192.168.x.x
@@ -40,6 +41,29 @@ class ApiClient {
   /// Permite alternar y configurar la URL base del backend
   static void setBaseUrl(String url) {
     baseUrl = url;
+  }
+
+    /// Carga la URL personalizada desde SharedPreferences al iniciar la aplicación
+  static Future<void> initCustomBaseUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final customUrl = prefs.getString('custom_backend_url');
+      if (customUrl != null && customUrl.trim().isNotEmpty) {
+        baseUrl = customUrl.trim();
+        debugPrint('🌐 [ApiClient] URL personalizada cargada: $baseUrl');
+      }
+    } catch (_) {}
+  }
+
+  /// Guarda y persiste la URL seleccionada (Railway o Local)
+  static Future<void> saveCustomBaseUrl(String url) async {
+    baseUrl = url.trim();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_backend_url', baseUrl);
+      await prefs.setString('bg_backend_url', baseUrl);
+      debugPrint('💾 [ApiClient] URL personalizada guardada: $baseUrl');
+    } catch (_) {}
   }
 
   static final ApiClient _instance = ApiClient._internal();
