@@ -113,6 +113,24 @@ void onStart(ServiceInstance service) async {
             ? '$sender: $titulo'
             : titulo;
 
+        // Control estricto de fatiga: máximo 2 notificaciones al día con la app cerrada / en segundo plano
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final now = DateTime.now();
+          final todayStr = '${now.year}-${now.month.toString().padLeft(2, "0")}-${now.day.toString().padLeft(2, "0")}';
+          final lastDate = prefs.getString('bg_notif_date') ?? '';
+          int bgCount = (lastDate == todayStr) ? (prefs.getInt('bg_notif_count') ?? 0) : 0;
+
+          if (bgCount >= 2) {
+            debugPrint('🌙 [BackgroundService] Límite diario en segundo plano alcanzado (máximo 2 al día). Notificación nativa omitida.');
+            service.invoke('nuevo_evento', parsedData);
+            return;
+          }
+
+          await prefs.setString('bg_notif_date', todayStr);
+          await prefs.setInt('bg_notif_count', bgCount + 1);
+        } catch (_) {}
+
         // 1. Mostrar notificación nativa emergente en el sistema con diseño parametrizado
         await NotificationService.mostrarNotificacionSistema(
           id: notifId,
