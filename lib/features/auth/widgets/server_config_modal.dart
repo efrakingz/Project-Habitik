@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/socket_service.dart';
+import 'package:habitik/core/services/server_discovery_service.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
 
 class ServerConfigModal extends StatefulWidget {
@@ -28,6 +31,7 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
   late bool _isRailway;
   late final TextEditingController _localUrlCtrl;
   bool _testingConnection = false;
+  bool _discoveringServer = false;
   String? _testStatusMessage;
   bool? _testSuccess;
 
@@ -40,7 +44,7 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
     if (!_isRailway) {
       _localUrlCtrl = TextEditingController(text: current);
     } else {
-      _localUrlCtrl = TextEditingController(text: 'http://192.168.1.50:3000');
+      _localUrlCtrl = TextEditingController(text: 'http://192.168.1.10:3000');
     }
   }
 
@@ -62,6 +66,116 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
     return withoutSlash;
   }
 
+  Future<void> _autoDiscoverServer() async {
+    setState(() {
+      _discoveringServer = true;
+      _testStatusMessage = null;
+      _testSuccess = null;
+    });
+
+    try {
+      final discoveredUrl = await ServerDiscoveryService().discoverServer();
+      if (!mounted) return;
+
+      if (discoveredUrl != null && discoveredUrl.isNotEmpty) {
+        setState(() {
+          _isRailway = false;
+          _localUrlCtrl.text = discoveredUrl;
+        });
+
+        // Probar conexión automáticamente para medir latencia
+        await _testConnection();
+
+        if (!mounted) return;
+        HabitikFeedback.showSuccess(
+          context,
+          '¡Servidor local detectado en $discoveredUrl!',
+        );
+      } else {
+        setState(() {
+          _testSuccess = false;
+          _testStatusMessage =
+              '🔍 No se encontró el servidor automáticamente en la red Wi-Fi.\n'
+              'Verifica que la notebook esté encendida con el Panel de Control e ingresa la IP manualmente.';
+        });
+        HabitikFeedback.showError(
+          context,
+          'No se localizó el servidor. Ingresa la IP manualmente.',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _testSuccess = false;
+        _testStatusMessage = 'Error al escanear la red: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _discoveringServer = false);
+      }
+    }
+  }
+
+  void _openQrScanner() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      builder: (sheetCtx) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(sheetCtx).size.height * 0.75,
+          child: Column(
+            children: [
+              AppBar(
+                title: Text(
+                  'Escanear QR del Panel Web',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(sheetCtx).pop(),
+                ),
+              ),
+              Expanded(
+                child: MobileScanner(
+                  onDetect: (capture) {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    for (final barcode in barcodes) {
+                      final raw = barcode.rawValue?.trim();
+                      if (raw != null && raw.isNotEmpty && raw.startsWith('http')) {
+                        Navigator.of(sheetCtx).pop();
+                        setState(() {
+                          _isRailway = false;
+                          _localUrlCtrl.text = raw;
+                        });
+                        _testConnection();
+                        HabitikFeedback.showSuccess(
+                          context,
+                          'Código QR reconocido: $raw',
+                        );
+                        break;
+                      }
+                    }
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Apunta al código QR en el Panel de Control de tu notebook',
+                  style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _testConnection() async {
     setState(() {
       _testingConnection = true;
@@ -70,15 +184,17 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
     });
 
     final target = _targetUrl;
+    final sw = Stopwatch()..start();
     try {
       final res = await http.get(Uri.parse('$target/')).timeout(const Duration(seconds: 4));
+      sw.stop();
       if (!mounted) return;
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final body = jsonDecode(res.body);
         final appName = body['app'] ?? 'Habitik Backend';
         setState(() {
           _testSuccess = true;
-          _testStatusMessage = '✅ Conexión exitosa con $appName';
+          _testStatusMessage = '✅ Conexión exitosa con $appName (${sw.elapsedMilliseconds} ms)';
         });
       } else {
         setState(() {
@@ -90,7 +206,8 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
       if (!mounted) return;
       setState(() {
         _testSuccess = false;
-        _testStatusMessage = '❌ No se pudo conectar a $target.\nVerifica que la notebook y este dispositivo estén en la misma red Wi-Fi.';
+        _testStatusMessage =
+            '❌ No se pudo conectar a $target.\nVerifica que la notebook y este dispositivo estén en la misma red Wi-Fi.';
       });
     } finally {
       if (mounted) {
@@ -117,6 +234,9 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobile = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -194,7 +314,7 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             _buildOptionCard(
               title: '☁️ Nube (Railway)',
               subtitle: 'Servidor oficial online',
@@ -222,15 +342,74 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
             ),
             if (!_isRailway) ...[
               const SizedBox(height: 16),
+              // Botones de acción rápida: Auto-detectar y Escanear QR
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (_discoveringServer || _testingConnection)
+                          ? null
+                          : _autoDiscoverServer,
+                      icon: _discoveringServer
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.radar_rounded, size: 18),
+                      label: Text(
+                        _discoveringServer ? 'Buscando...' : 'Auto-Detectar en Wi-Fi',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: HabitikColors.green600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  if (isMobile) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _openQrScanner,
+                      icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                      label: Text(
+                        'Escanear QR',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 12),
               Text(
-                'Dirección IP de tu Notebook en la red Wi-Fi:',
+                'Dirección IP del Servidor Local (Notebook):',
                 style: GoogleFonts.outfit(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: isDark ? HabitikColors.green300 : HabitikColors.green700,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               TextField(
                 controller: _localUrlCtrl,
                 keyboardType: TextInputType.url,
@@ -239,11 +418,16 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
                   color: isDark ? Colors.white : Colors.black87,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'http://192.168.1.50:3000',
+                  hintText: 'http://192.168.1.10:3000',
                   hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
                   prefixIcon: const Icon(Icons.wifi_tethering, size: 20),
                   filled: true,
                   fillColor: isDark ? Colors.black26 : const Color(0xFFF1F5F9),
+                  helperText: 'Consulta la IP que muestra el Panel de Control Web en tu notebook.',
+                  helperStyle: GoogleFonts.outfit(
+                    fontSize: 11,
+                    color: isDark ? Colors.white54 : Colors.black45,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
