@@ -157,6 +157,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
     try {
       final response = await ApiClient().get('/familia/invite');
+      if (!mounted) return;
       final data = jsonDecode(response.body);
       setState(() {
         _inviteToken = data['invite_token'];
@@ -168,7 +169,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       });
       _showError('No se pudo generar el token de invitación: $e');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

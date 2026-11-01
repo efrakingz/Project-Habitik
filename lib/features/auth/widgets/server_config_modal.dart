@@ -72,6 +72,7 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
     final target = _targetUrl;
     try {
       final res = await http.get(Uri.parse('$target/')).timeout(const Duration(seconds: 4));
+      if (!mounted) return;
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final body = jsonDecode(res.body);
         final appName = body['app'] ?? 'Habitik Backend';
@@ -86,6 +87,7 @@ class _ServerConfigModalState extends State<ServerConfigModal> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _testSuccess = false;
         _testStatusMessage = '❌ No se pudo conectar a $target.\nVerifica que la notebook y este dispositivo estén en la misma red Wi-Fi.';

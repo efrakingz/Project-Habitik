@@ -50,6 +50,7 @@ class _CazadorSombrasScreenState extends State<CazadorSombrasScreen> {
   Future<void> _pickAndCompressImage(ImageSource source) async {
     AudioService.playSFX('click.mp3');
     final file = await _inspeccionService.capturarFoto(source);
+    if (!mounted) return;
     if (file == null) return;
 
     setState(() {
