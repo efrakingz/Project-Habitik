@@ -8,11 +8,13 @@ import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
 class LoadingOverlay extends StatelessWidget {
   final bool isLoading;
   final String message;
+  final bool usePositioned;
 
   const LoadingOverlay({
     super.key,
     required this.isLoading,
     this.message = 'Cargando...',
+    this.usePositioned = true,
   });
 
   @override
@@ -21,59 +23,62 @@ class LoadingOverlay extends StatelessWidget {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.55),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 26),
-            margin: const EdgeInsets.symmetric(horizontal: 40),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF16251B) : Colors.white,
-              borderRadius: HabitikRadius.xl_,
-              border: Border.all(
-                color: isDark
-                    ? const Color(0x30FFFFFF)
-                    : HabitikColors.green500.withValues(alpha: 0.35),
-                width: 2.0,
+    final content = Container(
+      color: Colors.black.withValues(alpha: 0.55),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 26),
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF16251B) : Colors.white,
+            borderRadius: HabitikRadius.xl_,
+            border: Border.all(
+              color: isDark
+                  ? const Color(0x30FFFFFF)
+                  : HabitikColors.green500.withValues(alpha: 0.35),
+              width: 2.0,
+            ),
+            boxShadow: HabitikShadows.card,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const HabitikLogo(
+                size: 60,
+                pulseEffect: true,
               ),
-              boxShadow: HabitikShadows.card,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const HabitikLogo(
-                  size: 60,
-                  pulseEffect: true,
+              const SizedBox(height: 18),
+              SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3.2,
+                  strokeCap: StrokeCap.round,
+                  valueColor: const AlwaysStoppedAnimation<Color>(HabitikColors.green500),
+                  backgroundColor: isDark
+                      ? Colors.white12
+                      : HabitikColors.green100.withValues(alpha: 0.5),
                 ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: 26,
-                  height: 26,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3.2,
-                    strokeCap: StrokeCap.round,
-                    valueColor: const AlwaysStoppedAnimation<Color>(HabitikColors.green500),
-                    backgroundColor: isDark
-                        ? Colors.white12
-                        : HabitikColors.green100.withValues(alpha: 0.5),
-                  ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                message,
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : HabitikColors.textDark,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  message,
-                  style: GoogleFonts.outfit(
-                    color: isDark ? Colors.white : HabitikColors.textDark,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9)),
-        ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9)),
       ),
     );
+
+    if (usePositioned) {
+      return Positioned.fill(child: content);
+    }
+    return SizedBox.expand(child: content);
   }
 }

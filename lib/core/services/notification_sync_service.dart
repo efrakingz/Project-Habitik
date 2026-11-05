@@ -95,7 +95,8 @@ class NotificationSyncService {
 
       // 4. Mostrar notificaciones nativas de los nuevos eventos
       int notificadas = 0;
-      for (final ev in nuevos.reversed) {
+      if (nuevos.length == 1) {
+        final ev = nuevos.first;
         final String titulo = ev['titulo']?.toString() ??
             ev['title']?.toString() ??
             'Alerta Familiar';
@@ -113,7 +114,33 @@ class NotificationSyncService {
           deduplicationKey: 'sync_${evId}_$titulo',
           payload: jsonEncode(ev),
         );
-        notificadas++;
+        notificadas = 1;
+      } else {
+        // Si se acumularon múltiples notificaciones (ej. emulador o app cerrada),
+        // emitir únicamente UNA sola alerta consolidada para no saturar al usuario
+        final evMasReciente = nuevos.first;
+        final String ultimoTitulo = evMasReciente['titulo']?.toString() ??
+            evMasReciente['title']?.toString() ??
+            'Alerta Familiar';
+        final String ultimoCuerpo = evMasReciente['mensaje']?.toString() ??
+            evMasReciente['desc_text']?.toString() ??
+            '';
+        final dynamic tipo = evMasReciente['tipo'] ?? evMasReciente['type'] ?? 'GENERAL';
+
+        final String tituloResumen = '🌿 Tienes ${nuevos.length} nuevas notificaciones';
+        final String cuerpoResumen = ultimoCuerpo.isNotEmpty
+            ? '$ultimoTitulo: $ultimoCuerpo'
+            : ultimoTitulo;
+
+        await NotificationService.mostrarNotificacionSistema(
+          id: 99991,
+          titulo: tituloResumen,
+          cuerpo: cuerpoResumen,
+          tipo: tipo,
+          deduplicationKey: 'sync_resumen_${nuevos.length}_${evMasReciente['id']}',
+          payload: jsonEncode(evMasReciente),
+        );
+        notificadas = 1;
       }
 
       // 5. Actualizar el puntero del último evento visto

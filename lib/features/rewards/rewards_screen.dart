@@ -368,7 +368,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
   Widget _buildBody() {
     if (_controller.state == RewardsState.loading) {
-      return const LoadingOverlay(isLoading: true, message: 'Cargando tienda...');
+      return const LoadingOverlay(
+        isLoading: true,
+        message: 'Cargando tienda...',
+        usePositioned: false,
+      );
     }
     if (_controller.state == RewardsState.error) {
       return HabitikErrorView(
