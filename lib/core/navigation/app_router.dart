@@ -99,11 +99,12 @@ class _RootRouterState extends State<RootRouter> {
     if (_sessionService.hasSession) {
       if (_sessionService.isOnboardingCompleted) {
         setState(() => _state = AppState.home);
-        if (NotificationService.onNotificationPayload.value != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          NotificationService.solicitarPermisoNotificaciones();
+          if (NotificationService.onNotificationPayload.value != null) {
             _onNotificationTapped();
-          });
-        }
+          }
+        });
       } else {
         // El onboarding requiere conexión para configurar el hogar
         if (!NetworkService().isConnected) return;
@@ -113,6 +114,9 @@ class _RootRouterState extends State<RootRouter> {
       // El inicio de sesión requiere conexión
       if (!NetworkService().isConnected) return;
       setState(() => _state = AppState.login);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        NotificationService.solicitarPermisoNotificaciones();
+      });
     }
   }
 

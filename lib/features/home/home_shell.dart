@@ -6,6 +6,7 @@ import 'package:habitik/features/scan/scan_screen.dart';
 import 'package:habitik/features/rewards/rewards_screen.dart';
 import 'package:habitik/features/control/control_screen.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/notification_service.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 
@@ -28,6 +29,9 @@ class _HomeShellState extends State<HomeShell> {
     final isJefe = _sessionService.currentUser?.isJefe ?? false;
     // Si se especifica initialTab se respeta; por defecto el miembro inicia en Retos (índice 1) y el jefe en Inicio (0)
     _tab = widget.initialTab ?? (isJefe ? 0 : 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.solicitarPermisoNotificaciones();
+    });
   }
 
   List<Widget> _buildScreens(bool isJefe, int currentTab) {

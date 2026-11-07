@@ -28,12 +28,12 @@ void main() async {
   runApp(const HabitikApp());
 
   // Inicializaciones en segundo plano diferidas tras el primer frame (evita bloqueo del hilo principal y ANR)
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
     NetworkService().init();
     if (!kIsWeb) {
-      NotificationService.initNotificationService();
-      NotificationSyncService.programarRecordatoriosDiarios();
-      BackgroundServiceManager.initializeService();
+      await NotificationService.initNotificationService();
+      await NotificationSyncService.programarRecordatoriosDiarios();
+      await BackgroundServiceManager.initializeService();
     }
   });
 

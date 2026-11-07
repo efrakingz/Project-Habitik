@@ -59,28 +59,33 @@ class SessionService {
         userId: enriched.id,
         backendUrl: ApiClient.baseUrl,
       ));
-      SocketService.initSocket(enriched.familyId!, (data) async {
-        debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
-        try {
-          final String notifKey = '${data['id'] ?? data['titulo']}_${data['tipo'] ?? 'ALERTA'}';
-          final int notifId = notifKey.hashCode.abs() % 100000;
-          final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
-          final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
-          final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
-
-          await NotificationService.mostrarNotificacionSistema(
-            id: notifId,
-            titulo: '$sender: $titulo',
-            cuerpo: cuerpo,
-            tipo: data['tipo'],
-            deduplicationKey: notifKey,
-            payload: jsonEncode(data),
-          );
-        } catch (e) {
-          debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
-        }
-      });
+      _vincularNotificacionesFamiliares(enriched.familyId!);
     }
+  }
+
+  /// Conecta el socket y asegura la recepción de notificaciones nativas en tiempo real
+  void _vincularNotificacionesFamiliares(String familyId) {
+    SocketService.initSocket(familyId, (data) async {
+      debugPrint('🔔 [SessionService] Notificación recibida para la familia: ${data['titulo']}');
+      try {
+        final String notifKey = '${data['id'] ?? data['titulo']}_${data['tipo'] ?? 'ALERTA'}';
+        final int notifId = notifKey.hashCode.abs() % 100000;
+        final String sender = data['usuario_nombre'] ?? data['sender_name'] ?? 'Familiar';
+        final String titulo = '${data['titulo'] ?? data['title'] ?? 'Alerta Familiar'}';
+        final String cuerpo = '${data['mensaje'] ?? data['desc_text'] ?? 'Nueva notificación'}';
+
+        await NotificationService.mostrarNotificacionSistema(
+          id: notifId,
+          titulo: '$sender: $titulo',
+          cuerpo: cuerpo,
+          tipo: data['tipo'],
+          deduplicationKey: notifKey,
+          payload: jsonEncode(data),
+        );
+      } catch (e) {
+        debugPrint('⚠️ Error mostrando notificación en primer plano: $e');
+      }
+    });
   }
 
   /// Guarda el último email utilizado para recordar al usuario de forma segura.
@@ -167,8 +172,8 @@ class SessionService {
             userId: p.id,
             backendUrl: ApiClient.baseUrl,
           );
-          // Conectar socket en primer plano para eventos reactivos de la UI
-          SocketService.initSocket(p.familyId!);
+          // Conectar socket en primer plano y vincular escucha de notificaciones
+          _vincularNotificacionesFamiliares(p.familyId!);
         }
       } catch (e) {
         final refreshed = await silentRelogin();

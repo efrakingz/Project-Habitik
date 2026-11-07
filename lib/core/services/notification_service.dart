@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -184,8 +185,8 @@ class NotificationService {
     return _preferenciasPorTipo[HabitikNotificationType.general]!;
   }
 
-  /// Inicializa los canales nativos de Android y opcionalmente los permisos
-  static Future<void> initNotificationService({bool requestPermission = true}) async {
+  /// Inicializa los canales nativos de Android y el plugin local
+  static Future<void> initNotificationService({bool requestPermission = false}) async {
     if (kIsWeb) return;
     if (!_timezonesInitialized) {
       tz.initializeTimeZones();
@@ -193,7 +194,7 @@ class NotificationService {
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('ic_notification_leaf');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
@@ -236,14 +237,53 @@ class NotificationService {
       }
 
       if (requestPermission) {
-        try {
-          final granted = await androidImplementation.requestNotificationsPermission();
-          debugPrint('🔔 [NotificationService] Permiso de notificaciones concedido: $granted');
-        } catch (e) {
-          debugPrint('⚠️ [NotificationService] Solicitud de permiso omitida en background: $e');
-        }
+        await solicitarPermisoNotificaciones();
       }
     }
+  }
+
+  /// Solicita el permiso nativo de notificaciones al usuario (Android 13+ / iOS)
+  /// Muestra el cuadro de diálogo oficial del sistema operativo
+  static Future<bool> solicitarPermisoNotificaciones() async {
+    if (kIsWeb) return false;
+
+    try {
+      // 1. Canal estándar con permission_handler (específico para runtime permissions de Android 13+)
+      final status = await Permission.notification.status;
+      debugPrint('🔔 [NotificationService] Estado actual de permiso de notificaciones: $status');
+
+      if (!status.isGranted) {
+        final result = await Permission.notification.request();
+        debugPrint('🔔 [NotificationService] Resultado de solicitud de permiso: $result');
+        if (result.isGranted) return true;
+      } else {
+        return true;
+      }
+
+      // 2. Complemento con flutter_local_notifications plugin
+      final androidImplementation =
+          _notificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        final granted = await androidImplementation.requestNotificationsPermission();
+        debugPrint('🔔 [NotificationService] Resultado requestNotificationsPermission: $granted');
+        return granted ?? false;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [NotificationService] Error solicitando permisos de notificaciones: $e');
+    }
+    return false;
+  }
+
+  /// Dispara una notificación de prueba local e inmediata en la barra de estado
+  static Future<void> probarNotificacionLocal() async {
+    await mostrarNotificacionSistema(
+      id: 99999,
+      titulo: '¡Notificaciones de Habitik Activas!',
+      cuerpo: 'Todo listo: recibirás alertas de retos familiares, rachas y consumo.',
+      tipo: HabitikNotificationType.retoCompletado,
+      deduplicationKey: 'test_notification_${DateTime.now().millisecondsSinceEpoch}',
+    );
   }
 
   static final Map<String, int> _ultimasNotificaciones = {};
@@ -329,13 +369,38 @@ class NotificationService {
       android: androidPlatformChannelSpecifics,
     );
 
-    await _notificationsPlugin.show(
-      targetId,
-      tituloFormateado,
-      cuerpo,
-      platformChannelSpecifics,
-      payload: payload,
-    );
+    try {
+      await _notificationsPlugin.show(
+        targetId,
+        tituloFormateado,
+        cuerpo,
+        platformChannelSpecifics,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [NotificationService] Fallback mostrando notificación con icono del sistema: $e');
+      final fallbackSpecifics = NotificationDetails(
+        android: AndroidNotificationDetails(
+          pref.canalId,
+          pref.canalNombre,
+          channelDescription: pref.canalDescripcion,
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          color: pref.color,
+          showWhen: true,
+          enableVibration: true,
+          playSound: true,
+        ),
+      );
+      await _notificationsPlugin.show(
+        targetId,
+        tituloFormateado,
+        cuerpo,
+        fallbackSpecifics,
+        payload: payload,
+      );
+    }
   }
 
   /// Programa una notificación parametrizada en el reloj nativo de Android (AlarmManager)
@@ -377,18 +442,34 @@ class NotificationService {
       android: androidDetails,
     );
 
-    await _notificationsPlugin.zonedSchedule(
-      id,
-      tituloFormateado,
-      cuerpo,
-      scheduledDate,
-      platformDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: matchDateTimeComponents,
-      payload: payload,
-    );
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        tituloFormateado,
+        cuerpo,
+        scheduledDate,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: matchDateTimeComponents,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('ℹ️ [NotificationService] Fallback a inexactAllowWhileIdle por compatibilidad Android: $e');
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        tituloFormateado,
+        cuerpo,
+        scheduledDate,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: matchDateTimeComponents,
+        payload: payload,
+      );
+    }
 
     debugPrint('⏰ [NotificationService] ${pref.prefijoEmoji} Notificación programada para $fechaHora con id $id');
   }

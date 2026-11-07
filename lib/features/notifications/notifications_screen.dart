@@ -6,6 +6,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:habitik/core/services/session_service.dart';
+import 'package:habitik/core/services/notification_service.dart';
 import 'package:habitik/core/services/history_service.dart';
 import 'package:habitik/core/services/socket_service.dart';
 import 'package:habitik/core/services/notification_sync_service.dart';
@@ -116,6 +117,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _probarNotificacionInmediata() async {
+    final concedido = await NotificationService.solicitarPermisoNotificaciones();
+    if (!concedido && mounted) {
+      HabitikFeedback.showInfo(
+        context,
+        'Debes conceder el permiso de notificaciones para ver alertas.',
+      );
+      return;
+    }
+    await NotificationService.probarNotificacionLocal();
+    if (mounted) {
+      HabitikFeedback.showSuccess(
+        context,
+        '🔔 Notificación de prueba enviada a la barra de estado.',
+      );
+    }
+  }
+
   Future<void> _probarNotificacionAppApagada() async {
     await NotificationSyncService.simularRevisionAppApagada(segundos: 15);
     if (mounted) {
@@ -186,6 +205,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         subtitulo: _notificaciones.isEmpty ? 'Todo leído ✅' : '${_notificaciones.length} alertas familiares',
         showBackButton: true,
             headerActions: [
+              IconActionButton(
+                icon: Icons.notifications_active_outlined,
+                onTap: _probarNotificacionInmediata,
+              ),
+              const SizedBox(width: 8),
               IconActionButton(
                 icon: Icons.science_outlined,
                 onTap: _probarNotificacionAppApagada,
