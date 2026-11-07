@@ -149,10 +149,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 onTap: () => CoinValueInfoModal.show(context, isDark: isDark),
                 bgColor: Colors.white.withAlpha(50),
                 iconColor: Colors.white,
+                size: 34,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
             ],
-            // ── Botón Crear / Proponer (verde sólido) ───────────────
+            // ── Botón Crear / Proponer (verde sólido compacto) ──────
             GestureDetector(
               onTap: () {
                 if (isJefe) {
@@ -184,15 +185,15 @@ class _RewardsScreenState extends State<RewardsScreen> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                    horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
                   color: HabitikColors.green700,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.20),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -201,9 +202,9 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   children: [
                     const Icon(Icons.add_rounded,
                         size: 16, color: Colors.white),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Text(
-                      isJefe ? 'Nueva meta' : 'Proponer',
+                      isJefe ? 'Nueva' : 'Proponer',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -214,8 +215,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            // ── Tarjeta de Monedas Original ──────────────────────────
+            const SizedBox(width: 6),
+            // ── Chip de Monedas Compacto ─────────────────────────────
             _buildCoinsCard(context, currentUser.monedas, isDark),
           ],
           body: _buildBody(),
@@ -228,12 +229,12 @@ class _RewardsScreenState extends State<RewardsScreen> {
     return GestureDetector(
       onTap: () => _mostrarDetalleMonedas(context, monedas, isDark),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: isDark
               ? const Color(0xFF1E2F23).withValues(alpha: 0.85)
               : Colors.white.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark
                 ? HabitikColors.amber400.withValues(alpha: 0.5)
@@ -243,59 +244,24 @@ class _RewardsScreenState extends State<RewardsScreen> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF382D12) : const Color(0xFFFFF8E1),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
+            const Text('🪙', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 5),
+            Text(
+              '$monedas',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: 0.2,
               ),
-              alignment: Alignment.center,
-              child: const Text('🪙', style: TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(width: 7),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$monedas',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15,
-                    height: 1.1,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                Text(
-                  'disponibles',
-                  style: TextStyle(
-                    color: isDark
-                        ? HabitikColors.green200
-                        : Colors.white.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 9.5,
-                    height: 1.0,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
             ),
           ],
         ),

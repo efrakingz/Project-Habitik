@@ -43,30 +43,44 @@ Widget buildScreenHeader({
         ],
         Expanded(
           child: customTitle ??
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (subtitulo != null)
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (subtitulo != null)
+                      Text(
+                        subtitulo,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: isDark ? HabitikColors.green300 : HabitikColors.green200,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     Text(
-                      subtitulo,
-                      style: TextStyle(
-                        color: isDark ? HabitikColors.green300 : HabitikColors.green200,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                      titulo,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                  Text(
-                    titulo,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
         ),
-        if (headerActions != null) Row(children: headerActions),
+        if (headerActions != null) ...[
+          const SizedBox(width: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: headerActions,
+          ),
+        ],
       ],
     ),
   );
