@@ -86,16 +86,22 @@ class AprobarEvidenciaResult {
   });
 
   factory AprobarEvidenciaResult.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic val, int fallback) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
     final data = json['data'] is Map ? json['data'] as Map<String, dynamic> : json;
     final recomp = data['recompensas'] is Map ? data['recompensas'] as Map<String, dynamic> : <String, dynamic>{};
 
     return AprobarEvidenciaResult(
       exito: data['exito'] == true || json['ok'] == true,
       mensaje: data['mensaje']?.toString() ?? 'Evidencia aprobada con éxito.',
-      xpGanada: recomp['xp_ganada'] is num ? (recomp['xp_ganada'] as num).toInt() : 80,
-      monedasGanadas: recomp['monedas_ganadas'] is num ? (recomp['monedas_ganadas'] as num).toInt() : 4,
-      nuevoSaldoMonedas: recomp['nuevo_saldo_monedas'] is num ? (recomp['nuevo_saldo_monedas'] as num).toInt() : null,
-      totalXp: recomp['total_xp'] is num ? (recomp['total_xp'] as num).toInt() : null,
+      xpGanada: parseInt(recomp['xp_ganada'], 80),
+      monedasGanadas: parseInt(recomp['monedas_ganadas'], 4),
+      nuevoSaldoMonedas: recomp['nuevo_saldo_monedas'] != null ? parseInt(recomp['nuevo_saldo_monedas'], 0) : null,
+      totalXp: recomp['total_xp'] != null ? parseInt(recomp['total_xp'], 0) : null,
       data: data,
     );
   }

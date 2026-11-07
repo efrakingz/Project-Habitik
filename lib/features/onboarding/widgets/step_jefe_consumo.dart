@@ -39,7 +39,7 @@ class StepJefeConsumo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stepTitle('📄 Consumo del Hogar', 'Ingresa una boleta para establecer las metas de ahorro'),
+        const _StepTitle(title: '📄 Consumo del Hogar', subtitle: 'Ingresa una boleta para establecer las metas de ahorro'),
         const SizedBox(height: 20),
 
         // Selector Tipo Boleta
@@ -63,10 +63,10 @@ class StepJefeConsumo extends StatelessWidget {
                 label: const Text('💧 Agua Potable'),
                 selected: tipoBoleta == 'agua',
                 onSelected: (val) => onTipoBoletaChanged('agua'),
-                selectedColor: const Color(0xFFE0F2FE),
+                selectedColor: HabitikColors.blue100,
                 labelStyle: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: tipoBoleta == 'agua' ? const Color(0xFF0369A1) : HabitikColors.textMid,
+                  color: tipoBoleta == 'agua' ? HabitikColors.blue500 : HabitikColors.textMid,
                 ),
               ),
             ),
@@ -187,15 +187,15 @@ class StepJefeConsumo extends StatelessWidget {
         ),
         const SizedBox(height: 24),
 
-        _sectionSubtitle('O ingresar datos manualmente:'),
+        const _SectionSubtitle(text: 'O ingresar datos manualmente:'),
         const SizedBox(height: 12),
 
-        _label('Consumo estimado (${tipoBoleta == 'luz' ? 'kWh' : 'm³'})'),
-        _textField('Ej: ${tipoBoleta == 'luz' ? '140' : '15'}', consumoCtrl, TextInputType.number),
+        _FieldLabel(text: 'Consumo estimado (${tipoBoleta == 'luz' ? 'kWh' : 'm³'})'),
+        _ConsumoTextField(hint: 'Ej: ${tipoBoleta == 'luz' ? '140' : '15'}', ctrl: consumoCtrl, type: TextInputType.number),
         const SizedBox(height: 12),
 
-        _label('Monto total boleta (\$)'),
-        _textField('Ej: 25000', montoCtrl, TextInputType.number),
+        const _FieldLabel(text: 'Monto total boleta (\$)'),
+        _ConsumoTextField(hint: 'Ej: 25000', ctrl: montoCtrl, type: TextInputType.number),
         const SizedBox(height: 12),
 
         Row(
@@ -204,8 +204,8 @@ class StepJefeConsumo extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _label('Empresa'),
-                  _textField(tipoBoleta == 'luz' ? 'Ej: Enel' : 'Ej: Aguas Andinas', empresaCtrl, TextInputType.text),
+                  const _FieldLabel(text: 'Empresa'),
+                  _ConsumoTextField(hint: tipoBoleta == 'luz' ? 'Ej: Enel' : 'Ej: Aguas Andinas', ctrl: empresaCtrl, type: TextInputType.text),
                 ],
               ),
             ),
@@ -214,8 +214,8 @@ class StepJefeConsumo extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _label('Periodo'),
-                  _textField('Ej: Junio', periodoCtrl, TextInputType.text),
+                  const _FieldLabel(text: 'Periodo'),
+                  _ConsumoTextField(hint: 'Ej: Junio', ctrl: periodoCtrl, type: TextInputType.text),
                 ],
               ),
             ),
@@ -223,8 +223,8 @@ class StepJefeConsumo extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _label('Nombre de tu Hogar (Familia)'),
-        _textField('Ej: Familia Torres', familyNameCtrl, TextInputType.text),
+        const _FieldLabel(text: 'Nombre de tu Hogar (Familia)'),
+        _ConsumoTextField(hint: 'Ej: Familia Torres', ctrl: familyNameCtrl, type: TextInputType.text),
         const SizedBox(height: 28),
 
         PrimaryButton(label: 'Establecer Metas', onTap: onSubmit, icon: Icons.analytics_outlined),
@@ -232,7 +232,15 @@ class StepJefeConsumo extends StatelessWidget {
     );
   }
 
-  Widget _stepTitle(String title, String subtitle) {
+}
+
+class _StepTitle extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  const _StepTitle({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -242,21 +250,45 @@ class StepJefeConsumo extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _sectionSubtitle(String text) => Text(
+class _SectionSubtitle extends StatelessWidget {
+  final String text;
+  const _SectionSubtitle({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(color: HabitikColors.textDark, fontSize: 12, fontWeight: FontWeight.bold),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
         text,
-        style: const TextStyle(color: HabitikColors.textDark, fontSize: 12, fontWeight: FontWeight.bold),
-      );
+        style: const TextStyle(color: HabitikColors.textDark, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
 
-  Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Text(
-          text,
-          style: const TextStyle(color: HabitikColors.textDark, fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-      );
+class _ConsumoTextField extends StatelessWidget {
+  final String hint;
+  final TextEditingController ctrl;
+  final TextInputType type;
+  const _ConsumoTextField({required this.hint, required this.ctrl, required this.type});
 
-  Widget _textField(String hint, TextEditingController ctrl, TextInputType type) {
+  @override
+  Widget build(BuildContext context) {
     return TextField(
       controller: ctrl,
       keyboardType: type,

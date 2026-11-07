@@ -140,18 +140,16 @@ class _EditProfileModalState extends State<EditProfileModal> {
         letra: nuevaLetra,
       );
 
-      if (mounted) {
-        HabitikFeedback.showSuccess(context, '¡Perfil actualizado con éxito!');
-        Navigator.of(context).pop(true);
-      }
+      if (!mounted) return;
+      HabitikFeedback.showSuccess(context, '¡Perfil actualizado con éxito!');
+      Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        HabitikFeedback.showError(
-          context,
-          e.toString().replaceAll('Exception:', '').trim(),
-        );
-      }
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      HabitikFeedback.showError(
+        context,
+        e.toString().replaceAll('Exception:', '').trim(),
+      );
     }
   }
 

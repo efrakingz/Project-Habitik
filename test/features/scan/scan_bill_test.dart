@@ -46,17 +46,17 @@ void main() {
 
       final json = bill.toJson();
 
-      // Validación del contrato JSON para POST /bills
-      expect(json['service_type'], 'electricidad');
-      expect(json['provider'], 'Enel Distribución');
-      expect(json['consumption'], 185.5);
-      expect(json['unit'], 'kWh');
-      expect(json['amount'], 35400);
-      expect(json['entry_source'], 'ocr_confirmed');
-      expect(json['has_document_backup'], true);
-      expect(json['document_name'], 'boleta_octubre.pdf');
-      expect(json['document_type'], 'pdf');
-      expect(json['document_size_bytes'], 1048576);
+      final payload = bill.toBackendPayload();
+      expect(payload, {
+        'service_type': 'electricity',
+        'provider_code': 'enel_distribucion',
+        'period_start': '2026-10-01',
+        'period_end': '2026-10-25',
+        'consumption': 185.5,
+        'amount_clp': 35400,
+        'due_date': '2026-11-10',
+        'entry_source': 'ocr_confirmed',
+      });
 
       // Deserialización defensiva
       final parsed = BillRecord.fromJson(json);
@@ -94,6 +94,27 @@ void main() {
       expect(parsed.unidad, 'm³');
       expect(parsed.entrySource, 'manual');
       expect(parsed.hasDocumentBackup, false);
+    });
+
+    test('Lee la respuesta exacta del Backend de boletas', () {
+      final parsed = BillRecord.fromJson({
+        'id': 'bill-db-01',
+        'service_type': 'water',
+        'provider_code': 'esval',
+        'period_start': '2026-09-01',
+        'period_end': '2026-09-30',
+        'consumption': 18.5,
+        'consumption_unit': 'm3',
+        'amount_clp': 16200,
+        'due_date': '2026-10-15',
+        'entry_source': 'manual',
+        'created_at': '2026-09-30T12:00:00.000Z',
+      });
+
+      expect(parsed.tipoServicio, 'Agua');
+      expect(parsed.proveedor, 'Esval');
+      expect(parsed.unidad, 'm3');
+      expect(parsed.monto, 16200);
     });
   });
 
