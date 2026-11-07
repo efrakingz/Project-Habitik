@@ -230,9 +230,19 @@ class _CazadorSombrasScreenState extends State<CazadorSombrasScreen> {
           ),
         ],
         body: Container(
+          width: double.infinity,
+          height: double.infinity,
           color: bgColor,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              MediaQuery.of(context).padding.bottom + 32,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

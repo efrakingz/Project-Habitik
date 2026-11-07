@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/session_service.dart';
-import 'package:habitik/core/services/level_service.dart';
 import 'package:habitik/core/navigation/app_router.dart';
 import 'package:habitik/data/models/user.dart';
 import 'package:habitik/data/models/family_member.dart';
@@ -71,17 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           rachaDias: updatedUser.rachaDias,
         );
 
-        if (mounted) {
-          final claimed = await LevelService.checkAndShowLevelUp(
-            context,
-            nivelForzado: updatedUser.nivel,
-          );
-          if (claimed && mounted) {
-            setState(() {
-              _user = SessionService().currentUser ?? updatedUser;
-            });
-          }
-        }
+
       }
     } catch (e) {
       debugPrint('Error al obtener perfil: $e');

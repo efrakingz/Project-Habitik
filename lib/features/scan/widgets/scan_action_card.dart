@@ -146,47 +146,6 @@ class ScanActionCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 18),
-          const Divider(height: 1),
-          const SizedBox(height: 14),
-
-          // Aviso de privacidad y alcance local
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : HabitikColors.green50.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : HabitikColors.green200.withValues(alpha: 0.8),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.shield_outlined,
-                  size: 18,
-                  color: isDark ? HabitikColors.green400 : HabitikColors.green700,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Tu documento se procesa solo en este dispositivo. Guardaremos únicamente los datos que confirmes (máx. 10 MB).',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white70 : HabitikColors.textMid,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

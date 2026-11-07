@@ -176,7 +176,7 @@ class FamilyWallService extends ChangeNotifier {
     // 2. Cargar feed familiar desde la API
     if (hasFamily) {
       try {
-        final feedResponse = await ApiClient().get('/feed?limit=20');
+        final feedResponse = await ApiClient().get('/feed?limit=4');
         if (feedResponse.statusCode >= 200 && feedResponse.statusCode < 300) {
           final dynamic body = jsonDecode(feedResponse.body);
           if (body is Map && body['data'] is List) {
@@ -196,14 +196,14 @@ class FamilyWallService extends ChangeNotifier {
         debugPrint('⚠️ [FamilyWallService] Error al cargar feed del muro: $e');
         _feedError = e.toString().replaceAll('Exception:', '').trim();
         if (_feed.isEmpty) {
-          _feed = List.from(FamilyFeedItem.mockList);
+          _feed = List.from(FamilyFeedItem.mockList.take(4));
         }
       } finally {
         _feedLoading = false;
       }
     } else {
       if (_feed.isEmpty) {
-        _feed = List.from(FamilyFeedItem.mockList);
+        _feed = List.from(FamilyFeedItem.mockList.take(4));
       }
       _feedLoading = false;
     }
@@ -219,7 +219,7 @@ class FamilyWallService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final path = '/feed?limit=20&cursor=$_nextCursor';
+      final path = '/feed?limit=4&cursor=$_nextCursor';
       final response = await ApiClient().get(path);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final dynamic body = jsonDecode(response.body);

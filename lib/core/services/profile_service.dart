@@ -12,13 +12,14 @@ class ProfileService {
   final ApiClient _apiClient = ApiClient();
   final SessionService _sessionService = SessionService();
 
-  /// Actualiza los atributos del perfil (nombre, color, letra, url)
+  /// Actualiza los atributos del perfil (nombre, color, letra, url, telefono)
   /// mediante PUT /perfil/editar
   Future<UserProfile> editarPerfil({
     String? nombre,
     String? color,
     String? letra,
     String? url,
+    String? telefono,
   }) async {
     final Map<String, dynamic> body = {};
     if (nombre != null && nombre.trim().isNotEmpty) {
@@ -33,6 +34,9 @@ class ProfileService {
     if (url != null) {
       body['url'] = url.trim().isEmpty ? null : url.trim();
     }
+    if (telefono != null) {
+      body['telefono'] = telefono.trim();
+    }
 
     if (body.isEmpty) {
       throw ArgumentError('Debes proporcionar al menos un campo a modificar.');
@@ -46,6 +50,7 @@ class ProfileService {
         avatarColor: (color != null && color.trim().isNotEmpty) ? color.trim() : current.avatarColor,
         avatarLetra: (letra != null && letra.trim().isNotEmpty) ? letra.trim().toUpperCase() : current.avatarLetra,
         avatarUrl: url != null ? (url.trim().isEmpty ? null : url.trim()) : current.avatarUrl,
+        telefono: telefono != null ? (telefono.trim().isEmpty ? null : telefono.trim()) : current.telefono,
       );
       await _sessionService.saveUserProfile(optimistic);
     }

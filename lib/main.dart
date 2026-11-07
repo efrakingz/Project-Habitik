@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/core/navigation/app_router.dart';
+import 'package:habitik/core/services/api_client.dart';
 import 'package:habitik/core/services/network_service.dart';
 import 'package:habitik/core/services/notification_service.dart';
 import 'package:habitik/core/services/notification_sync_service.dart';
@@ -21,6 +22,7 @@ void main() async {
 
   // Cargar preferencia de tema (caché persistente de SharedPreferences o modo del celular)
   await ThemeService.init();
+  await ApiClient.initCustomBaseUrl();
 
   // Lanzar la aplicación inmediatamente
   runApp(const HabitikApp());

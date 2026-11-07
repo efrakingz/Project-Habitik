@@ -11,6 +11,7 @@ import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/branding/habitik_logo.dart';
 import 'forgot_password_screen.dart';
+import 'widgets/server_config_modal.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLogin;
@@ -168,8 +169,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             // Fila superior con toggle de tema
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
+                                _ServerConfigButton(isDark: isDark),
                                 _ThemeToggleButton(isDark: isDark),
                               ],
                             ),
@@ -419,6 +421,55 @@ class _LoginScreenState extends State<LoginScreen> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-widgets Privados y Modulares
 // ─────────────────────────────────────────────────────────────────────────────
+
+class _ServerConfigButton extends StatelessWidget {
+  final bool isDark;
+  const _ServerConfigButton({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final isRailway = ApiClient.baseUrl.contains('railway.app');
+
+    return GestureDetector(
+      onTap: () async {
+        await ServerConfigModal.show(context);
+        (context as Element).markNeedsBuild();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.22),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isRailway
+                ? Colors.white.withValues(alpha: 0.35)
+                : const Color(0xFFFFD54F).withValues(alpha: 0.8),
+            width: isRailway ? 1 : 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isRailway ? Icons.cloud_outlined : Icons.wifi_tethering,
+              color: isRailway ? Colors.white : const Color(0xFFFFD54F),
+              size: 15,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              isRailway ? 'Nube' : 'Local',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 11.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ThemeToggleButton extends StatelessWidget {
   final bool isDark;

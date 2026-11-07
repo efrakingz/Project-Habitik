@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'session_service.dart';
-import 'audio_service.dart';
-import '../../shared/widgets/modals/level_up_modal.dart';
 
-/// Servicio para calcular, auditar y desplegar la subida de niveles y recompensas acumuladas
+/// Servicio para calcular y auditar rangos de nivel.
+/// Recompensas acumuladas de nivel desactivadas por requerimiento de producto.
 class LevelService {
   static const int monedasPorNivel = 10;
 
@@ -39,70 +37,11 @@ class LevelService {
     return nivelesSubidos * monedasPorNivel;
   }
 
-  /// Evalúa si el usuario actual tiene niveles pendientes por reclamar y muestra el modal
+  /// Modal y entrega de monedas desactivados temporalmente por solicitud de producto.
   static Future<bool> checkAndShowLevelUp(
     BuildContext context, {
     int? nivelForzado,
   }) async {
-    final session = SessionService();
-    final user = session.currentUser;
-    if (user == null) return false;
-
-    final nivelActual = nivelForzado ?? user.nivel;
-    final ultimoReclamadoRaw = await getUltimoNivelReclamado(user.id);
-
-    // Si es la primera vez que se consulta:
-    // Si ya está en nivel > 1 y nunca reclamó, reclamará desde el nivel 1
-    // Si está en nivel 1, se inicializa en 1 y no muestra modal inicial
-    int ultimoReclamado;
-    if (ultimoReclamadoRaw == null) {
-      if (nivelActual > 1) {
-        ultimoReclamado = 1;
-      } else {
-        await setUltimoNivelReclamado(user.id, 1);
-        return false;
-      }
-    } else {
-      ultimoReclamado = ultimoReclamadoRaw;
-    }
-
-    if (nivelActual > ultimoReclamado) {
-      final nivelesSubidos = nivelActual - ultimoReclamado;
-      final monedasTotales = calcularRecompensaMonedas(nivelesSubidos);
-      final titulo = obtenerTituloRango(nivelActual);
-
-      if (!context.mounted) return false;
-
-      // Reproducir sonido de celebración
-      AudioService.playSFX('click.mp3');
-
-      final reclamado = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: Colors.black.withAlpha(180),
-        builder: (ctx) => LevelUpModal(
-          nivelAnterior: ultimoReclamado,
-          nivelNuevo: nivelActual,
-          nivelesSubidos: nivelesSubidos,
-          monedasAcumuladas: monedasTotales,
-          tituloRango: titulo,
-        ),
-      );
-
-      if (reclamado == true) {
-        // Persistir el nuevo nivel reclamado
-        await setUltimoNivelReclamado(user.id, nivelActual);
-
-        // Acreditar las monedas acumuladas al perfil en sesión
-        final saldoActual = session.currentUser?.monedas ?? user.monedas;
-        await session.updateRewardsAndXp(
-          monedas: saldoActual + monedasTotales,
-          nivel: nivelActual,
-        );
-        return true;
-      }
-    }
-
     return false;
   }
 }

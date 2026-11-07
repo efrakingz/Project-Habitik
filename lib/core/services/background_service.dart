@@ -96,6 +96,13 @@ void onStart(ServiceInstance service) async {
           return;
         }
 
+        final String tipo = (parsedData['tipo'] ?? '').toString().toUpperCase();
+        // Las reacciones del feed no deben generar notificaciones en el sistema ni en segundo plano
+        if (tipo == 'FEED_REACCION' || parsedData['silencioso'] == true || parsedData['es_notificacion'] == false) {
+          service.invoke('nuevo_evento', parsedData);
+          return;
+        }
+
         final String notifKey = '${parsedData['id'] ?? parsedData['titulo']}_${parsedData['tipo'] ?? 'ALERTA'}';
         final int notifId = notifKey.hashCode.abs() % 100000;
         final String sender = parsedData['usuario_nombre'] ?? parsedData['sender_name'] ?? 'Familiar';
@@ -105,6 +112,24 @@ void onStart(ServiceInstance service) async {
         final String notifTitle = (sender.isNotEmpty && sender != 'Habitik AI' && sender != 'Familiar')
             ? '$sender: $titulo'
             : titulo;
+
+        // Control estricto de fatiga: máximo 2 notificaciones al día con la app cerrada / en segundo plano
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final now = DateTime.now();
+          final todayStr = '${now.year}-${now.month.toString().padLeft(2, "0")}-${now.day.toString().padLeft(2, "0")}';
+          final lastDate = prefs.getString('bg_notif_date') ?? '';
+          int bgCount = (lastDate == todayStr) ? (prefs.getInt('bg_notif_count') ?? 0) : 0;
+
+          if (bgCount >= 2) {
+            debugPrint('🌙 [BackgroundService] Límite diario en segundo plano alcanzado (máximo 2 al día). Notificación nativa omitida.');
+            service.invoke('nuevo_evento', parsedData);
+            return;
+          }
+
+          await prefs.setString('bg_notif_date', todayStr);
+          await prefs.setInt('bg_notif_count', bgCount + 1);
+        } catch (_) {}
 
         // 1. Mostrar notificación nativa emergente en el sistema con diseño parametrizado
         await NotificationService.mostrarNotificacionSistema(

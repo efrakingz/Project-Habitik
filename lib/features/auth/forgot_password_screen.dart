@@ -11,18 +11,19 @@ import 'package:habitik/shared/widgets/layout/loading_overlay.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   final String? initialEmail;
-  const ForgotPasswordScreen({super.key, this.initialEmail});
+  final String? initialPhone;
+  const ForgotPasswordScreen({super.key, this.initialEmail, this.initialPhone});
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  int _currentStep = 0; // 0: Email, 1: Código, 2: Nueva Contraseña, 3: Éxito
+  int _currentStep = 0; // 0: Contact/Phone, 1: Código, 2: Nueva Contraseña, 3: Éxito
   bool _loading = false;
   String _loadingMessage = '';
 
-  final _emailCtrl = TextEditingController();
+  final _contactCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
   final _newPwdCtrl = TextEditingController();
   final _confirmPwdCtrl = TextEditingController();
@@ -36,15 +37,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
-      _emailCtrl.text = widget.initialEmail!;
+    if (widget.initialPhone != null && widget.initialPhone!.isNotEmpty) {
+      _contactCtrl.text = widget.initialPhone!;
+    } else if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
+      _contactCtrl.text = widget.initialEmail!;
     }
   }
 
   @override
   void dispose() {
     _resendTimer?.cancel();
-    _emailCtrl.dispose();
+    _contactCtrl.dispose();
     _codeCtrl.dispose();
     _newPwdCtrl.dispose();
     _confirmPwdCtrl.dispose();
@@ -68,32 +71,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Paso 1: Enviar Código
+  // Paso 1: Enviar Código SMS / Teléfono
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _handleSendCode() async {
-    final email = _emailCtrl.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      HabitikFeedback.showError(context, 'Por favor ingresa un correo electrónico válido.');
+    final contact = _contactCtrl.text.trim();
+    if (contact.isEmpty || contact.length < 6) {
+      HabitikFeedback.showError(context, 'Por favor ingresa un número de teléfono celular válido.');
       return;
     }
 
     setState(() {
       _loading = true;
-      _loadingMessage = 'Enviando código de verificación...';
+      _loadingMessage = 'Enviando código SMS de verificación...';
     });
 
     try {
-      final response = await ApiClient().post('/auth/forgot-password', {
-        'email': email,
-      });
+      final isEmail = contact.contains('@');
+      final payload = isEmail ? {'email': contact} : {'phone': contact};
+      final response = await ApiClient().post('/auth/forgot-password', payload);
 
       final data = jsonDecode(response.body);
       if (!mounted) return;
 
-      debugPrint('✅ [ForgotPasswordScreen] Código solicitado para: $email');
+      debugPrint('✅ [ForgotPasswordScreen] Código solicitado para: $contact');
       HabitikFeedback.showSuccess(
         context,
-        data['message'] ?? 'Código enviado. Revisa tu correo.',
+        data['message'] ?? 'Código SMS enviado a tu dispositivo.',
       );
 
       _startResendCountdown();
@@ -115,11 +118,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // Paso 2: Verificar Código
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _handleVerifyCode() async {
-    final email = _emailCtrl.text.trim();
+    final contact = _contactCtrl.text.trim();
     final code = _codeCtrl.text.trim();
 
     if (code.length < 6) {
-      HabitikFeedback.showError(context, 'Ingresa el código de 6 dígitos que enviamos a tu correo.');
+      HabitikFeedback.showError(context, 'Ingresa el código de 6 dígitos que te enviamos.');
       return;
     }
 
@@ -129,10 +132,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     try {
-      final response = await ApiClient().post('/auth/verify-reset-code', {
-        'email': email,
-        'code': code,
-      });
+      final isEmail = contact.contains('@');
+      final payload = isEmail
+          ? {'email': contact, 'code': code}
+          : {'phone': contact, 'code': code};
+      final response = await ApiClient().post('/auth/verify-reset-code', payload);
 
       final data = jsonDecode(response.body);
       if (!mounted) return;
@@ -158,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // Paso 3: Restablecer Contraseña
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _handleResetPassword() async {
-    final email = _emailCtrl.text.trim();
+    final contact = _contactCtrl.text.trim();
     final code = _codeCtrl.text.trim();
     final newPwd = _newPwdCtrl.text;
     final confirmPwd = _confirmPwdCtrl.text;
@@ -178,11 +182,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     try {
-      final response = await ApiClient().post('/auth/reset-password', {
-        'email': email,
-        'code': code,
-        'newPassword': newPwd,
-      });
+      final isEmail = contact.contains('@');
+      final payload = isEmail
+          ? {'email': contact, 'code': code, 'newPassword': newPwd}
+          : {'phone': contact, 'code': code, 'newPassword': newPwd};
+      final response = await ApiClient().post('/auth/reset-password', payload);
 
       final data = jsonDecode(response.body);
       if (!mounted) return;
@@ -290,13 +294,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           child: switch (_currentStep) {
-                            0 => _StepEmail(
-                                emailCtrl: _emailCtrl,
+                            0 => _StepContact(
+                                contactCtrl: _contactCtrl,
                                 isDark: isDark,
                                 onSendCode: _handleSendCode,
                               ),
                             1 => _StepCode(
-                                email: _emailCtrl.text.trim(),
+                                contact: _contactCtrl.text.trim(),
                                 codeCtrl: _codeCtrl,
                                 isDark: isDark,
                                 secondsRemaining: _secondsRemaining,
@@ -315,7 +319,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                             _ => _StepSuccess(
                                 isDark: isDark,
-                                onGoToLogin: () => Navigator.pop(context, _emailCtrl.text.trim()),
+                                onGoToLogin: () => Navigator.pop(context, _contactCtrl.text.trim()),
                               ),
                           },
                         ),
@@ -339,15 +343,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Paso 1: Formulario de Correo
+// Paso 1: Formulario de Contacto (SMS / Teléfono Celular)
 // ─────────────────────────────────────────────────────────────────────────────
-class _StepEmail extends StatelessWidget {
-  final TextEditingController emailCtrl;
+class _StepContact extends StatelessWidget {
+  final TextEditingController contactCtrl;
   final bool isDark;
   final VoidCallback onSendCode;
 
-  const _StepEmail({
-    required this.emailCtrl,
+  const _StepContact({
+    required this.contactCtrl,
     required this.isDark,
     required this.onSendCode,
   });
@@ -355,7 +359,7 @@ class _StepEmail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      key: const ValueKey('step_email'),
+      key: const ValueKey('step_contact'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
@@ -366,7 +370,7 @@ class _StepEmail extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: const Center(
-            child: Icon(Icons.mail_outline_rounded, color: HabitikColors.green700, size: 28),
+            child: Icon(Icons.phone_android_rounded, color: HabitikColors.green700, size: 28),
           ),
         ),
         const SizedBox(height: 16),
@@ -380,7 +384,7 @@ class _StepEmail extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Ingresa el correo electrónico asociado a tu cuenta. Te enviaremos un código de verificación de 6 dígitos.',
+          'Ingresa el número de teléfono celular registrado en tu cuenta. Te enviaremos un código SMS de 6 dígitos.',
           style: GoogleFonts.outfit(
             color: isDark ? Colors.white70 : HabitikColors.textMid,
             fontSize: 13.5,
@@ -389,16 +393,16 @@ class _StepEmail extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         TextField(
-          controller: emailCtrl,
-          keyboardType: TextInputType.emailAddress,
+          controller: contactCtrl,
+          keyboardType: TextInputType.phone,
           style: GoogleFonts.outfit(
             color: isDark ? Colors.white : HabitikColors.textDark,
             fontSize: 15,
           ),
           decoration: InputDecoration(
-            labelText: 'Correo Electrónico',
-            hintText: 'ejemplo@correo.com',
-            prefixIcon: const Icon(Icons.alternate_email_rounded, color: HabitikColors.green600, size: 20),
+            labelText: 'Teléfono Celular (SMS)',
+            hintText: '+56 9 1234 5678',
+            prefixIcon: const Icon(Icons.phone_android_rounded, color: HabitikColors.green600, size: 20),
             filled: true,
             fillColor: isDark ? const Color(0xFF1E2E22) : const Color(0xFFF7FAF7),
             border: OutlineInputBorder(
@@ -417,8 +421,8 @@ class _StepEmail extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         PrimaryButton(
-          label: 'Enviar código',
-          icon: Icons.send_rounded,
+          label: 'Enviar código SMS',
+          icon: Icons.sms_rounded,
           onTap: onSendCode,
         ),
       ],
@@ -430,7 +434,7 @@ class _StepEmail extends StatelessWidget {
 // Paso 2: Formulario de Código Verificador
 // ─────────────────────────────────────────────────────────────────────────────
 class _StepCode extends StatelessWidget {
-  final String email;
+  final String contact;
   final TextEditingController codeCtrl;
   final bool isDark;
   final int secondsRemaining;
@@ -438,7 +442,7 @@ class _StepCode extends StatelessWidget {
   final VoidCallback onResendCode;
 
   const _StepCode({
-    required this.email,
+    required this.contact,
     required this.codeCtrl,
     required this.isDark,
     required this.secondsRemaining,
@@ -460,7 +464,7 @@ class _StepCode extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: const Center(
-            child: Icon(Icons.pin_outlined, color: HabitikColors.green700, size: 28),
+            child: Icon(Icons.sms_rounded, color: HabitikColors.green700, size: 28),
           ),
         ),
         const SizedBox(height: 16),
@@ -474,7 +478,7 @@ class _StepCode extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Hemos enviado un código de 6 dígitos a:\n$email',
+          'Hemos enviado un código SMS de 6 dígitos a:\n$contact',
           style: GoogleFonts.outfit(
             color: isDark ? Colors.white70 : HabitikColors.textMid,
             fontSize: 13.5,

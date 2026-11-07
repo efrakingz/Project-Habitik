@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
+import 'package:habitik/shared/widgets/buttons/buttons.dart';
 import 'game/rewards_controller.dart';
 import 'widgets/rewards_hud_overlay.dart';
 import 'widgets/create_reward_dialog.dart';
+import 'widgets/coin_value_guide.dart';
 
 class RewardsScreen extends StatefulWidget {
   final bool isActive;
@@ -140,6 +142,16 @@ class _RewardsScreenState extends State<RewardsScreen> {
           subtitulo: 'RECOMPENSAS',
           useDefaultBackground: true,
           headerActions: [
+            // ── Guía de valor de monedas (Perfil Admin / Jefe) ─────
+            if (isJefe) ...[
+              IconActionButton(
+                icon: Icons.info_outline_rounded,
+                onTap: () => CoinValueInfoModal.show(context, isDark: isDark),
+                bgColor: Colors.white.withAlpha(50),
+                iconColor: Colors.white,
+              ),
+              const SizedBox(width: 8),
+            ],
             // ── Botón Crear / Proponer (verde sólido) ───────────────
             GestureDetector(
               onTap: () {

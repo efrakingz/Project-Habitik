@@ -368,10 +368,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Evolución del consumo'), findsOneWidget);
-      expect(find.text('Historial de Auditoría'), findsOneWidget);
+      expect(find.text('Registro de boletas'), findsOneWidget);
       expect(
         tester.getTopLeft(find.text('Evolución del consumo')).dy,
-        lessThan(tester.getTopLeft(find.text('Historial de Auditoría')).dy),
+        lessThan(tester.getTopLeft(find.text('Registro de boletas')).dy),
       );
     });
   });
@@ -384,7 +384,7 @@ void main() {
     }
 
     testWidgets(
-      'ScanActionCard despliega las 4 opciones y el aviso de privacidad',
+      'ScanActionCard despliega las 4 opciones sin aviso de privacidad',
       (tester) async {
         bool photoCalled = false;
         bool imageCalled = false;
@@ -412,7 +412,7 @@ void main() {
           find.textContaining(
             'Tu documento se procesa solo en este dispositivo',
           ),
-          findsOneWidget,
+          findsNothing,
         );
 
         // Prueba de interacción táctil
@@ -592,7 +592,7 @@ void main() {
     );
 
     testWidgets(
-      'CA-4: El documento cargado queda vinculado al registro histórico para futuras auditorías',
+      'CA-4: muestra los registros sin metadatos de OCR o adjuntos',
       (tester) async {
         final billWithDoc = BillRecord(
           id: 'bill_hist_01',
@@ -633,20 +633,14 @@ void main() {
         );
         await tester.pump();
 
-        expect(find.text('Historial de Auditoría'), findsOneWidget);
+        expect(find.text('Registro de boletas'), findsOneWidget);
         expect(find.text('2'), findsOneWidget);
 
-        // Registro con documento PDF vinculado
         expect(find.text('CGE'), findsOneWidget);
-        expect(find.text('boleta_cge_sep.pdf'), findsOneWidget);
-        expect(find.text('🔍 OCR Confirmado'), findsOneWidget);
-        expect(find.text('📊 175.0 kWh'), findsOneWidget);
-
-        // Registro manual sin documento
         expect(find.text('Aguas Andinas'), findsOneWidget);
-        expect(find.text('Sin doc. adjunto'), findsOneWidget);
-        expect(find.text('✍️ Manual'), findsOneWidget);
-        expect(find.text('📊 18.0 m³'), findsOneWidget);
+        expect(find.textContaining('OCR Confirmado'), findsNothing);
+        expect(find.textContaining('Sin doc. adjunto'), findsNothing);
+        expect(find.textContaining('Manual'), findsNothing);
       },
     );
   });
