@@ -8,6 +8,7 @@ import 'package:habitik/core/services/bill_service.dart';
 import 'package:habitik/data/models/bill_record.dart';
 import 'package:habitik/features/scan/scan_screen.dart';
 import 'package:habitik/features/scan/widgets/bill_form_view.dart';
+import 'package:habitik/features/scan/widgets/bill_consumption_chart.dart';
 import 'package:habitik/features/scan/widgets/bill_history_section.dart';
 import 'package:habitik/features/scan/widgets/scan_action_card.dart';
 
@@ -20,56 +21,59 @@ void main() {
   });
 
   group('HU 3.2 - BillRecord Model & Backend Contract', () {
-    test('Serializa y deserializa contrato estructurado con metadatos de respaldo', () {
-      final now = DateTime(2026, 10, 29);
-      final from = DateTime(2026, 10, 1);
-      final to = DateTime(2026, 10, 25);
-      final due = DateTime(2026, 11, 10);
+    test(
+      'Serializa y deserializa contrato estructurado con metadatos de respaldo',
+      () {
+        final now = DateTime(2026, 10, 29);
+        final from = DateTime(2026, 10, 1);
+        final to = DateTime(2026, 10, 25);
+        final due = DateTime(2026, 11, 10);
 
-      final bill = BillRecord(
-        id: 'bill_test_01',
-        tipoServicio: 'Electricidad',
-        proveedor: 'Enel Distribución',
-        periodoDesde: from,
-        periodoHasta: to,
-        consumo: 185.5,
-        unidad: 'kWh',
-        monto: 35400,
-        fechaVencimiento: due,
-        entrySource: 'ocr_confirmed',
-        hasDocumentBackup: true,
-        documentName: 'boleta_octubre.pdf',
-        documentType: 'pdf',
-        documentSizeBytes: 1048576,
-        createdAt: now,
-      );
+        final bill = BillRecord(
+          id: 'bill_test_01',
+          tipoServicio: 'Electricidad',
+          proveedor: 'Enel Distribución',
+          periodoDesde: from,
+          periodoHasta: to,
+          consumo: 185.5,
+          unidad: 'kWh',
+          monto: 35400,
+          fechaVencimiento: due,
+          entrySource: 'ocr_confirmed',
+          hasDocumentBackup: true,
+          documentName: 'boleta_octubre.pdf',
+          documentType: 'pdf',
+          documentSizeBytes: 1048576,
+          createdAt: now,
+        );
 
-      final json = bill.toJson();
+        final json = bill.toJson();
 
-      final payload = bill.toBackendPayload();
-      expect(payload, {
-        'service_type': 'electricity',
-        'provider_code': 'enel_distribucion',
-        'period_start': '2026-10-01',
-        'period_end': '2026-10-25',
-        'consumption': 185.5,
-        'amount_clp': 35400,
-        'due_date': '2026-11-10',
-        'entry_source': 'ocr_confirmed',
-      });
+        final payload = bill.toBackendPayload();
+        expect(payload, {
+          'service_type': 'electricity',
+          'provider_code': 'enel_distribucion',
+          'period_start': '2026-10-01',
+          'period_end': '2026-10-25',
+          'consumption': 185.5,
+          'amount_clp': 35400,
+          'due_date': '2026-11-10',
+          'entry_source': 'ocr_confirmed',
+        });
 
-      // Deserialización defensiva
-      final parsed = BillRecord.fromJson(json);
-      expect(parsed.id, 'bill_test_01');
-      expect(parsed.tipoServicio, 'Electricidad');
-      expect(parsed.isElectricidad, true);
-      expect(parsed.isAgua, false);
-      expect(parsed.proveedor, 'Enel Distribución');
-      expect(parsed.consumo, 185.5);
-      expect(parsed.monto, 35400);
-      expect(parsed.hasDocumentBackup, true);
-      expect(parsed.documentName, 'boleta_octubre.pdf');
-    });
+        // Deserialización defensiva
+        final parsed = BillRecord.fromJson(json);
+        expect(parsed.id, 'bill_test_01');
+        expect(parsed.tipoServicio, 'Electricidad');
+        expect(parsed.isElectricidad, true);
+        expect(parsed.isAgua, false);
+        expect(parsed.proveedor, 'Enel Distribución');
+        expect(parsed.consumo, 185.5);
+        expect(parsed.monto, 35400);
+        expect(parsed.hasDocumentBackup, true);
+        expect(parsed.documentName, 'boleta_octubre.pdf');
+      },
+    );
 
     test('Tolerancia defensiva ante campos en español y valores nulos', () {
       final jsonEs = {
@@ -189,337 +193,478 @@ void main() {
       expect(result.documentType, 'imagen');
     });
 
-    test('Maneja documento ilegible o fallido reportando mensaje amigable', () async {
-      final result = await ocrService.processDocument(
-        fileName: 'boleta_borrosa_error.jpg',
-        fileSizeBytes: 200 * 1024,
-      );
+    test(
+      'Maneja documento ilegible o fallido reportando mensaje amigable',
+      () async {
+        final result = await ocrService.processDocument(
+          fileName: 'boleta_borrosa_error.jpg',
+          fileSizeBytes: 200 * 1024,
+        );
 
-      expect(result.isSuccess, false);
-      expect(
-        result.errorMessage,
-        'No pudimos leer los datos automáticamente. Puedes ingresarlos de forma manual.',
-      );
-    });
+        expect(result.isSuccess, false);
+        expect(
+          result.errorMessage,
+          'No pudimos leer los datos automáticamente. Puedes ingresarlos de forma manual.',
+        );
+      },
+    );
 
-    test('Rechaza imagen aleatoria o no reconocida como boleta (ej. cámara virtual)', () async {
-      final result = await ocrService.processDocument(
-        fileName: 'scaled_camera_image_123.jpg',
-        fileSizeBytes: 200 * 1024,
-      );
+    test(
+      'Rechaza imagen aleatoria o no reconocida como boleta (ej. cámara virtual)',
+      () async {
+        final result = await ocrService.processDocument(
+          fileName: 'scaled_camera_image_123.jpg',
+          fileSizeBytes: 200 * 1024,
+        );
 
-      expect(result.isSuccess, false);
-      expect(
-        result.errorMessage,
-        contains('No se detectaron datos de una boleta válida en la imagen'),
-      );
-    });
+        expect(result.isSuccess, false);
+        expect(
+          result.errorMessage,
+          contains('No se detectaron datos de una boleta válida en la imagen'),
+        );
+      },
+    );
   });
 
   group('HU 3.2 - BillService Persistence & History', () {
-    test('registerBill guarda localmente y emite notificación reactiva', () async {
+    test(
+      'registerBill guarda localmente y emite notificación reactiva',
+      () async {
+        final billService = BillService();
+        await billService.clearAll();
+
+        expect(billService.bills.length, 0);
+
+        final record = BillRecord(
+          id: 'bill_001',
+          tipoServicio: 'Agua',
+          proveedor: 'Esval',
+          periodoDesde: DateTime(2026, 9, 1),
+          periodoHasta: DateTime(2026, 9, 30),
+          consumo: 20.0,
+          unidad: 'm³',
+          monto: 16000,
+          fechaVencimiento: DateTime(2026, 10, 15),
+          entrySource: 'manual',
+          hasDocumentBackup: true,
+          documentName: 'boleta_esval.pdf',
+          documentType: 'pdf',
+          createdAt: DateTime.now(),
+        );
+
+        await billService.registerBill(record);
+
+        expect(billService.bills.length, 1);
+        expect(billService.bills.first.id, 'bill_001');
+        expect(billService.bills.first.proveedor, 'Esval');
+        expect(billService.billsNotifier.value.length, 1);
+      },
+    );
+  });
+
+  group('HU 3.2 - Evolución mensual de consumo', () {
+    test('agrupa agua por mes y suma consumos del mismo mes', () {
+      final points = BillConsumptionChart.monthlyPoints(
+        bills: [
+          _bill(
+            id: 'water_oct_1',
+            tipoServicio: 'Agua',
+            periodoHasta: DateTime(2026, 10, 10),
+            consumo: 10,
+          ),
+          _bill(
+            id: 'water_oct_2',
+            tipoServicio: 'Agua',
+            periodoHasta: DateTime(2026, 10, 25),
+            consumo: 12.5,
+          ),
+          _bill(
+            id: 'electricity_oct',
+            tipoServicio: 'Electricidad',
+            periodoHasta: DateTime(2026, 10, 20),
+            consumo: 80,
+          ),
+        ],
+        service: BillChartService.water,
+        months: 3,
+        now: DateTime(2026, 11, 6),
+      );
+
+      expect(points, hasLength(3));
+      expect(points[1].value, 22.5);
+      expect(points[1].hasValue, isTrue);
+    });
+
+    test('mantiene meses sin boletas como puntos sin valor', () {
+      final points = BillConsumptionChart.monthlyPoints(
+        bills: [
+          _bill(
+            id: 'electricity_nov',
+            tipoServicio: 'Electricidad',
+            periodoHasta: DateTime(2026, 11, 1),
+            consumo: 90,
+          ),
+        ],
+        service: BillChartService.electricity,
+        months: 3,
+        now: DateTime(2026, 11, 6),
+      );
+
+      expect(points[0].hasValue, isFalse);
+      expect(points[1].hasValue, isFalse);
+      expect(points[2].value, 90);
+    });
+
+    testWidgets('alterna servicio y período de la evolución de consumo', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BillConsumptionChart(
+              bills: [
+                _bill(
+                  id: 'water_current',
+                  tipoServicio: 'Agua',
+                  periodoHasta: DateTime.now(),
+                  consumo: 20,
+                ),
+                _bill(
+                  id: 'electricity_current',
+                  tipoServicio: 'Electricidad',
+                  periodoHasta: DateTime.now(),
+                  consumo: 100,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Evolución del consumo'), findsOneWidget);
+      expect(find.text('m³ por mes'), findsOneWidget);
+      expect(
+        find.byKey(const Key('bill_chart_service_electricity')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('bill_chart_range_12')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('bill_chart_service_electricity')));
+      await tester.tap(find.byKey(const Key('bill_chart_range_12')));
+      await tester.pump();
+
+      expect(find.text('kWh por mes'), findsOneWidget);
+    });
+
+    testWidgets('muestra la evolución antes del historial de auditoría', (
+      tester,
+    ) async {
       final billService = BillService();
       await billService.clearAll();
 
-      expect(billService.bills.length, 0);
-
-      final record = BillRecord(
-        id: 'bill_001',
-        tipoServicio: 'Agua',
-        proveedor: 'Esval',
-        periodoDesde: DateTime(2026, 9, 1),
-        periodoHasta: DateTime(2026, 9, 30),
-        consumo: 20.0,
-        unidad: 'm³',
-        monto: 16000,
-        fechaVencimiento: DateTime(2026, 10, 15),
-        entrySource: 'manual',
-        hasDocumentBackup: true,
-        documentName: 'boleta_esval.pdf',
-        documentType: 'pdf',
-        createdAt: DateTime.now(),
+      await tester.pumpWidget(
+        MaterialApp(home: ScanScreen(billService: billService)),
       );
+      await tester.pump();
 
-      await billService.registerBill(record);
-
-      expect(billService.bills.length, 1);
-      expect(billService.bills.first.id, 'bill_001');
-      expect(billService.bills.first.proveedor, 'Esval');
-      expect(billService.billsNotifier.value.length, 1);
-    });
-  });
-
-  group('HU 3.2 - Consumo mensual', () {
-    test('agrupa consumo por servicio y mes', () {
-      BillRecord bill(
-        String id,
-        String service,
-        DateTime periodStart,
-        double consumption,
-        String unit,
-      ) => BillRecord(
-            id: id,
-            tipoServicio: service,
-            proveedor: service == 'Agua' ? 'Esval' : 'CGE',
-            periodoDesde: periodStart,
-            periodoHasta: periodStart.add(const Duration(days: 29)),
-            consumo: consumption,
-            unidad: unit,
-            monto: 10000,
-            fechaVencimiento: periodStart.add(const Duration(days: 40)),
-            entrySource: 'manual',
-            createdAt: periodStart,
-          );
-
-      final series = buildMonthlyConsumptionSeries([
-        bill('e1', 'Electricidad', DateTime(2026, 8, 1), 120, 'kWh'),
-        bill('e2', 'Electricidad', DateTime(2026, 8, 15), 80, 'kWh'),
-        bill('a1', 'Agua', DateTime(2026, 9, 1), 15, 'm³'),
-      ]);
-
-      expect(series.electricity.single.total, 200);
-      expect(series.electricity.single.label, 'Ago');
-      expect(series.water.single.total, 15);
-      expect(series.water.single.label, 'Sep');
+      expect(find.text('Evolución del consumo'), findsOneWidget);
+      expect(find.text('Registro de boletas'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Evolución del consumo')).dy,
+        lessThan(tester.getTopLeft(find.text('Registro de boletas')).dy),
+      );
     });
   });
 
   group('HU 3.2 - Widgets & User Experience Flow', () {
     Widget buildTestableWidget(Widget child) {
       return MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(child: child),
-        ),
+        home: Scaffold(body: SingleChildScrollView(child: child)),
       );
     }
 
-    testWidgets('ScanActionCard despliega las 4 opciones sin aviso de privacidad',
-        (tester) async {
-      bool photoCalled = false;
-      bool imageCalled = false;
-      bool pdfCalled = false;
-      bool manualCalled = false;
-
-      await tester.pumpWidget(
-        buildTestableWidget(
-          ScanActionCard(
-            onTakePhoto: () => photoCalled = true,
-            onPickImage: () => imageCalled = true,
-            onPickPdf: () => pdfCalled = true,
-            onManualInput: () => manualCalled = true,
-          ),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.text('Escáner de Boletas'), findsOneWidget);
-      expect(find.text('Tomar foto'), findsOneWidget);
-      expect(find.text('Elegir imagen'), findsOneWidget);
-      expect(find.text('Elegir PDF'), findsOneWidget);
-      expect(find.text('Ingresar manual'), findsOneWidget);
-      expect(
-        find.textContaining('Tu documento se procesa solo en este dispositivo'),
-        findsNothing,
-      );
-
-      // Prueba de interacción táctil
-      await tester.tap(find.text('Tomar foto'));
-      expect(photoCalled, true);
-
-      await tester.tap(find.text('Elegir imagen'));
-      expect(imageCalled, true);
-
-      await tester.tap(find.text('Elegir PDF'));
-      expect(pdfCalled, true);
-
-      await tester.tap(find.text('Ingresar manual'));
-      expect(manualCalled, true);
-    });
-
     testWidgets(
-        'CA-1: Inmediatamente después de un escaneo fallido o incorrecto, ofrece "Editar datos"',
-        (tester) async {
-      final billService = BillService();
-      await billService.clearAll();
+      'ScanActionCard despliega las 4 opciones sin aviso de privacidad',
+      (tester) async {
+        bool photoCalled = false;
+        bool imageCalled = false;
+        bool pdfCalled = false;
+        bool manualCalled = false;
 
-      final fakePicker = _FakeImagePicker(
-        _FakeXFile('boleta_ilegible_fallo.jpg'),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ScanScreen(
-              billService: billService,
-              imagePicker: fakePicker,
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ScanActionCard(
+              onTakePhoto: () => photoCalled = true,
+              onPickImage: () => imageCalled = true,
+              onPickPdf: () => pdfCalled = true,
+              onManualInput: () => manualCalled = true,
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        );
+        await tester.pump();
 
-      // 1. Simular captura de documento que falla en lectura automática
-      await tester.tap(find.text('Tomar foto'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 700)); // Espera proceso OCR
-
-      // 2. Verificar que se despliega la pantalla de error oficial
-      expect(find.text('Lectura no completada'), findsOneWidget);
-      expect(
-        find.text(
-            'No pudimos leer los datos automáticamente. Puedes ingresarlos de forma manual.'),
-        findsOneWidget,
-      );
-
-      // 3. Verificar que ofrece inmediatamente la opción "Editar datos" (Criterio 1)
-      final editBtn = find.byKey(const Key('scan_error_edit_data_button'));
-      expect(editBtn, findsOneWidget);
-
-      // 4. Pulsar "Editar datos" abre de inmediato el formulario editable sin bloquear
-      await tester.tap(editBtn);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('Tipo de Servicio'), findsOneWidget);
-      expect(find.text('Revisa los datos antes de confirmar. La lectura automática puede contener errores.'),
-          findsOneWidget);
-      expect(find.textContaining('boleta_ilegible_fallo.jpg'), findsOneWidget);
-    });
-
-    testWidgets(
-        'CA-3: Validación al ingresar datos manualmente (monto y consumo no vacíos y formato numérico > 0)',
-        (tester) async {
-      BillRecord? confirmedRecord;
-
-      await tester.pumpWidget(
-        buildTestableWidget(
-          BillFormView(
-            initialData: BillRecord.empty,
-            onConfirm: (record) => confirmedRecord = record,
-            onCancel: () {},
+        expect(find.text('Escáner de Boletas'), findsOneWidget);
+        expect(find.text('Tomar foto'), findsOneWidget);
+        expect(find.text('Elegir imagen'), findsOneWidget);
+        expect(find.text('Elegir PDF'), findsOneWidget);
+        expect(find.text('Ingresar manual'), findsOneWidget);
+        expect(
+          find.textContaining(
+            'Tu documento se procesa solo en este dispositivo',
           ),
-        ),
-      );
-      await tester.pump();
+          findsNothing,
+        );
 
-      // Intento de confirmar con campos vacíos
-      final confirmBtn = find.byKey(const Key('bill_confirm_button'));
-      await tester.ensureVisible(confirmBtn);
-      await tester.tap(confirmBtn);
-      await tester.pump();
+        // Prueba de interacción táctil
+        await tester.tap(find.text('Tomar foto'));
+        expect(photoCalled, true);
 
-      expect(find.text('Ingresa el valor de consumo.'), findsOneWidget);
-      expect(find.text('Ingresa el monto facturado.'), findsOneWidget);
-      expect(confirmedRecord, isNull);
+        await tester.tap(find.text('Elegir imagen'));
+        expect(imageCalled, true);
 
-      // Ingreso de valores inválidos (cero o negativos)
-      await tester.enterText(
-          find.byKey(const Key('bill_consumption_input')), '0');
-      await tester.enterText(
-          find.byKey(const Key('bill_amount_input')), '-500');
-      await tester.ensureVisible(confirmBtn);
-      await tester.tap(confirmBtn);
-      await tester.pump();
+        await tester.tap(find.text('Elegir PDF'));
+        expect(pdfCalled, true);
 
-      expect(find.text('El consumo debe ser un número positivo.'), findsOneWidget);
-      expect(find.text('El monto debe ser un entero positivo.'), findsOneWidget);
-      expect(confirmedRecord, isNull);
-
-      // Ingreso de valores válidos
-      await tester.enterText(
-          find.byKey(const Key('bill_consumption_input')), '190.5');
-      await tester.enterText(
-          find.byKey(const Key('bill_amount_input')), '36000');
-      await tester.ensureVisible(confirmBtn);
-      await tester.tap(confirmBtn);
-      await tester.pump();
-
-      expect(confirmedRecord, isNotNull);
-      expect(confirmedRecord!.consumo, 190.5);
-      expect(confirmedRecord!.monto, 36000);
-      expect(confirmedRecord!.tipoServicio, 'Electricidad');
-    });
+        await tester.tap(find.text('Ingresar manual'));
+        expect(manualCalled, true);
+      },
+    );
 
     testWidgets(
-        'CA-3 y Alternancia de unidad: cambiar a Agua cambia unidad a m³ y lista de proveedores',
-        (tester) async {
-      await tester.pumpWidget(
-        buildTestableWidget(
-          BillFormView(
-            initialData: BillRecord.empty.copyWith(tipoServicio: 'Electricidad'),
-            onConfirm: (_) {},
-            onCancel: () {},
+      'CA-1: Inmediatamente después de un escaneo fallido o incorrecto, ofrece "Editar datos"',
+      (tester) async {
+        final billService = BillService();
+        await billService.clearAll();
+
+        final fakePicker = _FakeImagePicker(
+          _FakeXFile('boleta_ilegible_fallo.jpg'),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ScanScreen(
+                billService: billService,
+                imagePicker: fakePicker,
+              ),
+            ),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      // Unidad inicial kWh visible
-      expect(find.text('Consumo (kWh)'), findsOneWidget);
-      expect(find.text('Enel Distribución'), findsOneWidget);
+        // 1. Simular captura de documento que falla en lectura automática
+        await tester.tap(find.text('Tomar foto'));
+        await tester.pump();
+        await tester.pump(
+          const Duration(milliseconds: 700),
+        ); // Espera proceso OCR
 
-      // Alternar a Agua
-      await tester.tap(find.text('💧 Agua'));
-      await tester.pump();
+        // 2. Verificar que se despliega la pantalla de error oficial
+        expect(find.text('Lectura no completada'), findsOneWidget);
+        expect(
+          find.text(
+            'No pudimos leer los datos automáticamente. Puedes ingresarlos de forma manual.',
+          ),
+          findsOneWidget,
+        );
 
-      // Unidad cambia a m³
-      expect(find.text('Consumo (m³)'), findsOneWidget);
-      expect(find.text('Aguas Andinas'), findsOneWidget);
-    });
+        // 3. Verificar que ofrece inmediatamente la opción "Editar datos" (Criterio 1)
+        final editBtn = find.byKey(const Key('scan_error_edit_data_button'));
+        expect(editBtn, findsOneWidget);
+
+        // 4. Pulsar "Editar datos" abre de inmediato el formulario editable sin bloquear
+        await tester.tap(editBtn);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Tipo de Servicio'), findsOneWidget);
+        expect(
+          find.text(
+            'Revisa los datos antes de confirmar. La lectura automática puede contener errores.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('boleta_ilegible_fallo.jpg'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
-        'CA-4: muestra gráficos mensuales por servicio sin metadatos de OCR o adjuntos',
-        (tester) async {
-      final billWithDoc = BillRecord(
-        id: 'bill_hist_01',
-        tipoServicio: 'Electricidad',
-        proveedor: 'CGE',
-        periodoDesde: DateTime(2026, 9, 1),
-        periodoHasta: DateTime(2026, 9, 30),
-        consumo: 175.0,
-        unidad: 'kWh',
-        monto: 32000,
-        fechaVencimiento: DateTime(2026, 10, 15),
-        entrySource: 'ocr_confirmed',
-        hasDocumentBackup: true,
-        documentName: 'boleta_cge_sep.pdf',
-        documentType: 'pdf',
-        createdAt: DateTime.now(),
-      );
+      'CA-3: Validación al ingresar datos manualmente (monto y consumo no vacíos y formato numérico > 0)',
+      (tester) async {
+        BillRecord? confirmedRecord;
 
-      final billManual = BillRecord(
-        id: 'bill_hist_02',
-        tipoServicio: 'Agua',
-        proveedor: 'Aguas Andinas',
-        periodoDesde: DateTime(2026, 9, 1),
-        periodoHasta: DateTime(2026, 9, 30),
-        consumo: 18.0,
-        unidad: 'm³',
-        monto: 15400,
-        fechaVencimiento: DateTime(2026, 10, 18),
-        entrySource: 'manual',
-        hasDocumentBackup: false,
-        createdAt: DateTime.now(),
-      );
+        await tester.pumpWidget(
+          buildTestableWidget(
+            BillFormView(
+              initialData: BillRecord.empty,
+              onConfirm: (record) => confirmedRecord = record,
+              onCancel: () {},
+            ),
+          ),
+        );
+        await tester.pump();
 
-      await tester.pumpWidget(
-        buildTestableWidget(
-          BillHistorySection(bills: [billWithDoc, billManual]),
-        ),
-      );
-      await tester.pump();
+        // Intento de confirmar con campos vacíos
+        final confirmBtn = find.byKey(const Key('bill_confirm_button'));
+        await tester.ensureVisible(confirmBtn);
+        await tester.tap(confirmBtn);
+        await tester.pump();
 
-      expect(find.text('Consumo mensual'), findsOneWidget);
-      expect(find.text('Consumo de electricidad'), findsOneWidget);
-      expect(find.text('Consumo de agua'), findsOneWidget);
-      expect(find.text('175 kWh'), findsOneWidget);
-      expect(find.text('18 m³'), findsOneWidget);
-      expect(find.textContaining('OCR Confirmado'), findsNothing);
-      expect(find.textContaining('Sin doc. adjunto'), findsNothing);
-      expect(find.textContaining('Manual'), findsNothing);
-    });
+        expect(find.text('Ingresa el valor de consumo.'), findsOneWidget);
+        expect(find.text('Ingresa el monto facturado.'), findsOneWidget);
+        expect(confirmedRecord, isNull);
+
+        // Ingreso de valores inválidos (cero o negativos)
+        await tester.enterText(
+          find.byKey(const Key('bill_consumption_input')),
+          '0',
+        );
+        await tester.enterText(
+          find.byKey(const Key('bill_amount_input')),
+          '-500',
+        );
+        await tester.ensureVisible(confirmBtn);
+        await tester.tap(confirmBtn);
+        await tester.pump();
+
+        expect(
+          find.text('El consumo debe ser un número positivo.'),
+          findsOneWidget,
+        );
+        expect(
+          find.text('El monto debe ser un entero positivo.'),
+          findsOneWidget,
+        );
+        expect(confirmedRecord, isNull);
+
+        // Ingreso de valores válidos
+        await tester.enterText(
+          find.byKey(const Key('bill_consumption_input')),
+          '190.5',
+        );
+        await tester.enterText(
+          find.byKey(const Key('bill_amount_input')),
+          '36000',
+        );
+        await tester.ensureVisible(confirmBtn);
+        await tester.tap(confirmBtn);
+        await tester.pump();
+
+        expect(confirmedRecord, isNotNull);
+        expect(confirmedRecord!.consumo, 190.5);
+        expect(confirmedRecord!.monto, 36000);
+        expect(confirmedRecord!.tipoServicio, 'Electricidad');
+      },
+    );
+
+    testWidgets(
+      'CA-3 y Alternancia de unidad: cambiar a Agua cambia unidad a m³ y lista de proveedores',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(
+            BillFormView(
+              initialData: BillRecord.empty.copyWith(
+                tipoServicio: 'Electricidad',
+              ),
+              onConfirm: (_) {},
+              onCancel: () {},
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Unidad inicial kWh visible
+        expect(find.text('Consumo (kWh)'), findsOneWidget);
+        expect(find.text('Enel Distribución'), findsOneWidget);
+
+        // Alternar a Agua
+        await tester.tap(find.text('💧 Agua'));
+        await tester.pump();
+
+        // Unidad cambia a m³
+        expect(find.text('Consumo (m³)'), findsOneWidget);
+        expect(find.text('Aguas Andinas'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'CA-4: muestra los registros sin metadatos de OCR o adjuntos',
+      (tester) async {
+        final billWithDoc = BillRecord(
+          id: 'bill_hist_01',
+          tipoServicio: 'Electricidad',
+          proveedor: 'CGE',
+          periodoDesde: DateTime(2026, 9, 1),
+          periodoHasta: DateTime(2026, 9, 30),
+          consumo: 175.0,
+          unidad: 'kWh',
+          monto: 32000,
+          fechaVencimiento: DateTime(2026, 10, 15),
+          entrySource: 'ocr_confirmed',
+          hasDocumentBackup: true,
+          documentName: 'boleta_cge_sep.pdf',
+          documentType: 'pdf',
+          createdAt: DateTime.now(),
+        );
+
+        final billManual = BillRecord(
+          id: 'bill_hist_02',
+          tipoServicio: 'Agua',
+          proveedor: 'Aguas Andinas',
+          periodoDesde: DateTime(2026, 9, 1),
+          periodoHasta: DateTime(2026, 9, 30),
+          consumo: 18.0,
+          unidad: 'm³',
+          monto: 15400,
+          fechaVencimiento: DateTime(2026, 10, 18),
+          entrySource: 'manual',
+          hasDocumentBackup: false,
+          createdAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(
+            BillHistorySection(bills: [billWithDoc, billManual]),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Registro de boletas'), findsOneWidget);
+        expect(find.text('2'), findsOneWidget);
+
+        expect(find.text('CGE'), findsOneWidget);
+        expect(find.text('Aguas Andinas'), findsOneWidget);
+        expect(find.textContaining('OCR Confirmado'), findsNothing);
+        expect(find.textContaining('Sin doc. adjunto'), findsNothing);
+        expect(find.textContaining('Manual'), findsNothing);
+      },
+    );
   });
+}
+
+BillRecord _bill({
+  required String id,
+  required String tipoServicio,
+  required DateTime periodoHasta,
+  required double consumo,
+}) {
+  return BillRecord(
+    id: id,
+    tipoServicio: tipoServicio,
+    proveedor: tipoServicio == 'Agua' ? 'Esval' : 'CGE',
+    periodoDesde: DateTime(periodoHasta.year, periodoHasta.month, 1),
+    periodoHasta: periodoHasta,
+    consumo: consumo,
+    unidad: tipoServicio == 'Agua' ? 'm³' : 'kWh',
+    monto: 10000,
+    fechaVencimiento: periodoHasta.add(const Duration(days: 15)),
+    entrySource: 'manual',
+    createdAt: periodoHasta,
+  );
 }
 
 class _FakeImagePicker extends ImagePicker {
@@ -542,8 +687,8 @@ class _FakeImagePicker extends ImagePicker {
 class _FakeXFile extends XFile {
   final String _customName;
   _FakeXFile(String name)
-      : _customName = name,
-        super.fromData(Uint8List.fromList([1, 2, 3, 4]));
+    : _customName = name,
+      super.fromData(Uint8List.fromList([1, 2, 3, 4]));
 
   @override
   String get name => _customName;
@@ -551,4 +696,3 @@ class _FakeXFile extends XFile {
   @override
   Future<int> length() async => 1024;
 }
-

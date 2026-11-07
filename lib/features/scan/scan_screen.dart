@@ -10,6 +10,7 @@ import 'package:habitik/data/models/bill_record.dart';
 import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
 import 'widgets/bill_form_view.dart';
+import 'widgets/bill_consumption_chart.dart';
 import 'widgets/bill_history_section.dart';
 import 'widgets/scan_action_card.dart';
 
@@ -337,7 +338,13 @@ class _ScanScreenState extends State<ScanScreen> {
               ValueListenableBuilder<List<BillRecord>>(
                 valueListenable: _billService.billsNotifier,
                 builder: (context, bills, _) {
-                  return BillHistorySection(bills: bills);
+                  return Column(
+                    children: [
+                      BillConsumptionChart(bills: bills),
+                      const SizedBox(height: 24),
+                      BillHistorySection(bills: bills),
+                    ],
+                  );
                 },
               ),
             ],

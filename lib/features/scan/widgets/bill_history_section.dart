@@ -1,47 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:habitik/core/theme/theme.dart';
 import 'package:habitik/data/models/bill_record.dart';
-
-class MonthlyConsumptionPoint {
-  const MonthlyConsumptionPoint({required this.month, required this.label, required this.total});
-
-  final DateTime month;
-  final String label;
-  final double total;
-}
-
-class MonthlyConsumptionSeries {
-  const MonthlyConsumptionSeries({required this.electricity, required this.water});
-
-  final List<MonthlyConsumptionPoint> electricity;
-  final List<MonthlyConsumptionPoint> water;
-}
-
-MonthlyConsumptionSeries buildMonthlyConsumptionSeries(List<BillRecord> bills) {
-  List<MonthlyConsumptionPoint> buildFor(bool Function(BillRecord) matches) {
-    final totals = <DateTime, double>{};
-    for (final bill in bills.where(matches)) {
-      final month = DateTime(bill.periodoDesde.year, bill.periodoDesde.month);
-      totals[month] = (totals[month] ?? 0) + bill.consumo;
-    }
-    final points = totals.entries
-        .map((entry) => MonthlyConsumptionPoint(month: entry.key, label: _monthLabel(entry.key.month), total: entry.value))
-        .toList()
-      ..sort((a, b) => a.month.compareTo(b.month));
-    return points.length <= 6 ? points : points.sublist(points.length - 6);
-  }
-
-  return MonthlyConsumptionSeries(
-    electricity: buildFor((bill) => bill.isElectricidad),
-    water: buildFor((bill) => bill.isAgua),
-  );
-}
-
-String _monthLabel(int month) {
-  const labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return labels[month - 1];
-}
 
 class BillHistorySection extends StatelessWidget {
   const BillHistorySection({super.key, required this.bills});
@@ -50,185 +11,195 @@ class BillHistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
-    final series = buildMonthlyConsumptionSeries(bills);
+    final isDark =
+        Theme.of(context).brightness == Brightness.dark ||
+        isDarkModeNotifier.value;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Consumo mensual',
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : HabitikColors.green900,
-          ),
+        Row(
+          children: [
+            Text(
+              'Registro de boletas',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : HabitikColors.green900,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? HabitikColors.green500.withValues(alpha: 0.15)
+                    : HabitikColors.green100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '${bills.length}',
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: isDark
+                      ? HabitikColors.green400
+                      : HabitikColors.green800,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
-        _MonthlyConsumptionChart(
-          title: 'Consumo de electricidad',
-          emptyLabel: 'Aún no hay consumo de electricidad registrado.',
-          unit: 'kWh',
-          icon: '⚡',
-          color: HabitikColors.amber500,
-          points: series.electricity,
-        ),
-        const SizedBox(height: 16),
-        _MonthlyConsumptionChart(
-          title: 'Consumo de agua',
-          emptyLabel: 'Aún no hay consumo de agua registrado.',
-          unit: 'm³',
-          icon: '💧',
-          color: HabitikColors.blue500,
-          points: series.water,
-        ),
+        if (bills.isEmpty)
+          _EmptyBillsState(isDark: isDark)
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: bills.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) =>
+                _BillRecordCard(bill: bills[index], isDark: isDark),
+          ),
       ],
     );
   }
 }
 
-class _MonthlyConsumptionChart extends StatelessWidget {
-  const _MonthlyConsumptionChart({
-    required this.title,
-    required this.emptyLabel,
-    required this.unit,
-    required this.icon,
-    required this.color,
-    required this.points,
-  });
+class _EmptyBillsState extends StatelessWidget {
+  const _EmptyBillsState({required this.isDark});
 
-  final String title;
-  final String emptyLabel;
-  final String unit;
-  final String icon;
-  final Color color;
-  final List<MonthlyConsumptionPoint> points;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark || isDarkModeNotifier.value;
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? HabitikColors.darkCardBg : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? Colors.white12 : HabitikColors.divider),
-      ),
+      padding: const EdgeInsets.all(24),
+      decoration: _cardDecoration(isDark),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : HabitikColors.textDark,
-                ),
-              ),
-              const Spacer(),
-              Text(unit, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-            ],
+          const Text('📋', style: TextStyle(fontSize: 36)),
+          const SizedBox(height: 10),
+          Text(
+            'Aún no hay boletas registradas',
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : HabitikColors.textDark,
+            ),
           ),
-          const SizedBox(height: 18),
-          if (points.isEmpty)
-            SizedBox(
-              height: 132,
-              child: Center(
-                child: Text(
-                  emptyLabel,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white54 : HabitikColors.textLight,
-                  ),
-                ),
-              ),
-            )
-          else
-            _ChartBars(points: points, color: color, unit: unit, isDark: isDark),
+          const SizedBox(height: 4),
+          Text(
+            'Cuando confirmes una boleta, su consumo aparecerá aquí y en la evolución mensual.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(
+              fontSize: 12.5,
+              color: isDark ? Colors.white54 : HabitikColors.textLight,
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ChartBars extends StatelessWidget {
-  const _ChartBars({required this.points, required this.color, required this.unit, required this.isDark});
+class _BillRecordCard extends StatelessWidget {
+  const _BillRecordCard({required this.bill, required this.isDark});
 
-  final List<MonthlyConsumptionPoint> points;
-  final Color color;
-  final String unit;
+  final BillRecord bill;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final maxTotal = points.map((point) => point.total).reduce((a, b) => a > b ? a : b);
+    final isElectricity = bill.isElectricidad;
+    final accent = isElectricity
+        ? HabitikColors.amber500
+        : HabitikColors.blue500;
+    final icon = isElectricity ? '⚡' : '💧';
 
-    return SizedBox(
-      height: 168,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(isDark),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: points
-            .map(
-              (point) => Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${_formatConsumption(point.total)} $unit',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white70 : HabitikColors.textMid,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        height: 112,
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: FractionallySizedBox(
-                            heightFactor: (point.total / maxTotal).clamp(0.08, 1.0),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        point.label,
-                        style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white60 : HabitikColors.textLight,
-                        ),
-                      ),
-                    ],
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: isDark ? 0.22 : 0.13),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(icon, style: const TextStyle(fontSize: 21)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bill.proveedor,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : HabitikColors.textDark,
                   ),
                 ),
-              ),
-            )
-            .toList(),
+                Text(
+                  '${bill.tipoServicio} · ${_formatDate(bill.periodoHasta)}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    color: isDark ? Colors.white54 : HabitikColors.textLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${_formatConsumption(bill.consumo)} ${bill.unidad}',
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : HabitikColors.green900,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+BoxDecoration _cardDecoration(bool isDark) {
+  return BoxDecoration(
+    color: isDark ? HabitikColors.darkCardBg : Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: isDark ? Colors.white12 : HabitikColors.divider),
+  );
+}
+
+String _formatDate(DateTime date) {
+  const months = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
+  ];
+  return '${date.day} ${months[date.month - 1]} ${date.year}';
+}
+
 String _formatConsumption(double value) {
-  return value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+  return value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(1);
 }
