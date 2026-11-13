@@ -13,8 +13,11 @@ import '../services/eco_wordle_service.dart';
 /// Sigue las directrices de Clean Code y arquitectura desacoplada de Habitik.
 class EcoWordleController extends ChangeNotifier {
   EcoWordleState _gameState = EcoWordleState.loading;
+  String? _sesionId;
   int _largoPalabra = 5;
   final int _maxIntentos = 6;
+  bool _loadingAnimDone = false;
+  bool _statusLoaded = false;
 
   List<String> _attempts = [];
   String _currentAttempt = '';
@@ -29,6 +32,7 @@ class EcoWordleController extends ChangeNotifier {
 
   // ── Getters ──
   EcoWordleState get gameState => _gameState;
+  String? get sesionId => _sesionId;
   int get largoPalabra => _largoPalabra;
   int get maxIntentos => _maxIntentos;
   List<String> get attempts => List.unmodifiable(_attempts);
@@ -50,13 +54,14 @@ class EcoWordleController extends ChangeNotifier {
       if (!context.mounted) return;
 
       if (status != null) {
+        _sesionId = status.sesionId;
         _largoPalabra = status.largoPalabra;
         _attempts = List.from(status.intentosRealizados);
+        _currentAttempt = '';
         _pistaRevelada = status.pistaRevelada;
         _pistaEducativa = status.pistaEducativa;
-        if (status.palabraCorrecta != null) {
-          _palabraCorrecta = status.palabraCorrecta;
-        }
+        _recompensas = null;
+        _palabraCorrecta = status.palabraCorrecta;
 
         // Si el usuario no tiene intentos registrados en el backend,
         // aseguramos que el teclado y la matriz comiencen completamente limpios.
@@ -65,7 +70,7 @@ class EcoWordleController extends ChangeNotifier {
           _keyboardState.clear();
           await _clearLocalEvaluations();
         } else {
-          // Restaurar evaluaciones locales únicamente si el usuario ya tenía intentos
+          // Restaurar evaluaciones locales únicamente si la sesión actual ya tenía intentos
           await _loadLocalEvaluations();
 
           if (_evaluationMatrix.length > _attempts.length) {
@@ -86,18 +91,22 @@ class EcoWordleController extends ChangeNotifier {
           }
         }
 
+        _statusLoaded = true;
+
         if (status.estado == 'ganado') {
-          // El usuario ya ganó anteriormente: no mostrar recompensas ni botón de reclamar
+          // El usuario ya ganó esta sesión: no mostrar recompensas ni botón de reclamar
           _gameState = EcoWordleState.alreadyWon;
           if (_evaluationMatrix.isNotEmpty) {
             _evaluationMatrix.last = List.filled(_evaluationMatrix.last.length, 'verde');
           }
         } else if (status.estado == 'perdido') {
           _gameState = EcoWordleState.failure;
+        } else if (_loadingAnimDone && _gameState == EcoWordleState.loading) {
+          _gameState = EcoWordleState.start;
         }
         notifyListeners();
       } else {
-        HabitikFeedback.showError(context, 'No se pudo cargar el Eco-Wordle de hoy.');
+        HabitikFeedback.showError(context, 'No se pudo cargar el Eco-Wordle.');
         Navigator.maybePop(context);
       }
     } catch (e) {
@@ -111,7 +120,8 @@ class EcoWordleController extends ChangeNotifier {
 
   /// Concluye la pantalla de carga.
   void onLoadingComplete() {
-    if (_gameState != EcoWordleState.success && _gameState != EcoWordleState.failure) {
+    _loadingAnimDone = true;
+    if (_statusLoaded && _gameState == EcoWordleState.loading) {
       _gameState = EcoWordleState.start;
       notifyListeners();
     }
@@ -121,6 +131,64 @@ class EcoWordleController extends ChangeNotifier {
   void onStartGame() {
     _gameState = EcoWordleState.playing;
     notifyListeners();
+  }
+
+  /// Inicia una nueva partida en el mismo día con una palabra diferente.
+  Future<void> playAgain(BuildContext context) async {
+    if (_isProcessing) return;
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final status = await EcoWordleService().startNewGame();
+      if (!context.mounted) return;
+
+      if (status != null) {
+        await _clearLocalEvaluations();
+        if (!context.mounted) return;
+
+        _sesionId = status.sesionId;
+        _largoPalabra = status.largoPalabra;
+        _attempts = List.from(status.intentosRealizados);
+        _currentAttempt = '';
+        _evaluationMatrix.clear();
+        _keyboardState.clear();
+        _pistaRevelada = status.pistaRevelada;
+        _pistaEducativa = status.pistaEducativa;
+        _recompensas = null;
+        _palabraCorrecta = status.palabraCorrecta;
+
+        if (_attempts.isNotEmpty) {
+          await _loadLocalEvaluations();
+          if (!context.mounted) return;
+          while (_evaluationMatrix.length < _attempts.length) {
+            final idx = _evaluationMatrix.length;
+            final word = _attempts[idx];
+            final rowLen = word.length > _largoPalabra ? _largoPalabra : word.length;
+            _evaluationMatrix.add(List.filled(rowLen, 'gris'));
+            for (int i = 0; i < rowLen; i++) {
+              final letter = word[i].toUpperCase();
+              _keyboardState.putIfAbsent(letter, () => 'gris');
+            }
+          }
+        } else {
+          await _clearLocalEvaluations();
+          if (!context.mounted) return;
+        }
+
+        _gameState = EcoWordleState.playing;
+      } else {
+        HabitikFeedback.showError(context, 'No se pudo cargar una nueva palabra.');
+      }
+    } catch (e) {
+      debugPrint('❌ [EcoWordleController] Error al iniciar nueva partida: $e');
+      if (context.mounted) {
+        HabitikFeedback.showError(context, 'Error al cargar una nueva palabra.');
+      }
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
   }
 
   /// Inserción de letra en el intento actual.
@@ -157,7 +225,7 @@ class EcoWordleController extends ChangeNotifier {
 
     try {
       final attemptWord = _currentAttempt;
-      final result = await EcoWordleService().submitAttempt(attemptWord);
+      final result = await EcoWordleService().submitAttempt(attemptWord, sesionId: _sesionId);
       if (!context.mounted) return;
 
       if (result != null && result.success) {
@@ -257,12 +325,12 @@ class EcoWordleController extends ChangeNotifier {
     final confirmed = await HabitikConfirmDialog.show(
       context,
       title: '¿Gastar 3 monedas para revelar la pista?',
-      description: 'Te ayudará a resolver la palabra ecológica de hoy.',
+      description: 'Te ayudará a resolver esta palabra ecológica.',
       confirmLabel: 'Comprar',
     );
 
     if (confirmed && context.mounted) {
-      final pista = await EcoWordleService().unlockHint();
+      final pista = await EcoWordleService().unlockHint(sesionId: _sesionId);
       if (!context.mounted) return;
 
       if (pista != null) {
@@ -282,7 +350,7 @@ class EcoWordleController extends ChangeNotifier {
     }
   }
 
-  // ── Persistencia Local de Evaluaciones del Día (Por Usuario) ──
+  // ── Persistencia Local de Evaluaciones por Sesión/Usuario ──
 
   String get _todayKey {
     final userId = SessionService().currentUser?.id ?? 'guest';
@@ -290,9 +358,18 @@ class EcoWordleController extends ChangeNotifier {
     return 'wordle_${userId}_$dateStr';
   }
 
+  String get _sessionCacheKey {
+    if (_sesionId != null && _sesionId!.isNotEmpty) {
+      return '${_todayKey}_$_sesionId';
+    }
+    return _todayKey;
+  }
+
   Future<void> _clearLocalEvaluations() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('${_sessionCacheKey}_eval');
+      await prefs.remove('${_sessionCacheKey}_keyb');
       await prefs.remove('${_todayKey}_eval');
       await prefs.remove('${_todayKey}_keyb');
       // Limpiar también posibles claves legacy sin userId del día de hoy
@@ -313,8 +390,10 @@ class EcoWordleController extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final evalStr = prefs.getString('${_todayKey}_eval');
-      final keybStr = prefs.getString('${_todayKey}_keyb');
+      final evalStr = prefs.getString('${_sessionCacheKey}_eval') ??
+          (_sesionId == null ? prefs.getString('${_todayKey}_eval') : null);
+      final keybStr = prefs.getString('${_sessionCacheKey}_keyb') ??
+          (_sesionId == null ? prefs.getString('${_todayKey}_keyb') : null);
 
       if (evalStr != null) {
         final List<dynamic> decoded = jsonDecode(evalStr);
@@ -338,8 +417,8 @@ class EcoWordleController extends ChangeNotifier {
   Future<void> _saveLocalEvaluations() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('${_todayKey}_eval', jsonEncode(_evaluationMatrix));
-      await prefs.setString('${_todayKey}_keyb', jsonEncode(_keyboardState));
+      await prefs.setString('${_sessionCacheKey}_eval', jsonEncode(_evaluationMatrix));
+      await prefs.setString('${_sessionCacheKey}_keyb', jsonEncode(_keyboardState));
     } catch (e) {
       debugPrint('⚠️ [EcoWordleController] Error al guardar evaluaciones locales: $e');
     }

@@ -21,11 +21,27 @@ class EcoWordleService {
     return null;
   }
 
-  Future<EcoWordleAttemptResult?> submitAttempt(String word) async {
+  Future<EcoWordleStatus?> startNewGame() async {
+    try {
+      final response = await ApiClient().post('/wordle/nueva', {});
+      final data = jsonDecode(response.body);
+      if (data['success'] == true && data['data'] != null) {
+        return EcoWordleStatus.fromJson(data['data']);
+      }
+    } catch (e) {
+      debugPrint('❌ [EcoWordleService] Error al iniciar nueva partida: $e');
+    }
+    return null;
+  }
+
+  Future<EcoWordleAttemptResult?> submitAttempt(String word, {String? sesionId}) async {
     try {
       final response = await ApiClient().post(
         '/wordle/intentar',
-        {'intento': word},
+        {
+          'intento': word,
+          if (sesionId != null && sesionId.isNotEmpty) 'sesion_id': sesionId,
+        },
       );
       final data = jsonDecode(response.body);
       if (data['success'] == true) {
@@ -37,9 +53,14 @@ class EcoWordleService {
     return null;
   }
 
-  Future<String?> unlockHint() async {
+  Future<String?> unlockHint({String? sesionId}) async {
     try {
-      final response = await ApiClient().post('/wordle/pista', {});
+      final response = await ApiClient().post(
+        '/wordle/pista',
+        {
+          if (sesionId != null && sesionId.isNotEmpty) 'sesion_id': sesionId,
+        },
+      );
       final data = jsonDecode(response.body);
       if (data['success'] == true) {
         return data['pista'] as String?;

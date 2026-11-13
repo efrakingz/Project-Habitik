@@ -7,7 +7,6 @@ import 'package:habitik/core/services/audio_service.dart';
 import 'package:habitik/core/services/session_service.dart';
 import 'package:habitik/data/models/models.dart';
 import 'package:habitik/shared/widgets/layout/layout.dart';
-import 'package:habitik/shared/widgets/feedback/feedback.dart';
 import 'package:habitik/shared/widgets/cards/cards.dart';
 import 'package:habitik/shared/widgets/icons/game_icons.dart';
 import 'package:habitik/shared/widgets/effects/effects.dart';
@@ -100,14 +99,16 @@ class _ChallengesScreenState extends State<ChallengesScreen>
       _completedNotifier.value = completed.toSet();
     }
 
-    // Sincronizar con el backend si el Wordle de hoy ya fue completado o finalizado
+    // Sincronizar con el backend si el Wordle de hoy ya fue completado al menos una vez
     try {
       final res = await ApiClient().get('/wordle/hoy');
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
         if (decoded['success'] == true && decoded['data'] != null) {
-          final estado = decoded['data']['estado'];
-          if (estado == 'ganado' || estado == 'perdido') {
+          final data = decoded['data'] as Map<String, dynamic>;
+          final estado = data['estado'];
+          final completadoHoy = data['completado_hoy'] == true;
+          if (completadoHoy || estado == 'ganado') {
             final updated = {..._completedNotifier.value, 'wordle'};
             if (mounted) {
               _completedNotifier.value = updated;
@@ -589,111 +590,64 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   ),
                 ],
               ),
-              if (isWordleCompleted)
-                GestureDetector(
-                  onTap: () {
-                    AudioService.playSFX('click.mp3');
-                    HabitikFeedback.showInfo(
+              GestureDetector(
+                onTap: () {
+                  AudioService.playSFX('click.mp3');
+                  if (isAvailable) {
+                    final id = _selectedChallengeIdNotifier.value!;
+                    _onSelectChallenge(null);
+                    _playGame(id);
+                  } else {
+                    ComingSoonModal.show(
                       context,
-                      '¡Ya completaste el reto de hoy! Vuelve mañana para una nueva palabra ecológica.',
+                      title: challenge.titulo,
+                      emoji: challenge.emoji,
+                      description:
+                          'El desafío "${challenge.titulo}" está actualmente en desarrollo y estará disponible en una próxima actualización. ¡Sigue cuidando el planeta con los demás retos!',
                     );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E3825) : const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF388E3C) : const Color(0xFF81C784),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(25),
-                          offset: const Offset(0, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle_rounded,
-                          color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '¡COMPLETADO!',
-                          style: TextStyle(
-                            color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
-                    ),
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 12,
                   ),
-                )
-              else
-                GestureDetector(
-                  onTap: () {
-                    AudioService.playSFX('click.mp3');
-                    if (isAvailable) {
-                      final id = _selectedChallengeIdNotifier.value!;
-                      _onSelectChallenge(null);
-                      _playGame(id);
-                    } else {
-                      ComingSoonModal.show(
-                        context,
-                        title: challenge.titulo,
-                        emoji: challenge.emoji,
-                        description:
-                            'El desafío "${challenge.titulo}" está actualmente en desarrollo y estará disponible en una próxima actualización. ¡Sigue cuidando el planeta con los demás retos!',
-                      );
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isAvailable ? _btnColor : (isDark ? Colors.grey.shade800 : Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isAvailable ? _btnShadow : (isDark ? Colors.black45 : Colors.grey.shade600),
-                          offset: const Offset(0, 4),
-                          blurRadius: 0,
-                        ),
+                  decoration: BoxDecoration(
+                    color: isAvailable ? _btnColor : (isDark ? Colors.grey.shade800 : Colors.grey.shade400),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isAvailable ? _btnShadow : (isDark ? Colors.black45 : Colors.grey.shade600),
+                        offset: const Offset(0, 4),
+                        blurRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isAvailable) ...[
+                        const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 15),
+                        const SizedBox(width: 6),
+                      ] else if (isWordleCompleted) ...[
+                        const Icon(Icons.refresh_rounded, color: Colors.white, size: 17),
+                        const SizedBox(width: 6),
                       ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!isAvailable) ...[
-                          const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 15),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(
-                          isAvailable ? '¡JUGAR!' : 'PRÓXIMAMENTE',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
-                            letterSpacing: 1.1,
-                          ),
+                      Text(
+                        isAvailable
+                            ? (isWordleCompleted ? '¡JUGAR OTRA!' : '¡JUGAR!')
+                            : 'PRÓXIMAMENTE',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 1.1,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ],

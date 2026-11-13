@@ -82,9 +82,9 @@ class ChallengeType {
     ChallengeType(
       id: 'wordle',
       emoji: '🔤',
-      titulo: 'Eco-Wordle del Día',
+      titulo: 'Eco-Wordle',
       displayTitle: 'Eco-Wordle',
-      desc: 'Adivina la palabra ecológica de hoy',
+      desc: 'Adivina palabras ecológicas y gana XP',
       xp: 100,
       monedas: 4,
       colorHex: '#4CAF50',
