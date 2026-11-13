@@ -12,6 +12,7 @@ class WordleFailureOverlay extends StatelessWidget {
   final String? palabraCorrecta;
   final int largoPalabra;
   final VoidCallback onClose;
+  final VoidCallback? onPlayAgain;
 
   const WordleFailureOverlay({
     super.key,
@@ -21,15 +22,20 @@ class WordleFailureOverlay extends StatelessWidget {
     this.palabraCorrecta,
     this.largoPalabra = 5,
     required this.onClose,
+    this.onPlayAgain,
   });
 
   @override
   Widget build(BuildContext context) {
     final progressRatio = (intentosUsados / maxIntentos).clamp(0.0, 1.0);
     final bool agotoIntentos = intentosUsados >= maxIntentos;
-    final String mensajeSubtitulo = agotoIntentos
-        ? "Agotaste los $maxIntentos intentos sin adivinar la palabra. ¡Mañana hay una nueva oportunidad!"
-        : "Has completado $intentosUsados de $maxIntentos intentos. ¡Mañana hay una nueva oportunidad!";
+    final String mensajeSubtitulo = onPlayAgain != null
+        ? (agotoIntentos
+            ? "Agotaste los $maxIntentos intentos sin adivinar la palabra. ¡Prueba con una nueva!"
+            : "Has completado $intentosUsados de $maxIntentos intentos. ¡Prueba con una nueva!")
+        : (agotoIntentos
+            ? "Agotaste los $maxIntentos intentos sin adivinar la palabra. ¡Mañana hay una nueva oportunidad!"
+            : "Has completado $intentosUsados de $maxIntentos intentos. ¡Mañana hay una nueva oportunidad!");
 
     final String palabraValida = (palabraCorrecta != null && palabraCorrecta!.trim().isNotEmpty)
         ? palabraCorrecta!.trim().toUpperCase()
@@ -295,7 +301,10 @@ class WordleFailureOverlay extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          pistaEducativa ?? "Cada día hay una nueva palabra ecológica. ¡Sigue aprendiendo y mejorando!",
+                          pistaEducativa ??
+                              (onPlayAgain != null
+                                  ? "Cada partida te trae una nueva palabra ecológica. ¡Sigue aprendiendo y mejorando!"
+                                  : "Cada día hay una nueva palabra ecológica. ¡Sigue aprendiendo y mejorando!"),
                           style: GoogleFonts.outfit(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
@@ -309,9 +318,9 @@ class WordleFailureOverlay extends StatelessWidget {
 
                 const SizedBox(height: 22),
 
-                // ── 4. Botón Volver ──
+                // ── 4. Botón Acción Principal ──
                 GestureDetector(
-                  onTap: onClose,
+                  onTap: onPlayAgain ?? onClose,
                   child: Container(
                     width: double.infinity,
                     height: 56,
@@ -337,10 +346,14 @@ class WordleFailureOverlay extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                        Icon(
+                          onPlayAgain != null ? Icons.refresh_rounded : Icons.arrow_back_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          "VOLVER A DESAFÍOS",
+                          onPlayAgain != null ? "JUGAR OTRA PALABRA" : "VOLVER A DESAFÍOS",
                           style: GoogleFonts.outfit(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -352,6 +365,28 @@ class WordleFailureOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                if (onPlayAgain != null) ...[
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: onClose,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF64748B)),
+                        const SizedBox(width: 6),
+                        Text(
+                          "Volver a desafíos",
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF64748B),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

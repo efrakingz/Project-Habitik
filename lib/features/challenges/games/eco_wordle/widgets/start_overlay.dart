@@ -130,7 +130,7 @@ class WordleStartOverlay extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "¡Adivina la palabra ecológica del día!",
+                                "¡Adivina la palabra ecológica!",
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.outfit(
                                   color: const Color(0xFF059669),

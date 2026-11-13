@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:habitik/features/challenges/games/eco_wordle/models/eco_wordle_models.dart';
 import 'package:habitik/features/challenges/games/eco_wordle/widgets/board.dart';
 import 'package:habitik/features/challenges/games/eco_wordle/widgets/failure_overlay.dart';
+import 'package:habitik/features/challenges/games/eco_wordle/widgets/victory_overlay.dart';
 
 void main() {
   group('EcoWordleBoard Responsive Tests', () {
@@ -234,6 +236,87 @@ void main() {
       // Debe mostrar exactamente 7 signos de interrogación y no BIOMA (5 letras)
       expect(find.text('?'), findsNWidgets(7));
       expect(find.text('B'), findsNothing);
+    });
+
+    testWidgets('Permite jugar otra palabra cuando onPlayAgain está configurado en FailureOverlay', (tester) async {
+      var playAgainCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WordleFailureOverlay(
+              intentosUsados: 6,
+              maxIntentos: 6,
+              largoPalabra: 5,
+              palabraCorrecta: 'SOLAR',
+              onPlayAgain: () => playAgainCalled = true,
+              onClose: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('JUGAR OTRA PALABRA'), findsOneWidget);
+      expect(find.text('Volver a desafíos'), findsOneWidget);
+      await tester.tap(find.text('JUGAR OTRA PALABRA'));
+      await tester.pump();
+
+      expect(playAgainCalled, isTrue);
+    });
+  });
+
+  group('WordleVictoryOverlay & Models Tests', () {
+    testWidgets('Muestra botón JUGAR OTRA PALABRA y dispara onPlayAgain en VictoryOverlay', (tester) async {
+      var playAgainCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WordleVictoryOverlay(
+              intentosUsados: 2,
+              maxIntentos: 6,
+              pistaEducativa: 'Energía limpia del sol.',
+              recompensas: const {'xp': 100, 'monedas': 4},
+              onContinue: () {},
+              onPlayAgain: () => playAgainCalled = true,
+              onClose: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.text('¡RECLAMAR RECOMPENSA! ✨'), findsOneWidget);
+      expect(find.text('JUGAR OTRA PALABRA'), findsOneWidget);
+
+      final playAgainFinder = find.text('JUGAR OTRA PALABRA');
+      await tester.ensureVisible(playAgainFinder);
+      await tester.tap(playAgainFinder);
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(playAgainCalled, isTrue);
+    });
+
+    test('EcoWordleStatus parsea sesion_id y completado_hoy correctamente', () {
+      final status = EcoWordleStatus.fromJson({
+        'sesion_id': 'sess-123',
+        'largo_palabra': 6,
+        'intentos_realizados': ['BOSQUE'],
+        'estado': 'en_proceso',
+        'pista_revelada': false,
+        'completado_hoy': true,
+        'partidas_completadas_hoy': '2',
+      });
+
+      expect(status.sesionId, 'sess-123');
+      expect(status.largoPalabra, 6);
+      expect(status.completadoHoy, isTrue);
+      expect(status.partidasCompletadasHoy, 2);
     });
   });
 }

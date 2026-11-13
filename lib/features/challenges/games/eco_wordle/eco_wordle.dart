@@ -105,10 +105,12 @@ class _EcoWordleScreenState extends State<EcoWordleScreen> {
                         widget.onChallengeCompleted?.call();
                         _closeGame();
                       },
+                      onPlayAgain: () {
+                        widget.onChallengeAlreadyCompleted?.call();
+                        _controller.playAgain(context);
+                      },
                       onClose: () {
-                        if (_controller.gameState == EcoWordleState.alreadyWon) {
-                          widget.onChallengeAlreadyCompleted?.call();
-                        }
+                        widget.onChallengeAlreadyCompleted?.call();
                         _closeGame();
                       },
                     ),
@@ -122,6 +124,7 @@ class _EcoWordleScreenState extends State<EcoWordleScreen> {
                       largoPalabra: _controller.largoPalabra,
                       pistaEducativa: _controller.pistaEducativa,
                       palabraCorrecta: _controller.palabraCorrecta,
+                      onPlayAgain: () => _controller.playAgain(context),
                       onClose: _closeGame,
                     ),
                   ),

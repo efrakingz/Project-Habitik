@@ -15,6 +15,7 @@ class WordleVictoryOverlay extends StatelessWidget {
   final bool isReentry;
   final VoidCallback onContinue;
   final VoidCallback onClose;
+  final VoidCallback? onPlayAgain;
 
   const WordleVictoryOverlay({
     super.key,
@@ -25,6 +26,7 @@ class WordleVictoryOverlay extends StatelessWidget {
     this.isReentry = false,
     required this.onContinue,
     required this.onClose,
+    this.onPlayAgain,
   });
 
   int _calculateStars() {
@@ -154,7 +156,7 @@ class WordleVictoryOverlay extends StatelessWidget {
                     Text(
                       stars == 3
                           ? "¡Adivinaste la palabra en los primeros intentos!"
-                          : "¡Descubriste la palabra ecológica del día!",
+                          : "¡Descubriste la palabra ecológica!",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
                         color: const Color(0xFF059669),
@@ -323,7 +325,7 @@ class WordleVictoryOverlay extends StatelessWidget {
 
                     // ── 5. Botón Continuar ──
                     GestureDetector(
-                      onTap: isReentry ? onClose : onContinue,
+                      onTap: isReentry ? (onPlayAgain ?? onClose) : onContinue,
                       child: Container(
                         width: double.infinity,
                         height: 56,
@@ -347,7 +349,9 @@ class WordleVictoryOverlay extends StatelessWidget {
                           ],
                         ),
                         child: Text(
-                          isReentry ? "VOLVER A DESAFÍOS 🌿" : "¡RECLAMAR RECOMPENSA! ✨",
+                          isReentry
+                              ? (onPlayAgain != null ? "JUGAR OTRA PALABRA 🔄" : "VOLVER A DESAFÍOS 🌿")
+                              : "¡RECLAMAR RECOMPENSA! ✨",
                           style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontSize: 16,
@@ -358,8 +362,44 @@ class WordleVictoryOverlay extends StatelessWidget {
                       ),
                     ),
 
-                    if (!isReentry) ...[
+                    if (!isReentry && onPlayAgain != null) ...[
                       const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: onPlayAgain,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF047857)),
+                              const SizedBox(width: 8),
+                              Text(
+                                "JUGAR OTRA PALABRA",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF047857),
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    if (!isReentry || onPlayAgain != null) ...[
+                      const SizedBox(height: 10),
 
                       // Botón secundario para volver
                       TextButton(
